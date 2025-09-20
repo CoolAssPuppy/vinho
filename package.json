@@ -13,10 +13,10 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "prepare": "husky",
-    "doctor": "zx ./scripts/doctor.mjs",
-    "supa:types": "supabase gen types --lang=ts --project-id aghiopwrzzvamssgcwpv > packages/db-types/src/database.types.ts",
-    "supa:dump": "supabase db dump --project-ref aghiopwrzzvamssgcwpv --schema-only > supabase/vinho.sql",
-    "supa:push": "supabase db push"
+    "doctor": "node scripts/doctor.mjs",
+    "supa:push": "supabase db push",
+    "supa:types": "supabase gen types typescript --project-id aghiopwrzzvamssgcwpv > packages/db-types/src/database.types.ts",
+    "supa:dump": "supabase db dump --project-ref aghiopwrzzvamssgcwpv > supabase/vinho.sql"
   },
   "devDependencies": {
     "turbo": "^2.0.6",
