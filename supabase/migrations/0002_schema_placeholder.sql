@@ -1,1 +1,0 @@
--- Will be replaced by AI with full Vinho schema, RLS, indexes, RPCs

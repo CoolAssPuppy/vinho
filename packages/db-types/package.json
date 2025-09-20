@@ -1,0 +1,13 @@
+{
+  "name": "@vinho/db-types",
+  "version": "1.0.0",
+  "main": "src/database.types.ts",
+  "types": "src/database.types.ts",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2"
+  }
+}
