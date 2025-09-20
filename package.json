@@ -1,0 +1,44 @@
+{
+  "name": "vinho",
+  "private": true,
+  "packageManager": "pnpm@9.12.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "prepare": "husky",
+    "doctor": "zx ./scripts/doctor.mjs",
+    "supa:types": "supabase gen types --lang=ts --project-id aghiopwrzzvamssgcwpv > packages/db-types/src/database.types.ts",
+    "supa:dump": "supabase db dump --project-ref aghiopwrzzvamssgcwpv --schema-only > supabase/vinho.sql",
+    "supa:push": "supabase db push"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.6",
+    "typescript": "^5.6.2",
+    "@types/node": "^22.5.1",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-promise": "^6.4.0",
+    "eslint-plugin-unused-imports": "^4.0.0",
+    "prettier": "^3.3.3",
+    "husky": "^9.1.5",
+    "lint-staged": "^15.2.10",
+    "zx": "^8.1.4",
+    "json": "^11.0.0"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,css,md,json}": [
+      "prettier --write"
+    ],
+    "**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix"
+    ]
+  }
+}
