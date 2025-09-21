@@ -13,13 +13,6 @@ __tests__/edge-functions/process-wine-queue.test.ts(17,49): error TS7006: Parame
 __tests__/edge-functions/process-wine-queue.test.ts(17,55): error TS7006: Parameter 'options' implicitly has an 'any' type.
 __tests__/edge-functions/process-wine-queue.test.ts(24,48): error TS7006: Parameter 'init' implicitly has an 'any' type.
 __tests__/lib/actions/scan.test.ts(8,8): error TS2307: Cannot find module '@jest/globals' or its corresponding type declarations.
-lib/actions/scan.ts(50,11): error TS2769: No overload matches this call.
-  Overload 1 of 2, '(relation: "grape_varietals" | "tastings" | "regions" | "climate_zones" | "vintages" | "producers" | "soil_types" | "vineyards" | "wines" | "wine_lists" | "photos" | "restaurant_favorites" | "scans" | "wine_list_items" | "wine_varietals"): PostgrestQueryBuilder<...>', gave the following error.
-    Argument of type '"wines_added"' is not assignable to parameter of type '"grape_varietals" | "tastings" | "regions" | "climate_zones" | "vintages" | "producers" | "soil_types" | "vineyards" | "wines" | "wine_lists" | "photos" | "restaurant_favorites" | "scans" | "wine_list_items" | "wine_varietals"'.
-  Overload 2 of 2, '(relation: never): PostgrestQueryBuilder<{ PostgrestVersion: "12"; }, { Tables: { climate_zones: { Row: { id: number; koppen: string; name: string; notes: string | null; }; Insert: { id?: number | undefined; koppen: string; name: string; notes?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relationships: []; }; ... 13 more ...; wines: { ...; }; }; Views: {}; Functions: {}; Enums: {}; CompositeTypes: {}; }, never, never, never>', gave the following error.
-    Argument of type '"wines_added"' is not assignable to parameter of type 'never'.
-lib/actions/scan.ts(64,28): error TS2339: Property 'id' does not exist on type '{ confidence: number | null; created_at: string | null; id: string; image_path: string; matched_vintage_id: string | null; ocr_text: string | null; user_id: string | null; } | { id: number; koppen: string; name: string; notes: string | null; } | ... 12 more ... | { ...; }'.
-  Property 'id' does not exist on type '{ percent: number | null; varietal_id: number; vintage_id: string; }'.
 supabase/functions/process-wine-queue/index.ts(2,30): error TS2307: Cannot find module 'jsr:@supabase/supabase-js@2' or its corresponding type declarations.
 supabase/functions/process-wine-queue/index.ts(3,24): error TS2307: Cannot find module 'https://deno.land/x/openai@v4.20.1/mod.ts' or its corresponding type declarations.
 supabase/functions/process-wine-queue/index.ts(5,22): error TS2304: Cannot find name 'Deno'.
