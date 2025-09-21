@@ -1,0 +1,524 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		143A27A98DEE7FDC4140DFA0 /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424DB00EBA1869AA2305A38A /* ScannerView.swift */; };
+		3299AD7BD31BB010C3C95D33 /* VinoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F35B623A39A4E69CF7377EBF /* VinoApp.swift */; };
+		38138BE828B613092B1F1921 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D4E98265B16E5F972A19092 /* FeedView.swift */; };
+		3DA6839B39CE325E23CA89F5 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */; };
+		3FAE5321AD98A735DA17C531 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 606B033C31499FD7E913B4BA /* SplashScreen.swift */; };
+		4558B4AAD211568905B60DBD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90C8394DD2C607793EEF947A /* ContentView.swift */; };
+		6A260EC6AE91F6BCDA66B3A6 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502BA12366C095B71BC59DC7 /* Colors.swift */; };
+		8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76EC39A8B54340E597E5A1C /* WineDetailView.swift */; };
+		8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */; };
+		A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACE8A61FC77F5216858D38 /* ThemeManager.swift */; };
+		AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */; };
+		B5E389EE06A1018722836AE9 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E81AE2E53674E7F6EDA972 /* PreviewContainer.swift */; };
+		B6778FAC52FC305D601ADD3B /* Wine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C5FF736994778CE20D63418 /* Wine.swift */; };
+		BAEDAB496398490D44302725 /* WineListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FF4D04198FB8957C739FEE1 /* WineListView.swift */; };
+		C0348ACC34903A81CF748F9F /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CA3B36B6C96D776DE7016D /* JournalView.swift */; };
+		C82DB8F44EC2F17E16B1AC74 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6781C9995199363EC644A617 /* HapticManager.swift */; };
+		D5BABE4E94AA4B281632F7A8 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADC32950C12BBEE23AA069C /* ProfileView.swift */; };
+		E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7623913BA99093EBB4AB0B6 /* AuthManager.swift */; };
+		F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		24ACE8A61FC77F5216858D38 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		424DB00EBA1869AA2305A38A /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
+		4C5FF736994778CE20D63418 /* Wine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wine.swift; sourceTree = "<group>"; };
+		502BA12366C095B71BC59DC7 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		5D4E98265B16E5F972A19092 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		5F381A633A953D96111A3722 /* Vinho.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vinho.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		606B033C31499FD7E913B4BA /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
+		60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteDetailView.swift; sourceTree = "<group>"; };
+		6781C9995199363EC644A617 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
+		83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDetailView.swift; sourceTree = "<group>"; };
+		8FF4D04198FB8957C739FEE1 /* WineListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineListView.swift; sourceTree = "<group>"; };
+		90C8394DD2C607793EEF947A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		96E81AE2E53674E7F6EDA972 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
+		AADC32950C12BBEE23AA069C /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		B5CA3B36B6C96D776DE7016D /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		CD0F362198C0FA80A60FE635 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D76EC39A8B54340E597E5A1C /* WineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineDetailView.swift; sourceTree = "<group>"; };
+		E7623913BA99093EBB4AB0B6 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		F35B623A39A4E69CF7377EBF /* VinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VinoApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0EB56D46823F30E632C1C04C = {
+			isa = PBXGroup;
+			children = (
+				9160BA6D81AB806DB4F74659 /* Vinho */,
+				EABF189C77370B3F83C7648C /* Products */,
+			);
+			indentWidth = 2;
+			sourceTree = "<group>";
+			tabWidth = 2;
+			usesTabs = 0;
+		};
+		213BFA99770849504721A1FB /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				AADC32950C12BBEE23AA069C /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		28764EFF8175993EFCD92C1D /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				96E81AE2E53674E7F6EDA972 /* PreviewContainer.swift */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		40F571B649F9C0F6E4A27E53 /* API */ = {
+			isa = PBXGroup;
+			children = (
+				EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		5E8297D107C006100C01A04A /* Scanner */ = {
+			isa = PBXGroup;
+			children = (
+				424DB00EBA1869AA2305A38A /* ScannerView.swift */,
+			);
+			path = Scanner;
+			sourceTree = "<group>";
+		};
+		9160BA6D81AB806DB4F74659 /* Vinho */ = {
+			isa = PBXGroup;
+			children = (
+				CD0F362198C0FA80A60FE635 /* Info.plist */,
+				F35B623A39A4E69CF7377EBF /* VinoApp.swift */,
+				BF881BDB0C1A2B0FF8DA1E4A /* Core */,
+				28764EFF8175993EFCD92C1D /* Preview Content */,
+				CD720B1E4D3BB01A4AD2ED46 /* Views */,
+			);
+			path = Vinho;
+			sourceTree = "<group>";
+		};
+		9A89B017681D63155424FABC /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		9BC78E8483CA1F1882C82C1B /* Feed */ = {
+			isa = PBXGroup;
+			children = (
+				83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */,
+				5D4E98265B16E5F972A19092 /* FeedView.swift */,
+			);
+			path = Feed;
+			sourceTree = "<group>";
+		};
+		A1F676E615635572AA87E7EC /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				4C5FF736994778CE20D63418 /* Wine.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		BD848B4CFE5890F012000C91 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				502BA12366C095B71BC59DC7 /* Colors.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		BF881BDB0C1A2B0FF8DA1E4A /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				40F571B649F9C0F6E4A27E53 /* API */,
+				C7894F26F0FABE73121B465E /* Managers */,
+				A1F676E615635572AA87E7EC /* Models */,
+				BD848B4CFE5890F012000C91 /* Theme */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		C7894F26F0FABE73121B465E /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+				E7623913BA99093EBB4AB0B6 /* AuthManager.swift */,
+				6781C9995199363EC644A617 /* HapticManager.swift */,
+				24ACE8A61FC77F5216858D38 /* ThemeManager.swift */,
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		CD720B1E4D3BB01A4AD2ED46 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				90C8394DD2C607793EEF947A /* ContentView.swift */,
+				606B033C31499FD7E913B4BA /* SplashScreen.swift */,
+				9A89B017681D63155424FABC /* Auth */,
+				9BC78E8483CA1F1882C82C1B /* Feed */,
+				E9955C886BE243FBC361625C /* Journal */,
+				213BFA99770849504721A1FB /* Profile */,
+				5E8297D107C006100C01A04A /* Scanner */,
+				DAB10B25B3BB3B2C5EC2F762 /* WineList */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		DAB10B25B3BB3B2C5EC2F762 /* WineList */ = {
+			isa = PBXGroup;
+			children = (
+				D76EC39A8B54340E597E5A1C /* WineDetailView.swift */,
+				8FF4D04198FB8957C739FEE1 /* WineListView.swift */,
+			);
+			path = WineList;
+			sourceTree = "<group>";
+		};
+		E9955C886BE243FBC361625C /* Journal */ = {
+			isa = PBXGroup;
+			children = (
+				B5CA3B36B6C96D776DE7016D /* JournalView.swift */,
+				60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */,
+			);
+			path = Journal;
+			sourceTree = "<group>";
+		};
+		EABF189C77370B3F83C7648C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5F381A633A953D96111A3722 /* Vinho.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0914A90513A89CD02CACB156 /* Vinho */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8B117300505FB246F9F801FC /* Build configuration list for PBXNativeTarget "Vinho" */;
+			buildPhases = (
+				CDDC79EFD3F0CBEA40D51048 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Vinho;
+			packageProductDependencies = (
+			);
+			productName = Vinho;
+			productReference = 5F381A633A953D96111A3722 /* Vinho.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		47095AE7EE983BD536F3A41A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					0914A90513A89CD02CACB156 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = DE5EE164ABFF77322EFFC317 /* Build configuration list for PBXProject "Vinho" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0EB56D46823F30E632C1C04C;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				462AFD02504931377E0DF39D /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				076EF2D10255E9DC649822BC /* XCRemoteSwiftPackageReference "lottie-ios" */,
+				7635433D62507E29747941EF /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0914A90513A89CD02CACB156 /* Vinho */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CDDC79EFD3F0CBEA40D51048 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */,
+				3DA6839B39CE325E23CA89F5 /* AuthenticationView.swift in Sources */,
+				6A260EC6AE91F6BCDA66B3A6 /* Colors.swift in Sources */,
+				4558B4AAD211568905B60DBD /* ContentView.swift in Sources */,
+				F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */,
+				38138BE828B613092B1F1921 /* FeedView.swift in Sources */,
+				C82DB8F44EC2F17E16B1AC74 /* HapticManager.swift in Sources */,
+				C0348ACC34903A81CF748F9F /* JournalView.swift in Sources */,
+				B5E389EE06A1018722836AE9 /* PreviewContainer.swift in Sources */,
+				D5BABE4E94AA4B281632F7A8 /* ProfileView.swift in Sources */,
+				143A27A98DEE7FDC4140DFA0 /* ScannerView.swift in Sources */,
+				3FAE5321AD98A735DA17C531 /* SplashScreen.swift in Sources */,
+				AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */,
+				8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */,
+				A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */,
+				3299AD7BD31BB010C3C95D33 /* VinoApp.swift in Sources */,
+				B6778FAC52FC305D601ADD3B /* Wine.swift in Sources */,
+				8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */,
+				BAEDAB496398490D44302725 /* WineListView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		16A9399F9E75CDB29923131C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Vinho needs camera access to scan wine labels";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Vinho uses your location to show nearby wine regions";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Vinho needs photo library access to upload wine images";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				"INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad" = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		270D67753DB99D30577BB836 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Vinho needs camera access to scan wine labels";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Vinho uses your location to show nearby wine regions";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Vinho needs photo library access to upload wine images";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				"INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad" = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		B02C8A782F586B60E7019A89 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Vinho/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vinho.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D21C280D7850A848B3BB6EA9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Vinho/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vinho.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8B117300505FB246F9F801FC /* Build configuration list for PBXNativeTarget "Vinho" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D21C280D7850A848B3BB6EA9 /* Debug */,
+				B02C8A782F586B60E7019A89 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DE5EE164ABFF77322EFFC317 /* Build configuration list for PBXProject "Vinho" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				16A9399F9E75CDB29923131C /* Debug */,
+				270D67753DB99D30577BB836 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		076EF2D10255E9DC649822BC /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.4.0;
+			};
+		};
+		462AFD02504931377E0DF39D /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.10.0;
+			};
+		};
+		7635433D62507E29747941EF /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+	};
+	rootObject = 47095AE7EE983BD536F3A41A /* Project object */;
+}
