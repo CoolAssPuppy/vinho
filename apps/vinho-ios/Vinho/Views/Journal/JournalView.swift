@@ -417,14 +417,35 @@ struct FlavorTag: View {
 class JournalViewModel: ObservableObject {
     @Published var notes: [TastingNoteWithWine] = []
     @Published var isLoading = false
-    
+
+    private let dataService = DataService.shared
+
     func loadNotes() async {
         isLoading = true
-        // Load from Supabase
-        notes = TastingNoteWithWine.sampleData
+        await dataService.fetchUserTastings()
+
+        // Convert tastings to TastingNoteWithWine format
+        notes = dataService.tastings.compactMap { tasting in
+            guard let vintage = tasting.vintage,
+                  let wine = vintage.wine,
+                  let producer = wine.producer else { return nil }
+
+            return TastingNoteWithWine(
+                id: tasting.id,
+                wineName: wine.name,
+                producer: producer.name,
+                vintage: vintage.year,
+                rating: Int(tasting.verdict ?? 0),
+                notes: tasting.notes,
+                aromas: [], // You can parse these from notes if needed
+                flavors: [], // You can parse these from notes if needed
+                date: tasting.tastedAt,
+                imageUrl: nil
+            )
+        }
         isLoading = false
     }
-    
+
     func refreshNotes() async {
         await loadNotes()
     }
@@ -448,7 +469,7 @@ enum TimeFilter: String, CaseIterable, Identifiable {
 }
 
 struct TastingNoteWithWine: Identifiable {
-    let id = UUID()
+    let id: UUID
     let wineName: String
     let producer: String
     let vintage: Int?
@@ -458,40 +479,4 @@ struct TastingNoteWithWine: Identifiable {
     let flavors: [String]
     let date: Date
     let imageUrl: String?
-    
-    static let sampleData: [TastingNoteWithWine] = [
-        TastingNoteWithWine(
-            wineName: "Margaux",
-            producer: "Château Margaux",
-            vintage: 2019,
-            rating: 5,
-            notes: "Exceptional vintage with perfect balance. Silky tannins and incredible depth.",
-            aromas: ["blackcurrant", "violet", "cedar"],
-            flavors: ["dark fruit", "tobacco", "graphite", "spice"],
-            date: Date(),
-            imageUrl: nil
-        ),
-        TastingNoteWithWine(
-            wineName: "Chablis Premier Cru",
-            producer: "William Fèvre",
-            vintage: 2020,
-            rating: 4,
-            notes: "Classic Chablis with crisp acidity and mineral notes. Perfect with oysters.",
-            aromas: ["citrus", "green apple", "chalk"],
-            flavors: ["lemon", "mineral", "sea salt"],
-            date: Date().addingTimeInterval(-86400),
-            imageUrl: nil
-        ),
-        TastingNoteWithWine(
-            wineName: "Opus One",
-            producer: "Opus One Winery",
-            vintage: 2018,
-            rating: 5,
-            notes: "Powerful yet elegant. A masterpiece of Napa Valley winemaking.",
-            aromas: ["cassis", "dark chocolate", "espresso"],
-            flavors: ["blackberry", "mocha", "vanilla", "herbs"],
-            date: Date().addingTimeInterval(-172800),
-            imageUrl: nil
-        )
-    ]
 }

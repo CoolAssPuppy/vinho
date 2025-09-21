@@ -549,7 +549,7 @@ struct SelectableTag: View {
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(isSelected ? LinearGradient.vinoGradient : Color.vinoDarkSecondary)
+                        .fill(isSelected ? AnyShapeStyle(LinearGradient.vinoGradient) : AnyShapeStyle(Color.vinoDarkSecondary))
                         .overlay(
                             Capsule()
                                 .stroke(isSelected ? Color.clear : Color.vinoBorder, lineWidth: 1)
@@ -625,7 +625,7 @@ struct WineSelectorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     
-    let wines = WineWithDetails.sampleData
+    let wines: [WineWithDetails] = []
     
     var filteredWines: [WineWithDetails] {
         if searchText.isEmpty {

@@ -387,15 +387,16 @@ class FeedViewModel: ObservableObject {
     @Published var feedItems: [FeedItem] = []
     @Published var isLoading = false
     @Published var error: String?
-    
+
+    private let dataService = DataService.shared
+
     @MainActor
     func loadFeed() async {
         isLoading = true
-        // Simulated data for now
-        feedItems = FeedItem.sampleData
+        feedItems = await dataService.fetchRecentActivity()
         isLoading = false
     }
-    
+
     @MainActor
     func refreshFeed() async {
         await loadFeed()
@@ -454,7 +455,7 @@ enum FeedItemType {
         switch self {
         case .wine: return .vinoPrimary
         case .tasting: return .vinoAccent
-        case .insight: return .vinoBlue
+        case .insight: return .vinoSuccess
         case .recommendation: return .vinoGold
         }
     }
@@ -472,57 +473,6 @@ struct FeedItem: Identifiable {
     let commentCount: Int
     let isLiked: Bool
     let isSaved: Bool
-    
-    static let sampleData: [FeedItem] = [
-        FeedItem(
-            type: .wine,
-            title: "2019 Château Margaux",
-            description: "An exceptional vintage from one of Bordeaux's most prestigious estates. Notes of blackcurrant, violet, and cedar with silky tannins.",
-            imageUrl: nil,
-            tags: ["bordeaux", "cabernet-sauvignon", "premium"],
-            timestamp: Date().addingTimeInterval(-3600),
-            likeCount: 42,
-            commentCount: 8,
-            isLiked: true,
-            isSaved: false
-        ),
-        FeedItem(
-            type: .tasting,
-            title: "Blind Tasting: Old World vs New World Pinot Noir",
-            description: "Compared 6 different Pinot Noirs from Burgundy and Oregon. The differences in terroir expression were fascinating!",
-            imageUrl: nil,
-            tags: ["blind-tasting", "pinot-noir", "comparison"],
-            timestamp: Date().addingTimeInterval(-7200),
-            likeCount: 28,
-            commentCount: 15,
-            isLiked: false,
-            isSaved: true
-        ),
-        FeedItem(
-            type: .insight,
-            title: "Understanding Malolactic Fermentation",
-            description: "How this secondary fermentation transforms sharp malic acid into softer lactic acid, creating those buttery notes in Chardonnay.",
-            imageUrl: nil,
-            tags: ["education", "winemaking", "chemistry"],
-            timestamp: Date().addingTimeInterval(-86400),
-            likeCount: 156,
-            commentCount: 23,
-            isLiked: false,
-            isSaved: false
-        ),
-        FeedItem(
-            type: .recommendation,
-            title: "Perfect for Your Palate: 2018 Domaine Huet Vouvray",
-            description: "Based on your love for Loire Valley wines and off-dry Rieslings, you'll adore this Chenin Blanc from Vouvray.",
-            imageUrl: nil,
-            tags: ["chenin-blanc", "loire-valley", "personalized"],
-            timestamp: Date().addingTimeInterval(-172800),
-            likeCount: 12,
-            commentCount: 3,
-            isLiked: true,
-            isSaved: true
-        )
-    ]
 }
 
 // MARK: - Extensions

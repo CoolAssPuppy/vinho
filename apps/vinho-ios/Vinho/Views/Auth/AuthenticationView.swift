@@ -115,7 +115,7 @@ struct AuthenticationView: View {
         VStack(spacing: 16) {
             HStack(spacing: 16) {
                 Rectangle()
-                    .fill(Color.vinoGray.opacity(0.3))
+                    .fill(Color.vinoTextTertiary.opacity(0.3))
                     .frame(height: 1)
 
                 Text("OR")
@@ -123,7 +123,7 @@ struct AuthenticationView: View {
                     .foregroundColor(.vinoTextSecondary)
 
                 Rectangle()
-                    .fill(Color.vinoGray.opacity(0.3))
+                    .fill(Color.vinoTextTertiary.opacity(0.3))
                     .frame(height: 1)
             }
 

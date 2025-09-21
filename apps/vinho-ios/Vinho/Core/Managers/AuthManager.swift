@@ -12,7 +12,7 @@ class AuthManager: ObservableObject {
     @Published var errorMessage: String?
 
     private var cancellables = Set<AnyCancellable>()
-    private let client = SupabaseClient.shared.client
+    private let client = SupabaseManager.shared.client
 
     init() {
         Task {
@@ -42,31 +42,30 @@ class AuthManager: ObservableObject {
             let response = try await client.auth.signUp(
                 email: email,
                 password: password,
-                data: ["full_name": .string(fullName)]
+                data: ["full_name": AnyJSON(fullName)]
             )
 
-            if let user = response.user {
-                self.user = user
-                self.isAuthenticated = true
+            let user = response.user
+            self.user = user
+            self.isAuthenticated = true
 
-                // Create user profile
-                let profile = UserProfile(
-                    id: user.id,
-                    email: email,
-                    fullName: fullName,
-                    bio: nil,
-                    avatarUrl: nil,
-                    createdAt: Date(),
-                    updatedAt: Date()
-                )
+            // Create user profile
+            let profile = UserProfile(
+                id: user.id,
+                email: email,
+                fullName: fullName,
+                bio: nil,
+                avatarUrl: nil,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
 
-                try await client
-                    .from("profiles")
-                    .insert(profile)
-                    .execute()
+            try await client
+                .from("profiles")
+                .insert(profile)
+                .execute()
 
-                self.userProfile = profile
-            }
+            self.userProfile = profile
         } catch {
             errorMessage = error.localizedDescription
         }

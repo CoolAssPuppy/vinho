@@ -489,7 +489,7 @@ struct TabButton: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(isSelected ? LinearGradient.vinoGradient : Color.clear)
+                        .fill(isSelected ? AnyShapeStyle(LinearGradient.vinoGradient) : AnyShapeStyle(Color.clear))
                 )
                 .foregroundColor(isSelected ? .white : .vinoTextSecondary)
         }

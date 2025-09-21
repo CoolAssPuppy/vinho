@@ -582,18 +582,34 @@ class WineListViewModel: ObservableObject {
     @Published var selectedRegions: Set<String> = []
     @Published var priceRange: ClosedRange<Double> = 0...500
     @Published var minimumRating: Double = 0
-    
+
+    private let dataService = DataService.shared
+
     var availableRegions: [String] {
         Array(Set(wines.compactMap { $0.region })).sorted()
     }
-    
+
     func loadWines() async {
         isLoading = true
-        // Load from Supabase
-        wines = WineWithDetails.sampleData
+        await dataService.fetchWines()
+
+        // Convert to WineWithDetails format
+        wines = dataService.wines.map { wine in
+            WineWithDetails(
+                name: wine.name,
+                producer: wine.producer?.name ?? "Unknown",
+                year: wine.vintages?.first?.year,
+                region: nil, // You can add region from producer if available
+                varietal: nil, // You can add from wine_varietals if needed
+                price: nil, // Add price field to database if needed
+                averageRating: nil, // Calculate from tastings if needed
+                imageUrl: nil,
+                type: wine.isNV ? .sparkling : .red // Default, you can improve this
+            )
+        }
         isLoading = false
     }
-    
+
     func refreshWines() async {
         await loadWines()
     }
@@ -629,6 +645,21 @@ enum WineType: String, CaseIterable {
     case rose = "Rosé"
     case sparkling = "Sparkling"
     case dessert = "Dessert"
+
+    var color: Color {
+        switch self {
+        case .red:
+            return Color(red: 0.5, green: 0.1, blue: 0.1)
+        case .white:
+            return Color(red: 0.9, green: 0.85, blue: 0.6)
+        case .rose:
+            return Color(red: 0.95, green: 0.75, blue: 0.75)
+        case .sparkling:
+            return Color(red: 0.95, green: 0.9, blue: 0.7)
+        case .dessert:
+            return Color(red: 0.8, green: 0.6, blue: 0.3)
+        }
+    }
 }
 
 struct WineWithDetails: Identifiable {
@@ -642,62 +673,4 @@ struct WineWithDetails: Identifiable {
     let averageRating: Double?
     let imageUrl: String?
     let type: WineType
-    
-    static let sampleData: [WineWithDetails] = [
-        WineWithDetails(
-            name: "Margaux",
-            producer: "Château Margaux",
-            year: 2019,
-            region: "Bordeaux, France",
-            varietal: "Cabernet Sauvignon Blend",
-            price: 850,
-            averageRating: 4.8,
-            imageUrl: nil,
-            type: .red
-        ),
-        WineWithDetails(
-            name: "Chablis Premier Cru",
-            producer: "Domaine William Fèvre",
-            year: 2020,
-            region: "Burgundy, France",
-            varietal: "Chardonnay",
-            price: 85,
-            averageRating: 4.3,
-            imageUrl: nil,
-            type: .white
-        ),
-        WineWithDetails(
-            name: "Opus One",
-            producer: "Opus One Winery",
-            year: 2018,
-            region: "Napa Valley, USA",
-            varietal: "Bordeaux Blend",
-            price: 450,
-            averageRating: 4.7,
-            imageUrl: nil,
-            type: .red
-        ),
-        WineWithDetails(
-            name: "Dom Pérignon",
-            producer: "Moët & Chandon",
-            year: 2012,
-            region: "Champagne, France",
-            varietal: "Chardonnay, Pinot Noir",
-            price: 380,
-            averageRating: 4.9,
-            imageUrl: nil,
-            type: .sparkling
-        ),
-        WineWithDetails(
-            name: "Whispering Angel",
-            producer: "Château d'Esclans",
-            year: 2021,
-            region: "Provence, France",
-            varietal: "Grenache, Cinsault",
-            price: 28,
-            averageRating: 4.0,
-            imageUrl: nil,
-            type: .rose
-        )
-    ]
 }

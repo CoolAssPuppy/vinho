@@ -3,107 +3,122 @@ import SwiftUI
 
 // MARK: - Wine Model
 struct Wine: Identifiable, Codable, Hashable {
-    let id: String
-    let producerId: String
+    let id: UUID
+    let producerId: UUID?
     let name: String
-    let description: String?
     let isNV: Bool
     let createdAt: Date
-    let updatedAt: Date
+    var producer: Producer?
+    var vintages: [Vintage]?
 
     enum CodingKeys: String, CodingKey {
         case id
         case producerId = "producer_id"
         case name
-        case description
         case isNV = "is_nv"
         case createdAt = "created_at"
-        case updatedAt = "updated_at"
+        case producer
+        case vintages
+    }
+
+    init(id: UUID = UUID(), name: String, producerId: UUID?, isNV: Bool = false, createdAt: Date = Date()) {
+        self.id = id
+        self.name = name
+        self.producerId = producerId
+        self.isNV = isNV
+        self.createdAt = createdAt
+        self.producer = nil
+        self.vintages = nil
     }
 }
 
 // MARK: - Vintage Model
 struct Vintage: Identifiable, Codable, Hashable {
-    let id: String
-    let wineId: String
-    let year: Int
-    let alcohol: Double?
-    let description: String?
-    let servingTemperature: String?
+    let id: UUID
+    let wineId: UUID?
+    let year: Int?
+    let abv: Double?
+    let vineyardId: UUID?
+    let climateZoneId: Int?
+    let soilTypeId: Int?
     let createdAt: Date
-    let updatedAt: Date
+    var wine: Wine?
 
     enum CodingKeys: String, CodingKey {
         case id
         case wineId = "wine_id"
         case year
-        case alcohol
-        case description
-        case servingTemperature = "serving_temperature"
+        case abv
+        case vineyardId = "vineyard_id"
+        case climateZoneId = "climate_zone_id"
+        case soilTypeId = "soil_type_id"
         case createdAt = "created_at"
-        case updatedAt = "updated_at"
+        case wine
     }
 }
 
 // MARK: - Producer Model
 struct Producer: Identifiable, Codable, Hashable {
-    let id: String
+    let id: UUID
     let name: String
-    let description: String?
     let website: String?
-    let instagram: String?
+    let regionId: UUID?
     let createdAt: Date
-    let updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, website, instagram
+        case id, name, website
+        case regionId = "region_id"
         case createdAt = "created_at"
-        case updatedAt = "updated_at"
     }
 }
 
 // MARK: - Scan Model
 struct Scan: Identifiable, Codable, Hashable {
-    let id: String
-    let userId: String
-    let imageUrl: String
+    let id: UUID
+    let userId: UUID
+    let imagePath: String
     let ocrText: String?
-    let matchedVintageId: String?
+    let matchedVintageId: UUID?
     let confidence: Double?
     let createdAt: Date
+    let scanImageUrl: String?
+    var matchedVintage: Vintage?
 
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
-        case imageUrl = "image_url"
+        case imagePath = "image_path"
         case ocrText = "ocr_text"
         case matchedVintageId = "matched_vintage_id"
         case confidence
         case createdAt = "created_at"
+        case scanImageUrl = "scan_image_url"
+        case matchedVintage = "matched_vintage"
     }
 }
 
-// MARK: - TastingNote Model
-struct TastingNote: Identifiable, Codable, Hashable {
-    let id: String
-    let userId: String
-    let vintageId: String
-    let rating: Int?
+// MARK: - Tasting Model
+struct Tasting: Identifiable, Codable, Hashable {
+    let id: UUID
+    let userId: UUID
+    let vintageId: UUID
+    let verdict: Int16?
     let notes: String?
-    let color: String?
-    let nose: String?
-    let palate: String?
-    let finish: String?
+    let tastedAt: Date
     let createdAt: Date
     let updatedAt: Date
+    var vintage: Vintage?
 
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
         case vintageId = "vintage_id"
-        case rating, notes, color, nose, palate, finish
+        case verdict
+        case notes
+        case tastedAt = "tasted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case vintage
     }
 }
 
@@ -151,36 +166,18 @@ struct UserProfile: Identifiable, Codable, Hashable, Equatable {
     }
 }
 
-// MARK: - WineQueue Model
-struct WineQueue: Identifiable, Codable, Hashable {
-    let id: String
-    let userId: String
-    let imageUrl: String
-    let ocrText: String?
-    let scanId: String?
-    let status: QueueStatus
-    let processedData: ProcessedWineData?
-    let errorMessage: String?
-    let retryCount: Int
-    let createdAt: Date
-    let processedAt: Date?
-
-    enum QueueStatus: String, Codable {
-        case pending, processing, completed, failed
-    }
+// MARK: - Region Model
+struct Region: Identifiable, Codable, Hashable {
+    let id: UUID
+    let name: String
+    let country: String?
+    let climateZoneId: Int?
+    let createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
-        case id
-        case userId = "user_id"
-        case imageUrl = "image_url"
-        case ocrText = "ocr_text"
-        case scanId = "scan_id"
-        case status
-        case processedData = "processed_data"
-        case errorMessage = "error_message"
-        case retryCount = "retry_count"
+        case id, name, country
+        case climateZoneId = "climate_zone_id"
         case createdAt = "created_at"
-        case processedAt = "processed_at"
     }
 }
 

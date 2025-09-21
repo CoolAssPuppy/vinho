@@ -45,6 +45,6 @@ struct VinoApp: App {
         UITabBar.appearance().standardAppearance = tabBarAppearance
         UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
         UITabBar.appearance().tintColor = UIColor(Color.vinoAccent)
-        UITabBar.appearance().unselectedItemTintColor = UIColor(Color.vinoGray)
+        UITabBar.appearance().unselectedItemTintColor = UIColor(Color.vinoTextTertiary)
     }
 }

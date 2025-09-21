@@ -59,11 +59,29 @@ export async function scanWineLabel(imageBase64: string) {
 
   if (queueError) throw queueError;
 
+  // Invoke the edge function to process the queue immediately
+  try {
+    const { data, error: functionError } = await supabase.functions.invoke(
+      "process-wine-queue",
+      {
+        body: {},
+      },
+    );
+
+    if (functionError) {
+      console.error("Failed to invoke edge function:", functionError);
+    } else {
+      console.log("Edge function invoked successfully:", data);
+    }
+  } catch (error) {
+    console.error("Error invoking edge function:", error);
+    // Don't throw - the item is already in the queue and can be processed later
+  }
+
   return {
     scanId: scan.id,
     queueItemId: queueItem.id,
-    message:
-      "Wine label added to processing queue. It will be analyzed shortly.",
+    message: "Wine label is being analyzed. Results will appear shortly.",
     wineData: null,
   };
 }
