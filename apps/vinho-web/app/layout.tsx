@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navigation } from "@/components/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { RealtimeProvider } from "@/components/providers/realtime-provider";
+import { UserProvider } from "@/components/providers/user-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,13 +22,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-background antialiased`}>
-        <RealtimeProvider>
-          <div className="relative flex min-h-full flex-col">
-            <Navigation />
-            <main className="flex-1">{children}</main>
-          </div>
-          <Toaster />
-        </RealtimeProvider>
+        <UserProvider>
+          <RealtimeProvider>
+            <div className="relative flex min-h-full flex-col">
+              <Navigation />
+              <main className="flex-1">{children}</main>
+            </div>
+            <Toaster />
+          </RealtimeProvider>
+        </UserProvider>
       </body>
     </html>
   );

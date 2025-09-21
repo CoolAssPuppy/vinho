@@ -32,14 +32,11 @@ import { toast } from "sonner";
 import { WineQuiz } from "@/components/wine-quiz";
 import { WinePreferences } from "@/components/wine-preferences";
 import { AvatarUpload } from "@/components/avatar-upload";
+import { useUser } from "@/components/providers/user-provider";
 import type { Database } from "@/types/database";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<
-    Database["public"]["Tables"]["profiles"]["Row"] | null
-  >(null);
-  const [loading, setLoading] = useState(true);
+  const { user, profile, loading, updateProfile } = useUser();
   const [emailLoading, setEmailLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -56,37 +53,10 @@ export default function ProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
-          router.push("/");
-          return;
-        }
-
-        setUser(user);
-
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (profileData) {
-          setProfile(profileData);
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [supabase, router]);
+    if (!loading && !user) {
+      router.push("/");
+    }
+  }, [loading, user, router]);
 
   const handleEmailChange = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -218,9 +188,7 @@ export default function ProfilePage() {
                         userId={user?.id || ""}
                         currentAvatarUrl={profile?.avatar_url}
                         onAvatarUpdate={(url) =>
-                          setProfile((prev) =>
-                            prev ? { ...prev, avatar_url: url } : null,
-                          )
+                          updateProfile({ avatar_url: url })
                         }
                       />
                     </div>

@@ -10,8 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Wine, Map, BookOpen, Sparkles, Menu, Camera } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Wine,
+  Map,
+  BookOpen,
+  Sparkles,
+  Menu,
+  Camera,
+  User,
+} from "lucide-react";
+import { useUser } from "@/components/providers/user-provider";
 
 const routes = [
   {
@@ -38,6 +47,7 @@ const routes = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const { user, profile } = useUser();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -91,7 +101,14 @@ export function Navigation() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>U</AvatarFallback>
+                  {profile?.avatar_url ? (
+                    <AvatarImage src={profile.avatar_url} alt="Avatar" />
+                  ) : null}
+                  <AvatarFallback>
+                    {user?.email?.[0]?.toUpperCase() || (
+                      <User className="h-4 w-4" />
+                    )}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
