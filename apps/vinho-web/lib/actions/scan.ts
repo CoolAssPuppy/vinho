@@ -1,88 +1,85 @@
-"use server"
+"use server";
 
-import { createServerSupabase } from "@/lib/supabase-server"
-import { revalidatePath } from "next/cache"
+import { createServerSupabase } from "@/lib/supabase-server";
+import { revalidatePath } from "next/cache";
 
-export async function scanWineLabel(_imageBase64: string) {
-  const supabase = await createServerSupabase()
+export async function scanWineLabel(imageBase64: string) {
+  const supabase = await createServerSupabase();
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Not authenticated")
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
-  // In production, this would:
-  // 1. Upload image to Supabase Storage
-  // 2. Call Edge Function with OCR capabilities
-  // 3. Parse extracted text
-  // 4. Match against wine database
+  // Upload image to Supabase Storage in user's folder
+  const imageData = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+  const buffer = Buffer.from(imageData, "base64");
+  const fileName = `${user.id}/${Date.now()}.jpg`;
 
-  // For now, create a scan record
+  const { error: uploadError } = await supabase.storage
+    .from("scans")
+    .upload(fileName, buffer, {
+      contentType: "image/jpeg",
+      upsert: false,
+    });
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL for the image
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("scans").getPublicUrl(fileName);
+
+  // Create a scan record
   const { data: scan, error: scanError } = await supabase
     .from("scans")
     .insert({
       user_id: user.id,
-      image_path: "placeholder.jpg", // In production, actual storage path
-      ocr_text: "Sample OCR text from wine label",
-      confidence: 0.85
+      image_path: fileName,
+      scan_image_url: publicUrl,
+      ocr_text: null, // Will be populated by the queue processor
+      confidence: null,
     })
     .select()
-    .single()
+    .single();
 
-  if (scanError) throw scanError
+  if (scanError) throw scanError;
 
-  // Try to match wine (in production, use OCR text)
-  const { data: wines } = await supabase
-    .from("wines")
-    .select(`
-      *,
-      producer:producers(name, region:regions(name, country)),
-      vintages(
-        id,
-        year,
-        abv,
-        wine_varietals(
-          percent,
-          varietal:grape_varietals(name)
-        )
-      )
-    `)
-    .limit(1)
-    .single()
+  // Add to processing queue
+  const { data: queueItem, error: queueError } = await supabase
+    .from("wines_added")
+    .insert({
+      user_id: user.id,
+      image_url: publicUrl,
+      scan_id: scan.id,
+      status: "pending",
+    })
+    .select()
+    .single();
 
-  if (wines && wines.vintages?.length > 0) {
-    // Update scan with matched wine
-    await supabase
-      .from("scans")
-      .update({
-        matched_vintage_id: wines.vintages[0].id,
-        confidence: 0.92
-      })
-      .eq("id", scan.id)
-
-    return {
-      scan,
-      wine: wines,
-      vintage: wines.vintages[0],
-      confidence: 0.92
-    }
-  }
+  if (queueError) throw queueError;
 
   return {
-    scan,
-    wine: null,
-    vintage: null,
-    confidence: 0
-  }
+    scanId: scan.id,
+    queueItemId: queueItem.id,
+    message:
+      "Wine label added to processing queue. It will be analyzed shortly.",
+    wineData: null,
+  };
 }
 
 export async function getUserScans() {
-  const supabase = await createServerSupabase()
+  const supabase = await createServerSupabase();
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Not authenticated")
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
   const { data, error } = await supabase
     .from("scans")
-    .select(`
+    .select(
+      `
       *,
       matched_vintage:vintages(
         year,
@@ -91,49 +88,54 @@ export async function getUserScans() {
           producer:producers(name)
         )
       )
-    `)
+    `,
+    )
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false });
 
-  if (error) throw error
-  return data
+  if (error) throw error;
+  return data;
 }
 
 export async function improveOcrResult(scanId: string, correctedText: string) {
-  const supabase = await createServerSupabase()
+  const supabase = await createServerSupabase();
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Not authenticated")
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
   const { error } = await supabase
     .from("scans")
     .update({
-      ocr_text: correctedText
+      ocr_text: correctedText,
     })
     .eq("id", scanId)
-    .eq("user_id", user.id)
+    .eq("user_id", user.id);
 
-  if (error) throw error
+  if (error) throw error;
 
-  revalidatePath("/scan")
+  revalidatePath("/scan");
 }
 
 export async function confirmWineMatch(scanId: string, vintageId: string) {
-  const supabase = await createServerSupabase()
+  const supabase = await createServerSupabase();
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Not authenticated")
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
   const { error } = await supabase
     .from("scans")
     .update({
       matched_vintage_id: vintageId,
-      confidence: 1.0
+      confidence: 1.0,
     })
     .eq("id", scanId)
-    .eq("user_id", user.id)
+    .eq("user_id", user.id);
 
-  if (error) throw error
+  if (error) throw error;
 
-  revalidatePath("/scan")
+  revalidatePath("/scan");
 }

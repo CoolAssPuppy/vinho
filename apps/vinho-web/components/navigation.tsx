@@ -1,23 +1,23 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Wine, Map, BookOpen, Sparkles, List, Menu, Camera } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Wine, Map, BookOpen, Sparkles, Menu, Camera } from "lucide-react";
 
 const routes = [
   {
-    href: "/",
-    label: "Home",
-    icon: Wine,
+    href: "/journal",
+    label: "Journal",
+    icon: BookOpen,
   },
   {
     href: "/scan",
@@ -30,30 +30,20 @@ const routes = [
     icon: Map,
   },
   {
-    href: "/journal",
-    label: "Journal",
-    icon: BookOpen,
-  },
-  {
     href: "/recommend",
     label: "Discover",
     icon: Sparkles,
   },
-  {
-    href: "/lists",
-    label: "Wine Lists",
-    icon: List,
-  },
-]
+];
 
 export function Navigation() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <nav className="container flex h-14 max-w-screen-2xl items-center">
         <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
+          <Link href="/journal" className="mr-6 flex items-center space-x-2">
             <Wine className="h-6 w-6" />
             <span className="hidden font-bold sm:inline-block">Vinho</span>
           </Link>
@@ -64,7 +54,9 @@ export function Navigation() {
                 href={route.href}
                 className={cn(
                   "transition-colors hover:text-foreground/80",
-                  pathname === route.href ? "text-foreground" : "text-foreground/60"
+                  pathname === route.href
+                    ? "text-foreground"
+                    : "text-foreground/60",
                 )}
               >
                 {route.label}
@@ -81,7 +73,7 @@ export function Navigation() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[200px]">
             {routes.map((route) => {
-              const Icon = route.icon
+              const Icon = route.icon;
               return (
                 <DropdownMenuItem key={route.href} asChild>
                   <Link href={route.href} className="flex items-center">
@@ -89,13 +81,12 @@ export function Navigation() {
                     {route.label}
                   </Link>
                 </DropdownMenuItem>
-              )
+              );
             })}
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-          </div>
+          <div className="w-full flex-1 md:w-auto md:flex-none"></div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -108,14 +99,11 @@ export function Navigation() {
               <DropdownMenuItem asChild>
                 <Link href="/profile">Profile</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings">Settings</Link>
-              </DropdownMenuItem>
               <DropdownMenuItem>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </nav>
     </header>
-  )
+  );
 }

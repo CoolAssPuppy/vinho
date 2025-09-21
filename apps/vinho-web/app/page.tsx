@@ -1,7 +1,7 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Wine } from "lucide-react"
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Wine } from "lucide-react";
 
 export default function Home() {
   return (
@@ -29,29 +29,35 @@ export default function Home() {
         </div>
 
         {/* Brand Name */}
-        <h1 className="mb-4 text-5xl font-bold text-white md:text-6xl">
+        <h1 className="mb-6 text-7xl font-bold text-white md:text-8xl lg:text-9xl tracking-tight">
           Vinho
         </h1>
 
         {/* Tagline */}
-        <p className="mb-12 max-w-md text-center text-lg text-white/90 md:text-xl">
+        <p className="mb-12 max-w-lg text-center text-2xl font-light text-white md:text-3xl lg:text-4xl">
           Learn wine through terroir, history, and taste
         </p>
 
         {/* Auth Buttons */}
         <div className="flex flex-col gap-4 sm:flex-row">
           <Link href="/auth/login">
-            <Button size="lg" variant="secondary" className="min-w-[140px]">
+            <Button
+              size="lg"
+              className="min-w-[140px] bg-black hover:bg-black/90 text-white border-0"
+            >
               Sign In
             </Button>
           </Link>
           <Link href="/auth/register">
-            <Button size="lg" className="min-w-[140px]">
+            <Button
+              size="lg"
+              className="min-w-[140px] bg-black hover:bg-black/90 text-white border-0"
+            >
               Get Started
             </Button>
           </Link>
         </div>
       </div>
     </div>
-  )
+  );
 }

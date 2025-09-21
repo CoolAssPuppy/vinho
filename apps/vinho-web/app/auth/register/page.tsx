@@ -1,55 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Wine, Mail, Lock, User, ArrowLeft } from "lucide-react"
-import { createClient } from "@/lib/supabase"
-import { toast } from "sonner"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Wine, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function RegisterPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [name, setName] = useState("")
-  const router = useRouter()
-  const supabase = createClient()
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const router = useRouter();
+  const supabase = createClient();
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match")
-      return
+      toast.error("Passwords do not match");
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          name,
+          first_name: firstName,
+          last_name: lastName,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
       },
-    })
+    });
 
     if (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     } else {
-      toast.success("Check your email to confirm your account")
-      router.push("/auth/verify-email")
+      toast.success("Check your email to confirm your account");
+      router.push("/auth/verify-email");
     }
 
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
@@ -60,7 +69,9 @@ export default function RegisterPage() {
               <Wine className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">Create your account</CardTitle>
+          <CardTitle className="text-2xl text-center">
+            Create your account
+          </CardTitle>
           <CardDescription className="text-center">
             Start your wine education journey today
           </CardDescription>
@@ -68,15 +79,31 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleSignUp} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="first-name">First Name</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="name"
+                  id="first-name"
                   type="text"
-                  placeholder="Your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="last-name">Last Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="last-name"
+                  type="text"
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -159,5 +186,5 @@ export default function RegisterPage() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }

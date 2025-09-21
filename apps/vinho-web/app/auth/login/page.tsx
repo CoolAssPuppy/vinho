@@ -1,43 +1,57 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Wine, Mail, Lock } from "lucide-react"
-import { createClient } from "@/lib/supabase"
-import { toast } from "sonner"
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Wine, Mail, Lock } from "lucide-react";
+import { createClient } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const router = useRouter()
-  const supabase = createClient()
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      toast.success("Email verified! You can now sign in.");
+    }
+  }, [searchParams]);
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    })
+    });
 
     if (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     } else {
-      toast.success("Welcome back!")
-      router.push("/")
-      router.refresh()
+      toast.success("Welcome back!");
+      router.push("/");
+      router.refresh();
     }
 
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+  };
 
   const handleGoogleSignIn = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -45,12 +59,12 @@ export default function LoginPage() {
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
-    })
+    });
 
     if (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
@@ -119,7 +133,9 @@ export default function LoginPage() {
               <Separator className="w-full" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
             </div>
           </div>
 
@@ -154,12 +170,15 @@ export default function LoginPage() {
         <CardFooter>
           <div className="w-full text-center text-sm">
             Don&apos;t have an account?{" "}
-            <Link href="/auth/register" className="text-primary hover:underline">
+            <Link
+              href="/auth/register"
+              className="text-primary hover:underline"
+            >
               Sign up
             </Link>
           </div>
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }

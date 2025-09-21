@@ -1,274 +1,358 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Camera, Upload, Loader2, Wine, MapPin, Calendar, Grape } from "lucide-react"
+import { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Camera,
+  Upload,
+  Loader2,
+  Wine,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { scanWineLabel } from "@/lib/actions/scan";
+import { toast } from "sonner";
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/types/database";
+
+type ScanStatus = "idle" | "uploading" | "processing" | "completed" | "error";
 
 interface ScanResult {
-  wine: {
-    id: string
-    name: string
-    producer: string
-    region: string
-    country: string
-    year: number
-    varietals: Array<{ name: string; percent: number }>
-    abv: number
-  }
-  confidence: number
+  scanId: string;
+  queueItemId?: string;
+  wineData?: unknown;
+  error?: string;
 }
 
 export default function ScanPage() {
-  const [isScanning, setIsScanning] = useState(false)
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [processingMessage, setProcessingMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const supabase = createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+
+  // Note: Global Realtime provider handles background processing notifications
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result as string)
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    await performScan(file);
+  };
+
+  const performScan = async (file: File) => {
+    setScanStatus("uploading");
+    setProcessingMessage("Uploading image...");
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+
+        setScanStatus("processing");
+        setProcessingMessage("Analyzing wine label...");
+
+        try {
+          const result = await scanWineLabel(base64);
+
+          setScanResult({
+            scanId: result.scanId,
+            queueItemId: result.queueItemId,
+            wineData: result.wineData,
+          });
+
+          // Immediately show success and let processing happen in background
+          setScanStatus("completed");
+          setProcessingMessage("Wine successfully uploaded!");
+
+          toast.success(
+            "Wine uploaded! Our expert sommeliers are analyzing your wine and it will be added to your collection shortly.",
+          );
+        } catch (error) {
+          console.error("Scan failed:", error);
+          setScanStatus("error");
+          setScanResult({ scanId: "", error: "Failed to process wine label" });
+          toast.error("Failed to scan wine label. Please try again.");
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      setScanStatus("error");
+      setScanResult({ scanId: "", error: "Failed to upload image" });
+      toast.error("Failed to upload image. Please try again.");
     }
-    reader.readAsDataURL(file)
-
-    await performScan(file)
-  }
-
-  const performScan = async (_file: File) => {
-    setIsScanning(true)
-
-    // Simulate OCR scan - in production this would call an Edge Function
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    setScanResult({
-      wine: {
-        id: "1",
-        name: "Opus One",
-        producer: "Opus One Winery",
-        region: "Napa Valley",
-        country: "USA",
-        year: 2019,
-        varietals: [
-          { name: "Cabernet Sauvignon", percent: 80 },
-          { name: "Cabernet Franc", percent: 8 },
-          { name: "Merlot", percent: 7 },
-          { name: "Petit Verdot", percent: 4 },
-          { name: "Malbec", percent: 1 },
-        ],
-        abv: 14.5
-      },
-      confidence: 0.92
-    })
-
-    setIsScanning(false)
-  }
+  };
 
   const handleCameraCapture = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
+
+  const resetScan = () => {
+    setScanStatus("idle");
+    setImagePreview(null);
+    setScanResult(null);
+    setProcessingMessage("");
+  };
+
+  const getStatusIcon = () => {
+    switch (scanStatus) {
+      case "uploading":
+      case "processing":
+        return <Loader2 className="h-6 w-6 animate-spin text-primary" />;
+      case "completed":
+        return <CheckCircle className="h-6 w-6 text-green-500" />;
+      case "error":
+        return <AlertCircle className="h-6 w-6 text-red-500" />;
+      default:
+        return <Wine className="h-6 w-6 text-primary" />;
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (scanStatus) {
+      case "uploading":
+      case "processing":
+        return "border-primary/50 bg-primary/5";
+      case "completed":
+        return "border-green-500/50 bg-green-50";
+      case "error":
+        return "border-red-500/50 bg-red-50";
+      default:
+        return "border-primary/20";
+    }
+  };
 
   return (
-    <div className="container py-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Scan Wine Label</h1>
-          <p className="text-muted-foreground mt-2">
-            Take a photo or upload an image of a wine label to learn about its origin, varietals, and terroir.
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-primary mb-2">
+            Scan Wine Label
+          </h1>
+          <p className="text-muted-foreground">
+            Capture or upload a wine label to discover its story and add it to
+            your collection
           </p>
         </div>
 
-        {!scanResult ? (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center justify-center space-y-6 py-12">
-                {imagePreview ? (
-                  <div className="relative w-full max-w-md">
-                    <Image
-                      src={imagePreview}
-                      alt="Wine label preview"
-                      width={400}
-                      height={600}
-                      className="rounded-lg object-contain"
-                    />
-                    {isScanning && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-lg">
-                        <div className="text-center">
-                          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">Analyzing label...</p>
+        <Card className={`${getStatusColor()} transition-all duration-300`}>
+          <CardContent className="p-8">
+            <div className="flex flex-col items-center justify-center space-y-6">
+              {imagePreview ? (
+                <div className="relative w-full max-w-md">
+                  <Image
+                    src={imagePreview}
+                    alt="Wine label preview"
+                    width={400}
+                    height={600}
+                    className="rounded-lg object-contain border border-border"
+                  />
+
+                  {/* Processing Overlay */}
+                  {(scanStatus === "uploading" ||
+                    scanStatus === "processing") && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/90 rounded-lg">
+                      <div className="text-center">
+                        <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+                        <p className="text-lg font-medium mb-2">
+                          {processingMessage}
+                        </p>
+                        <div className="w-48 bg-muted rounded-full h-2 mx-auto">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-1000"
+                            style={{
+                              width: scanStatus === "uploading" ? "25%" : "75%",
+                            }}
+                          />
                         </div>
                       </div>
-                    )}
+                    </div>
+                  )}
+
+                  {/* Success Overlay */}
+                  {scanStatus === "completed" && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-green-50/95 rounded-lg">
+                      <div className="text-center p-4">
+                        <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                        <p className="text-lg font-medium text-green-700 mb-2">
+                          Wine Uploaded Successfully!
+                        </p>
+                        <p className="text-sm text-green-600 mb-2">
+                          Our expert sommeliers are analyzing your wine
+                        </p>
+                        <p className="text-xs text-green-600">
+                          It will be added to your collection shortly
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error Overlay */}
+                  {scanStatus === "error" && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-red-50/95 rounded-lg">
+                      <div className="text-center">
+                        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
+                        <p className="text-lg font-medium text-red-700 mb-2">
+                          Scan Failed
+                        </p>
+                        <p className="text-sm text-red-600">
+                          {scanResult?.error}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="flex h-32 w-32 items-center justify-center rounded-full bg-primary/10">
+                    <Camera className="h-16 w-16 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold">
+                      Ready to scan your first wine?
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Take a photo or upload an image of a wine label to get
+                      started
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* Status Information */}
+              {scanStatus !== "idle" && (
+                <div className="flex items-center space-x-2 p-3 rounded-lg bg-muted/50">
+                  {getStatusIcon()}
+                  <span className="font-medium">
+                    {scanStatus === "uploading" && "Uploading..."}
+                    {scanStatus === "processing" && "Processing..."}
+                    {scanStatus === "completed" && "Complete"}
+                    {scanStatus === "error" && "Error"}
+                  </span>
+                  {processingMessage && scanStatus === "processing" && (
+                    <span className="text-muted-foreground">
+                      • {processingMessage}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+
+                {scanStatus === "completed" ? (
+                  <div className="flex gap-4">
+                    <Button
+                      onClick={() => (window.location.href = "/journal")}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Wine className="mr-2 h-4 w-4" />
+                      View Journal
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={resetScan}
+                      className="border-primary/20 hover:bg-primary/5"
+                    >
+                      Scan Another
+                    </Button>
+                  </div>
+                ) : scanStatus === "error" ? (
+                  <div className="flex gap-4">
+                    <Button
+                      onClick={resetScan}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Try Again
+                    </Button>
                   </div>
                 ) : (
-                  <>
-                    <div className="flex h-32 w-32 items-center justify-center rounded-full bg-muted">
-                      <Camera className="h-16 w-16 text-muted-foreground" />
-                    </div>
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold">Capture or Upload</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Take a photo of the wine label or upload an existing image
-                      </p>
-                    </div>
-                  </>
+                  <div className="flex gap-4">
+                    <Button
+                      onClick={handleCameraCapture}
+                      disabled={
+                        scanStatus === "uploading" ||
+                        scanStatus === "processing"
+                      }
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Take Photo
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={
+                        scanStatus === "uploading" ||
+                        scanStatus === "processing"
+                      }
+                      className="border-primary/20 hover:bg-primary/5"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Image
+                    </Button>
+                  </div>
                 )}
-
-                <div className="flex gap-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                  <Button onClick={handleCameraCapture} disabled={isScanning}>
-                    <Camera className="mr-2 h-4 w-4" />
-                    Take Photo
-                  </Button>
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isScanning}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Image
-                  </Button>
-                </div>
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-2xl">{scanResult.wine.name}</CardTitle>
-                    <CardDescription className="text-base mt-1">
-                      {scanResult.wine.producer}
-                    </CardDescription>
-                  </div>
-                  <Badge variant={scanResult.confidence > 0.8 ? "default" : "secondary"}>
-                    {Math.round(scanResult.confidence * 100)}% match
-                  </Badge>
+
+              {/* Helper Text */}
+              {!imagePreview && scanStatus === "idle" && (
+                <div className="mt-8 p-4 bg-accent/50 rounded-lg">
+                  <p className="text-sm text-center text-accent-foreground">
+                    <Wine className="inline h-4 w-4 mr-1" />
+                    Each scan helps build your personal wine journey and
+                    recommendations
+                  </p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {scanResult.wine.region}, {scanResult.wine.country}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{scanResult.wine.year}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Wine className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{scanResult.wine.abv}% ABV</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Grape className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {scanResult.wine.varietals.length} varietals
-                    </span>
-                  </div>
+              )}
+
+              {/* Processing Queue Info */}
+              {scanStatus === "processing" && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-center text-blue-700">
+                    <Loader2 className="inline h-4 w-4 mr-1 animate-spin" />
+                    Uploading your wine image...
+                  </p>
                 </div>
+              )}
 
-                <Tabs defaultValue="varietals" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="varietals">Varietals</TabsTrigger>
-                    <TabsTrigger value="terroir">Terroir</TabsTrigger>
-                    <TabsTrigger value="history">History</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="varietals" className="space-y-4 mt-4">
-                    <div className="space-y-3">
-                      {scanResult.wine.varietals.map((varietal, idx) => (
-                        <div key={idx} className="flex items-center justify-between">
-                          <span className="font-medium">{varietal.name}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-primary"
-                                style={{ width: `${varietal.percent}%` }}
-                              />
-                            </div>
-                            <span className="text-sm text-muted-foreground w-10 text-right">
-                              {varietal.percent}%
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-4">
-                      This Bordeaux-style blend combines the structure of Cabernet Sauvignon with the elegance of Cabernet Franc and the softness of Merlot.
-                    </p>
-                  </TabsContent>
-
-                  <TabsContent value="terroir" className="space-y-4 mt-4">
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="font-semibold mb-1">Climate</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Mediterranean climate (Csa) with warm, dry summers and mild winters. Morning fog from San Pablo Bay moderates temperatures.
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-1">Soil</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Well-drained gravelly loam over volcanic ash. The rocky soil forces vines to develop deep root systems.
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-1">Elevation</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Vineyard sits at 100-150 meters above sea level on the western benchlands of Oakville.
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="history" className="space-y-4 mt-4">
-                    <p className="text-sm text-muted-foreground">
-                      Founded in 1979 as a joint venture between Baron Philippe de Rothschild of Château Mouton Rothschild and Robert Mondavi, Opus One represents the marriage of Old World tradition with New World innovation.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      The winery pioneered the concept of ultra-premium Napa Valley wines, proving that California could produce wines rivaling the great estates of Bordeaux.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      The iconic winery, designed by architect Scott Johnson, features a dramatic semicircular barrel room that has become a landmark in the valley.
-                    </p>
-                  </TabsContent>
-                </Tabs>
-
-                <div className="flex gap-3 mt-6">
-                  <Button className="flex-1">Add to Journal</Button>
-                  <Button variant="outline" className="flex-1">Find Similar Wines</Button>
+              {/* Background Processing Info */}
+              {scanStatus === "completed" && (
+                <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <p className="text-sm text-center text-amber-700">
+                    <Wine className="inline h-4 w-4 mr-1" />
+                    Your wine is being analyzed in the background. Check your
+                    journal for updates!
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-center">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setScanResult(null)
-                  setImagePreview(null)
-                }}
-              >
-                Scan Another Wine
-              </Button>
+              )}
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
       </div>
     </div>
-  )
+  );
 }

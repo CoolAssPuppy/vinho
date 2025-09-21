@@ -1,0 +1,2 @@
+[functions.process-wine-queue]
+verify_jwt = false
