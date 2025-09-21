@@ -615,9 +615,15 @@ struct EditProfileView: View {
     func saveProfile() {
         isLoading = true
         Task {
+            // Split fullName into firstName and lastName
+            let nameComponents = fullName.components(separatedBy: " ")
+            let firstName = nameComponents.first ?? ""
+            let lastName = nameComponents.dropFirst().joined(separator: " ")
+            
             await authManager.updateProfile(
-                fullName: fullName,
-                bio: bio.isEmpty ? nil : bio
+                firstName: firstName.isEmpty ? nil : firstName,
+                lastName: lastName.isEmpty ? nil : lastName,
+                description: bio.isEmpty ? nil : bio
             )
             isLoading = false
             dismiss()

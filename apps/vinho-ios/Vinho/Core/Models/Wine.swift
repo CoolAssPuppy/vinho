@@ -122,35 +122,88 @@ struct Tasting: Identifiable, Codable, Hashable {
     }
 }
 
+// MARK: - PriceRange Model
+struct PriceRange: Codable, Hashable, Equatable {
+    let low: Int
+    let high: Int
+    
+    init(low: Int = 20, high: Int = 100) {
+        self.low = low
+        self.high = high
+    }
+}
+
+// MARK: - WinePreferences Model
+struct WinePreferences: Codable, Hashable, Equatable {
+    let wineTypes: [String]?
+    let priceRange: [Int]?
+    let collectBottles: Bool?
+    let tastingNoteStyle: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case wineTypes = "wine_types"
+        case priceRange = "price_range"
+        case collectBottles = "collect_bottles"
+        case tastingNoteStyle = "tasting_note_style"
+    }
+    
+    init(wineTypes: [String]? = nil, priceRange: [Int]? = nil, collectBottles: Bool? = nil, tastingNoteStyle: String? = nil) {
+        self.wineTypes = wineTypes
+        self.priceRange = priceRange
+        self.collectBottles = collectBottles
+        self.tastingNoteStyle = tastingNoteStyle
+    }
+}
+
 // MARK: - UserProfile Model
 struct UserProfile: Identifiable, Codable, Hashable, Equatable {
-    let id: UUID
-    var email: String?
-    var fullName: String?
+    var id: UUID
+    var email: String? // This comes from auth.users table
     var firstName: String?
     var lastName: String?
     var avatarUrl: String?
-    var bio: String?
-    var winePreferences: [String: String]? // Changed to String: String for Equatable conformance
+    var description: String? // This maps to the 'description' column in the database
+    var winePreferences: WinePreferences?
     var favoriteRegions: [String]?
     var favoriteVarietals: [String]?
     var favoriteStyles: [String]?
+    var priceRange: PriceRange?
+    var tastingNoteStyle: String?
     let createdAt: Date
     var updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
-        case id, email
-        case fullName = "full_name"
+        case id
         case firstName = "first_name"
         case lastName = "last_name"
         case avatarUrl = "avatar_url"
-        case bio
+        case description
         case winePreferences = "wine_preferences"
         case favoriteRegions = "favorite_regions"
         case favoriteVarietals = "favorite_varietals"
         case favoriteStyles = "favorite_styles"
+        case priceRange = "price_range"
+        case tastingNoteStyle = "tasting_note_style"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    // Computed property for full name
+    var fullName: String? {
+        if let firstName = firstName, let lastName = lastName {
+            return "\(firstName) \(lastName)"
+        } else if let firstName = firstName {
+            return firstName
+        } else if let lastName = lastName {
+            return lastName
+        }
+        return nil
+    }
+    
+    // Computed property for bio (maps to description)
+    var bio: String? {
+        get { description }
+        set { description = newValue }
     }
 
     // Conform to Equatable
@@ -164,13 +217,19 @@ struct UserProfile: Identifiable, Codable, Hashable, Equatable {
     }
 
     // Custom initializer for creating new profiles
-    init(id: UUID, email: String?, fullName: String?, bio: String? = nil, avatarUrl: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: UUID, email: String? = nil, firstName: String? = nil, lastName: String? = nil, description: String? = nil, avatarUrl: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.email = email
-        self.fullName = fullName
-        self.bio = bio
+        self.firstName = firstName
+        self.lastName = lastName
+        self.description = description
         self.avatarUrl = avatarUrl
         self.winePreferences = nil
+        self.favoriteRegions = nil
+        self.favoriteVarietals = nil
+        self.favoriteStyles = nil
+        self.priceRange = nil
+        self.tastingNoteStyle = nil
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

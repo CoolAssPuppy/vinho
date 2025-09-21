@@ -12,7 +12,7 @@ class AuthManager: ObservableObject {
     @Published var errorMessage: String?
 
     private var cancellables = Set<AnyCancellable>()
-    private let client = SupabaseManager.shared.client
+    let client = SupabaseManager.shared.client
 
     init() {
         Task {
@@ -53,8 +53,9 @@ class AuthManager: ObservableObject {
             let profile = UserProfile(
                 id: user.id,
                 email: email,
-                fullName: fullName,
-                bio: nil,
+                firstName: nil,
+                lastName: nil,
+                description: nil,
                 avatarUrl: nil,
                 createdAt: Date(),
                 updatedAt: Date()
@@ -106,30 +107,58 @@ class AuthManager: ObservableObject {
 
     func fetchUserProfile(userId: UUID) async {
         do {
-            let profile: UserProfile = try await client
+            // First, try to get the profile from the profiles table
+            var profile: UserProfile
+            
+            let profileResponse: [UserProfile] = try await client
                 .from("profiles")
-                .select()
+                .select("id, first_name, last_name, avatar_url, description, wine_preferences, favorite_regions, favorite_varietals, favorite_styles, price_range, tasting_note_style, created_at, updated_at")
                 .eq("id", value: userId.uuidString)
-                .single()
+                .limit(1)
                 .execute()
                 .value
-
+            
+            if let existingProfile = profileResponse.first {
+                // Profile exists, use it
+                profile = existingProfile
+                profile.id = userId
+            } else {
+                // Profile doesn't exist, create a new one
+                profile = UserProfile(id: userId)
+                
+                // Insert the new profile into the database
+                try await client
+                    .from("profiles")
+                    .insert(profile)
+                    .execute()
+            }
+            
+            // Get the email from the auth.users table
+            if let user = user {
+                profile.email = user.email
+            }
+            
             self.userProfile = profile
         } catch {
             print("Error fetching user profile: \(error)")
+            // If there's an error, create a minimal profile
+            self.userProfile = UserProfile(id: userId, email: user?.email)
         }
     }
 
-    func updateProfile(fullName: String? = nil, bio: String? = nil, avatarUrl: String? = nil) async {
+    func updateProfile(firstName: String? = nil, lastName: String? = nil, description: String? = nil, avatarUrl: String? = nil) async {
         guard let userId = user?.id else { return }
         guard var profile = userProfile else { return }
 
         // Update the profile object
-        if let fullName = fullName {
-            profile.fullName = fullName
+        if let firstName = firstName {
+            profile.firstName = firstName
         }
-        if let bio = bio {
-            profile.bio = bio
+        if let lastName = lastName {
+            profile.lastName = lastName
+        }
+        if let description = description {
+            profile.description = description
         }
         if let avatarUrl = avatarUrl {
             profile.avatarUrl = avatarUrl
@@ -139,7 +168,13 @@ class AuthManager: ObservableObject {
         do {
             try await client
                 .from("profiles")
-                .update(profile)
+                .update([
+                    "first_name": profile.firstName,
+                    "last_name": profile.lastName,
+                    "description": profile.description,
+                    "avatar_url": profile.avatarUrl,
+                    "updated_at": profile.updatedAt.ISO8601Format()
+                ])
                 .eq("id", value: userId.uuidString)
                 .execute()
 

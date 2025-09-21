@@ -140,35 +140,3 @@ struct NotificationsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-
-struct ToggleRow: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    @Binding var isOn: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(.vinoAccent)
-                    .frame(width: 24)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16))
-                        .foregroundColor(.vinoText)
-                    Text(subtitle)
-                        .font(.system(size: 13))
-                        .foregroundColor(.vinoTextSecondary)
-                }
-            }
-        }
-        .toggleStyle(SwitchToggleStyle(tint: .vinoAccent))
-        .onChange(of: isOn) { _, _ in
-            action()
-        }
-    }
-}

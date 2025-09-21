@@ -138,8 +138,11 @@ struct PersonalInformationView: View {
     func saveChanges() {
         isLoading = true
         Task {
-            let fullName = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
-            await authManager.updateProfile(fullName: fullName, bio: authManager.userProfile?.bio)
+            await authManager.updateProfile(
+                firstName: firstName,
+                lastName: lastName,
+                description: authManager.userProfile?.description
+            )
             isLoading = false
             dismiss()
         }
