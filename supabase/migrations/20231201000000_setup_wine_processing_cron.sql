@@ -9,7 +9,7 @@ SELECT cron.schedule(
   $$
   SELECT
     net.http_post(
-      url := 'https://your-project-ref.supabase.co/functions/v1/process-wine-queue',
+      url := 'https://aghiopwrzzvamssgcwpv.supabase.co/functions/v1/process-wine-queue',
       headers := '{"Content-Type": "application/json", "Authorization": "Bearer ' || current_setting('app.settings.service_role_key') || '"}',
       body := '{}'::jsonb
     );

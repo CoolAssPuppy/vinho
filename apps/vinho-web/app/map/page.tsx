@@ -124,7 +124,9 @@ export default function MapPage() {
               );
 
               // Mock tasting location - in production, this would come from user's location at time of tasting
-              const tastingCoords = null; // Location field doesn't exist in tastings table
+              // For now, using origin coords as tasting coords are not available
+              const tastingLat = originCoords.lat; // In production, would get from tasting location
+              const tastingLng = originCoords.lng; // In production, would get from tasting location
 
               locations.push({
                 id: tasting.id,
@@ -134,14 +136,9 @@ export default function MapPage() {
                 country: "France", // Mock country - in production from database
                 year: tasting.vintage.year,
                 varietals: [], // Mock - in production from database
-                latitude:
-                  mapView === "origins"
-                    ? originCoords.lat
-                    : tastingCoords?.lat || originCoords.lat,
+                latitude: mapView === "origins" ? originCoords.lat : tastingLat,
                 longitude:
-                  mapView === "origins"
-                    ? originCoords.lng
-                    : tastingCoords?.lng || originCoords.lng,
+                  mapView === "origins" ? originCoords.lng : tastingLng,
                 vineyard_name: null, // Mock - in production from database
                 tasted_location: null,
                 tasted_date: tasting.tasted_at
