@@ -5,13 +5,14 @@ struct ContentView: View {
     @EnvironmentObject var hapticManager: HapticManager
     @State private var selectedTab = 0
     @State private var showingScanner = false
+    @State private var showingProfile = false
 
     var body: some View {
         Group {
             if authManager.isLoading {
                 SplashScreen()
             } else if authManager.isAuthenticated {
-                mainTabView
+                mainView
             } else {
                 AuthenticationView()
             }
@@ -19,35 +20,79 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
     }
 
-    var mainTabView: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: $selectedTab) {
-                FeedView()
-                    .tag(0)
+    var mainView: some View {
+        NavigationStack {
+            ZStack {
+                // Background
+                Color.vinoDark
+                    .ignoresSafeArea()
 
-                WineListView()
-                    .tag(1)
+                // Main Content
+                VStack(spacing: 0) {
+                    // Content Views
+                    TabView(selection: $selectedTab) {
+                        JournalView()
+                            .tag(0)
 
-                Color.clear
-                    .tag(2)
+                        Color.clear
+                            .tag(1)
 
-                JournalView()
-                    .tag(3)
-
-                ProfileView()
-                    .tag(4)
+                        MapView()
+                            .tag(2)
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                }
+                .safeAreaInset(edge: .bottom) {
+                    CustomTabBar(
+                        selectedTab: $selectedTab,
+                        showingScanner: $showingScanner,
+                        hapticManager: hapticManager
+                    )
+                }
             }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        hapticManager.lightImpact()
+                        showingProfile.toggle()
+                    } label: {
+                        if let user = authManager.user {
+                            Circle()
+                                .fill(LinearGradient.vinoGradient)
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    Text(user.email?.prefix(1).uppercased() ?? "V")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                )
+                        } else {
+                            Circle()
+                                .fill(Color.vinoDarkSecondary)
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    Image(systemName: "person.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.vinoTextSecondary)
+                                )
+                        }
+                    }
+                }
 
-            // Custom Tab Bar
-            CustomTabBar(
-                selectedTab: $selectedTab,
-                showingScanner: $showingScanner,
-                hapticManager: hapticManager
-            )
+                ToolbarItem(placement: .principal) {
+                    Text("Vinho")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(LinearGradient.vinoGradient)
+                }
+            }
         }
-        .ignoresSafeArea(.keyboard)
         .sheet(isPresented: $showingScanner) {
             ScannerView()
+                .environmentObject(hapticManager)
+        }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView()
+                .environmentObject(authManager)
                 .environmentObject(hapticManager)
         }
     }
@@ -61,25 +106,18 @@ struct CustomTabBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Feed Tab
+            // Journal Tab
             TabBarButton(
-                icon: "house.fill",
-                title: "Feed",
+                icon: "book.fill",
                 isSelected: selectedTab == 0
             ) {
                 hapticManager.selection()
-                selectedTab = 0
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 0
+                }
             }
 
-            // Wines Tab
-            TabBarButton(
-                icon: "wineglass.fill",
-                title: "Wines",
-                isSelected: selectedTab == 1
-            ) {
-                hapticManager.selection()
-                selectedTab = 1
-            }
+            Spacer()
 
             // Scanner Tab (Center)
             Button {
@@ -97,29 +135,21 @@ struct CustomTabBar: View {
                         .foregroundColor(.white)
                 }
             }
-            .padding(.horizontal, 8)
 
-            // Journal Tab
+            Spacer()
+
+            // Map Tab
             TabBarButton(
-                icon: "book.fill",
-                title: "Journal",
-                isSelected: selectedTab == 3
+                icon: "map.fill",
+                isSelected: selectedTab == 2
             ) {
                 hapticManager.selection()
-                selectedTab = 3
-            }
-
-            // Profile Tab
-            TabBarButton(
-                icon: "person.fill",
-                title: "Profile",
-                isSelected: selectedTab == 4
-            ) {
-                hapticManager.selection()
-                selectedTab = 4
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 2
+                }
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 32)
         .padding(.vertical, 8)
         .background(
             VisualEffectBlur(blurStyle: .systemUltraThinMaterialDark)
@@ -130,14 +160,13 @@ struct CustomTabBar: View {
                 .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
         )
         .padding(.horizontal, 16)
-        .padding(.bottom, 20)
+        .padding(.bottom, 8)
     }
 }
 
 // MARK: - Tab Bar Button
 struct TabBarButton: View {
     let icon: String
-    let title: String
     let isSelected: Bool
     let action: () -> Void
 
@@ -145,19 +174,16 @@ struct TabBarButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 24, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(isSelected ? .vinoAccent : .vinoTextSecondary)
                     .scaleEffect(isSelected ? 1.1 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
-
-                Text(title)
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? .vinoAccent : .vinoTextSecondary)
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: 44, height: 44)
         }
     }
 }
+
 
 // MARK: - Visual Effect Blur
 struct VisualEffectBlur: UIViewRepresentable {

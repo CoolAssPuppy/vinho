@@ -1,219 +1,208 @@
 import SwiftUI
 import AVFoundation
-import Vision
+import PhotosUI
 
-/// Innovative wine scanner with AI-powered recognition
 struct ScannerView: View {
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = ScannerViewModel()
+    @State private var showingImagePicker = false
+    @State private var selectedItem: PhotosPickerItem?
     @State private var capturedImage: UIImage?
     @State private var showingResult = false
     @State private var flashOn = false
-    @State private var scanAnimation = false
-    
+
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Camera View
-                CameraView(viewModel: viewModel)
-                    .ignoresSafeArea()
-                
-                // Scanning Overlay
-                scanningOverlay
-                
-                // Controls
-                VStack {
-                    // Top Bar
-                    topBar
-                    
-                    Spacer()
-                    
-                    // Bottom Controls
-                    bottomControls
-                }
-            }
-            .navigationBarHidden(true)
-            .preferredColorScheme(.dark)
-            .onAppear {
-                viewModel.startSession()
-                startScanAnimation()
-            }
-            .onDisappear {
-                viewModel.stopSession()
-            }
-            .sheet(isPresented: $showingResult) {
-                if let image = capturedImage {
-                    ScanResultView(image: image, viewModel: viewModel)
-                        .environmentObject(hapticManager)
-                }
-            }
-        }
-    }
-    
-    var scanningOverlay: some View {
         ZStack {
-            // Dark overlay with cutout
-            Color.black.opacity(0.6)
+            // Camera View - Full Screen
+            CameraView(viewModel: viewModel)
                 .ignoresSafeArea()
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30)
-                        .frame(width: 300, height: 400)
-                        .blendMode(.destinationOut)
-                )
-                .compositingGroup()
-            
-            // Scanning Frame
-            RoundedRectangle(cornerRadius: 30)
-                .stroke(
-                    LinearGradient.vinoGradient,
-                    lineWidth: 3
-                )
-                .frame(width: 300, height: 400)
-                .shadow(color: .vinoPrimary.opacity(0.5), radius: 10)
-            
-            // Animated Scan Line
-            if scanAnimation {
-                Rectangle()
-                    .fill(LinearGradient.vinoGradient)
-                    .frame(width: 280, height: 2)
-                    .offset(y: scanAnimation ? 180 : -180)
-                    .animation(
-                        Animation.linear(duration: 2)
-                            .repeatForever(autoreverses: true),
-                        value: scanAnimation
-                    )
-            }
-            
-            // Instructions
+
+            // Gradient overlays for better UI visibility
             VStack {
-                Spacer()
-                    .frame(height: 500)
-                
-                VStack(spacing: 12) {
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 40))
-                        .foregroundColor(.vinoAccent)
-                    
-                    Text("Position wine label in frame")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Text("Ensure good lighting and avoid glare")
-                        .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                    
-                    // Privacy Notice
-                    HStack(spacing: 8) {
-                        Image(systemName: "lock.shield")
-                            .font(.system(size: 12))
-                        Text("Images processed by third-party AI")
-                            .font(.system(size: 11))
-                    }
-                    .foregroundColor(.white.opacity(0.6))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule()
-                            .fill(Color.black.opacity(0.3))
-                    )
-                    .padding(.top, 8)
-                }
-                .padding(.horizontal, 40)
-            }
-        }
-    }
-    
-    var topBar: some View {
-        HStack {
-            Button {
-                hapticManager.lightImpact()
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.3))
-                            .backdrop()
-                    )
-            }
-            
-            Spacer()
-            
-            Button {
-                hapticManager.lightImpact()
-                flashOn.toggle()
-                viewModel.toggleFlash(flashOn)
-            } label: {
-                Image(systemName: flashOn ? "bolt.fill" : "bolt")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(flashOn ? .vinoGold : .white)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.3))
-                            .backdrop()
-                    )
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 50)
-    }
-    
-    var bottomControls: some View {
-        VStack(spacing: 20) {
-            // Capture Button
-            Button {
-                hapticManager.heavyImpact()
-                capturePhoto()
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 70, height: 70)
-                    
-                    Circle()
-                        .stroke(LinearGradient.vinoGradient, lineWidth: 4)
-                        .frame(width: 80, height: 80)
-                }
-            }
-            .scaleEffect(viewModel.isCapturing ? 0.9 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: viewModel.isCapturing)
-            
-            // Gallery Button
-            Button {
-                hapticManager.lightImpact()
-                // Open photo library
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "photo")
-                    Text("Choose from Library")
-                        .fontWeight(.medium)
-                }
-                .font(.system(size: 16))
-                .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(
-                    Capsule()
-                        .fill(Color.black.opacity(0.3))
-                        .backdrop()
+                LinearGradient(
+                    colors: [Color.black.opacity(0.7), Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
+                .frame(height: 200)
+                .ignoresSafeArea()
+
+                Spacer()
+
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.7)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 250)
+                .ignoresSafeArea()
+            }
+
+            // UI Controls
+            VStack {
+                // Top Bar
+                HStack {
+                    // Close Button
+                    Button {
+                        hapticManager.lightImpact()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 40, height: 40)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.2))
+                            )
+                    }
+
+                    Spacer()
+
+                    // Flash Button
+                    Button {
+                        hapticManager.lightImpact()
+                        flashOn.toggle()
+                        viewModel.toggleFlash(flashOn)
+                    } label: {
+                        Image(systemName: flashOn ? "bolt.fill" : "bolt.slash.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(flashOn ? .yellow : .white)
+                            .frame(width: 40, height: 40)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.2))
+                            )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 60)
+
+                Spacer()
+
+                // Center Frame Guide
+                VStack(spacing: 20) {
+                    // Frame
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.white.opacity(0.5), lineWidth: 2)
+                        .frame(width: 280, height: 380)
+                        .overlay(
+                            // Corner markers
+                            ZStack {
+                                // Top left
+                                Path { path in
+                                    path.move(to: CGPoint(x: 0, y: 30))
+                                    path.addLine(to: CGPoint(x: 0, y: 0))
+                                    path.addLine(to: CGPoint(x: 30, y: 0))
+                                }
+                                .stroke(Color.white, lineWidth: 3)
+
+                                // Top right
+                                Path { path in
+                                    path.move(to: CGPoint(x: 250, y: 0))
+                                    path.addLine(to: CGPoint(x: 280, y: 0))
+                                    path.addLine(to: CGPoint(x: 280, y: 30))
+                                }
+                                .stroke(Color.white, lineWidth: 3)
+
+                                // Bottom left
+                                Path { path in
+                                    path.move(to: CGPoint(x: 0, y: 350))
+                                    path.addLine(to: CGPoint(x: 0, y: 380))
+                                    path.addLine(to: CGPoint(x: 30, y: 380))
+                                }
+                                .stroke(Color.white, lineWidth: 3)
+
+                                // Bottom right
+                                Path { path in
+                                    path.move(to: CGPoint(x: 250, y: 380))
+                                    path.addLine(to: CGPoint(x: 280, y: 380))
+                                    path.addLine(to: CGPoint(x: 280, y: 350))
+                                }
+                                .stroke(Color.white, lineWidth: 3)
+                            }
+                        )
+
+                    // Instructions
+                    Text("Position wine label in frame")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                }
+
+                Spacer()
+
+                // Bottom Controls
+                VStack(spacing: 20) {
+                    // Capture Controls
+                    HStack(alignment: .center, spacing: 40) {
+                        // Library Button
+                        Button {
+                            hapticManager.lightImpact()
+                            showingImagePicker = true
+                        } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: "photo.on.rectangle")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.white)
+                            }
+                            .frame(width: 50, height: 50)
+                        }
+
+                        // Capture Button
+                        Button {
+                            hapticManager.heavyImpact()
+                            capturePhoto()
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .stroke(Color.white, lineWidth: 3)
+                                    .frame(width: 75, height: 75)
+
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 65, height: 65)
+                            }
+                        }
+                        .scaleEffect(viewModel.isCapturing ? 0.9 : 1.0)
+                        .animation(.spring(response: 0.1, dampingFraction: 0.6), value: viewModel.isCapturing)
+
+                        // Spacer for balance
+                        Color.clear
+                            .frame(width: 50, height: 50)
+                    }
+                }
+                .padding(.bottom, 50)
             }
         }
-        .padding(.bottom, 40)
-    }
-    
-    func startScanAnimation() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            scanAnimation = true
+        .onAppear {
+            viewModel.startSession()
+        }
+        .onDisappear {
+            viewModel.stopSession()
+        }
+        .photosPicker(
+            isPresented: $showingImagePicker,
+            selection: $selectedItem,
+            matching: .images
+        )
+        .onChange(of: selectedItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    capturedImage = image
+                    showingResult = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingResult) {
+            if let image = capturedImage {
+                ScanResultView(image: image)
+                    .environmentObject(hapticManager)
+            }
         }
     }
-    
+
     func capturePhoto() {
         viewModel.capturePhoto { image in
             capturedImage = image
@@ -225,228 +214,129 @@ struct ScannerView: View {
 // MARK: - Camera View
 struct CameraView: UIViewRepresentable {
     @ObservedObject var viewModel: ScannerViewModel
-    
+
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: UIScreen.main.bounds)
+        view.backgroundColor = .black
         viewModel.setupCamera(in: view)
         return view
     }
-    
+
     func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
 // MARK: - Scan Result View
 struct ScanResultView: View {
     let image: UIImage
-    @ObservedObject var viewModel: ScannerViewModel
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
-    @State private var wineInfo: ScannedWineInfo?
+    @State private var wineName = ""
+    @State private var producer = ""
+    @State private var vintage = ""
+    @State private var region = ""
     @State private var isProcessing = true
-    @State private var showingEditView = false
-    
+
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.vinoDark.ignoresSafeArea()
-                
-                if isProcessing {
-                    processingView
-                } else if let wine = wineInfo {
-                    resultContent(wine: wine)
-                } else {
-                    errorView
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Wine Image
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: 250)
+                        .cornerRadius(16)
+                        .padding(.top)
+
+                    if isProcessing {
+                        // Processing View
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .tint(.vinoPrimary)
+
+                            Text("Analyzing wine label...")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(height: 200)
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        // Wine Details Form
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Wine Details")
+                                .font(.system(size: 20, weight: .semibold))
+
+                            Group {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Producer")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    TextField("Enter producer name", text: $producer)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Wine Name")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    TextField("Enter wine name", text: $wineName)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Vintage")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    TextField("Enter year", text: $vintage)
+                                        .textFieldStyle(.roundedBorder)
+                                        .keyboardType(.numberPad)
+                                }
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Region")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                    TextField("Enter region", text: $region)
+                                        .textFieldStyle(.roundedBorder)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                 }
             }
-            .navigationTitle("Scan Result")
+            .navigationTitle("Add Wine")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        hapticManager.lightImpact()
                         dismiss()
                     }
-                    .foregroundColor(.vinoAccent)
                 }
-                
-                if wineInfo != nil {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Save") {
-                            hapticManager.success()
-                            saveWine()
-                            dismiss()
-                        }
-                        .foregroundColor(.vinoAccent)
-                        .fontWeight(.semibold)
-                    }
-                }
-            }
-            .onAppear {
-                processImage()
-            }
-        }
-    }
-    
-    var processingView: some View {
-        VStack(spacing: 24) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .vinoAccent))
-                .scaleEffect(1.5)
-            
-            Text("Analyzing Wine Label...")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(.vinoText)
-            
-            Text("Using AI to identify wine details")
-                .font(.system(size: 14))
-                .foregroundColor(.vinoTextSecondary)
-        }
-    }
-    
-    func resultContent(wine: ScannedWineInfo) -> some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Scanned Image
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: 300)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
-                
-                // Confidence Score
-                HStack {
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundColor(.vinoSuccess)
-                    Text("\(Int(wine.confidence * 100))% Match Confidence")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.vinoText)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(Color.vinoSuccess.opacity(0.2))
-                )
-                
-                // Wine Details
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Detected Wine Information")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.vinoText)
-                    
-                    DetailField(label: "Producer", value: wine.producer, isEditable: true)
-                    DetailField(label: "Wine Name", value: wine.name, isEditable: true)
-                    DetailField(label: "Vintage", value: wine.vintage, isEditable: true)
-                    DetailField(label: "Region", value: wine.region, isEditable: true)
-                    DetailField(label: "Varietal", value: wine.varietal, isEditable: true)
-                }
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.vinoDarkSecondary)
-                )
-                
-                // Edit Button
-                Button {
-                    hapticManager.lightImpact()
-                    showingEditView = true
-                } label: {
-                    HStack {
-                        Image(systemName: "pencil")
-                        Text("Edit Details")
-                    }
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.vinoAccent)
-                }
-            }
-            .padding()
-        }
-    }
-    
-    var errorView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 60))
-                .foregroundColor(.vinoError)
-            
-            Text("Could Not Identify Wine")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.vinoText)
-            
-            Text("Try taking another photo with better lighting")
-                .font(.system(size: 14))
-                .foregroundColor(.vinoTextSecondary)
-                .multilineTextAlignment(.center)
-            
-            Button {
-                hapticManager.lightImpact()
-                dismiss()
-            } label: {
-                Text("Try Again")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 12)
-                    .background(LinearGradient.vinoGradient)
-                    .clipShape(Capsule())
-            }
-        }
-        .padding()
-    }
-    
-    func processImage() {
-        // Simulate processing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            wineInfo = ScannedWineInfo(
-                producer: "Château Margaux",
-                name: "Margaux",
-                vintage: "2019",
-                region: "Bordeaux, France",
-                varietal: "Cabernet Sauvignon",
-                confidence: 0.92
-            )
-            isProcessing = false
-            hapticManager.success()
-        }
-    }
-    
-    func saveWine() {
-        // Save to database
-    }
-}
 
-// MARK: - Supporting Views
-struct DetailField: View {
-    let label: String
-    let value: String
-    let isEditable: Bool
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.vinoTextSecondary)
-                .textCase(.uppercase)
-            
-            HStack {
-                Text(value)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.vinoText)
-                
-                Spacer()
-                
-                if isEditable {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 12))
-                        .foregroundColor(.vinoTextTertiary)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        hapticManager.success()
+                        // Save wine
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(isProcessing || wineName.isEmpty || producer.isEmpty)
                 }
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.vinoDark)
-            )
+        }
+        .onAppear {
+            // Simulate AI processing
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                // Mock data - in production this would come from AI
+                producer = "Château Margaux"
+                wineName = "Margaux"
+                vintage = "2019"
+                region = "Bordeaux, France"
+                isProcessing = false
+                hapticManager.success()
+            }
         }
     }
 }
@@ -459,58 +349,58 @@ class ScannerViewModel: NSObject, ObservableObject {
     private var photoOutput: AVCapturePhotoOutput?
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var captureCompletion: ((UIImage) -> Void)?
-    
+
     func setupCamera(in view: UIView) {
         let session = AVCaptureSession()
         session.sessionPreset = .photo
-        
+
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
               let input = try? AVCaptureDeviceInput(device: device) else { return }
-        
+
         if session.canAddInput(input) {
             session.addInput(input)
         }
-        
+
         let output = AVCapturePhotoOutput()
         if session.canAddOutput(output) {
             session.addOutput(output)
         }
-        
+
         let previewLayer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer.frame = view.bounds
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
-        
+
         self.captureSession = session
         self.photoOutput = output
         self.previewLayer = previewLayer
     }
-    
+
     func startSession() {
         Task {
             captureSession?.startRunning()
         }
     }
-    
+
     func stopSession() {
         captureSession?.stopRunning()
     }
-    
+
     func toggleFlash(_ on: Bool) {
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else { return }
-        
+
         try? device.lockForConfiguration()
         device.torchMode = on ? .on : .off
         device.unlockForConfiguration()
     }
-    
+
     func capturePhoto(completion: @escaping (UIImage) -> Void) {
         isCapturing = true
         captureCompletion = completion
-        
+
         let settings = AVCapturePhotoSettings()
         photoOutput?.capturePhoto(with: settings, delegate: self)
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             self.isCapturing = false
         }
@@ -521,34 +411,9 @@ extension ScannerViewModel: AVCapturePhotoCaptureDelegate {
     nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard let data = photo.fileDataRepresentation(),
               let image = UIImage(data: data) else { return }
-        
+
         Task { @MainActor in
             captureCompletion?(image)
         }
     }
-}
-
-// MARK: - Models
-struct ScannedWineInfo {
-    let producer: String
-    let name: String
-    let vintage: String
-    let region: String
-    let varietal: String
-    let confidence: Double
-}
-
-// MARK: - Backdrop Blur Extension
-extension View {
-    func backdrop() -> some View {
-        self.background(BackdropBlur())
-    }
-}
-
-struct BackdropBlur: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        UIVisualEffectView(effect: UIBlurEffect(style: .dark))
-    }
-    
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
 }

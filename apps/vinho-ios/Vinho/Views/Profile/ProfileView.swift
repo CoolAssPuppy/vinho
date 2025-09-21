@@ -10,9 +10,21 @@ struct ProfileView: View {
     @State private var showingEditProfile = false
     @State private var showingSettings = false
     @State private var selectedPhotoItem: PhotosPickerItem?
-    
+    @State private var navigationPath = NavigationPath()
+
+    enum Destination: Hashable {
+        case personalInfo
+        case privacySecurity
+        case winePreferences
+        case helpCenter
+        case contactUs
+        case about
+        case terms
+        case privacyPolicy
+    }
+
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 // Sophisticated background
                 backgroundGradient
@@ -42,6 +54,37 @@ struct ProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
+            .navigationDestination(for: Destination.self) { destination in
+                switch destination {
+                case .personalInfo:
+                    PersonalInformationView()
+                        .environmentObject(authManager)
+                        .environmentObject(hapticManager)
+                case .privacySecurity:
+                    PrivacySecurityView()
+                        .environmentObject(authManager)
+                        .environmentObject(hapticManager)
+                case .winePreferences:
+                    WinePreferencesView()
+                        .environmentObject(authManager)
+                        .environmentObject(hapticManager)
+                case .helpCenter:
+                    HelpCenterView()
+                        .environmentObject(hapticManager)
+                case .contactUs:
+                    ContactUsView()
+                        .environmentObject(hapticManager)
+                case .about:
+                    AboutView()
+                        .environmentObject(hapticManager)
+                case .terms:
+                    TermsView()
+                        .environmentObject(hapticManager)
+                case .privacyPolicy:
+                    PrivacyPolicyView()
+                        .environmentObject(hapticManager)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -66,7 +109,7 @@ struct ProfileView: View {
         .photosPicker(isPresented: $showingImagePicker,
                      selection: $selectedPhotoItem,
                      matching: .images)
-        .onChange(of: selectedPhotoItem) { newValue in
+        .onChange(of: selectedPhotoItem) { _, newValue in
             Task {
                 await handlePhotoSelection(newValue)
             }
@@ -262,29 +305,17 @@ struct ProfileView: View {
             MenuSection(title: "Account") {
                 MenuRow(icon: "person.fill", title: "Personal Information", showChevron: true) {
                     hapticManager.lightImpact()
+                    navigationPath.append(Destination.personalInfo)
                 }
-                
-                MenuRow(icon: "bell.fill", title: "Notifications", showChevron: true) {
-                    hapticManager.lightImpact()
-                }
-                
+
                 MenuRow(icon: "lock.fill", title: "Privacy & Security", showChevron: true) {
                     hapticManager.lightImpact()
+                    navigationPath.append(Destination.privacySecurity)
                 }
-            }
-            
-            // Preferences Section
-            MenuSection(title: "Preferences") {
+
                 MenuRow(icon: "slider.horizontal.3", title: "Wine Preferences", showChevron: true) {
                     hapticManager.lightImpact()
-                }
-                
-                MenuRow(icon: "globe", title: "Language & Region", showChevron: true) {
-                    hapticManager.lightImpact()
-                }
-                
-                MenuRow(icon: "moon.fill", title: "Appearance", showChevron: true) {
-                    hapticManager.lightImpact()
+                    navigationPath.append(Destination.winePreferences)
                 }
             }
             
@@ -292,14 +323,20 @@ struct ProfileView: View {
             MenuSection(title: "Support") {
                 MenuRow(icon: "questionmark.circle.fill", title: "Help Center", showChevron: true) {
                     hapticManager.lightImpact()
+                    navigationPath.append(Destination.helpCenter)
                 }
-                
+
                 MenuRow(icon: "envelope.fill", title: "Contact Us", showChevron: true) {
                     hapticManager.lightImpact()
+                    navigationPath.append(Destination.contactUs)
                 }
-                
+
                 MenuRow(icon: "star.fill", title: "Rate App", showChevron: false) {
                     hapticManager.lightImpact()
+                    // Open App Store for rating
+                    if let url = URL(string: "https://apps.apple.com/app/id1234567890?action=write-review") {
+                        UIApplication.shared.open(url)
+                    }
                 }
             }
             
@@ -307,14 +344,17 @@ struct ProfileView: View {
             MenuSection(title: "About") {
                 MenuRow(icon: "info.circle.fill", title: "About Vinho", showChevron: true) {
                     hapticManager.lightImpact()
+                    navigationPath.append(Destination.about)
                 }
-                
+
                 MenuRow(icon: "doc.text.fill", title: "Terms of Service", showChevron: true) {
                     hapticManager.lightImpact()
+                    navigationPath.append(Destination.terms)
                 }
-                
+
                 MenuRow(icon: "hand.raised.fill", title: "Privacy Policy", showChevron: true) {
                     hapticManager.lightImpact()
+                    navigationPath.append(Destination.privacyPolicy)
                 }
             }
         }
@@ -351,8 +391,8 @@ struct ProfileView: View {
     
     func handlePhotoSelection(_ item: PhotosPickerItem?) async {
         guard let item = item else { return }
-        
-        if let data = try? await item.loadTransferable(type: Data.self) {
+
+        if let _ = try? await item.loadTransferable(type: Data.self) {
             // Upload to Supabase Storage
             // Update profile
         }
@@ -607,9 +647,9 @@ struct SettingsView: View {
                                 .foregroundColor(.vinoText)
                             
                             Toggle("Haptic Feedback", isOn: $hapticEnabled)
-                                .onChange(of: hapticEnabled) { value in
-                                    hapticManager.isEnabled = value
-                                    if value { hapticManager.lightImpact() }
+                                .onChange(of: hapticEnabled) { _, newValue in
+                                    hapticManager.isEnabled = newValue
+                                    if newValue { hapticManager.lightImpact() }
                                 }
                             
                             Toggle("Sound Effects", isOn: $soundEnabled)
@@ -672,10 +712,40 @@ struct SettingsView: View {
 // MARK: - View Model
 @MainActor
 class ProfileViewModel: ObservableObject {
-    @Published var winesScanned = 127
-    @Published var tastingNotes = 89
-    @Published var regions = 15
-    @Published var favorites = 42
-    @Published var wishlist = 28
-    @Published var cellar = 35
+    @Published var winesScanned = 0
+    @Published var tastingNotes = 0
+    @Published var regions = 0
+    @Published var favorites = 0
+    @Published var wishlist = 0
+    @Published var cellar = 0
+
+    private let dataService = DataService.shared
+
+    init() {
+        Task {
+            await loadStats()
+        }
+    }
+
+    func loadStats() async {
+        // Fetch tastings to calculate stats
+        await dataService.fetchUserTastings()
+
+        // Count total tastings
+        tastingNotes = dataService.tastings.count
+
+        // Count unique wines (vintages)
+        let uniqueWines = Set(dataService.tastings.compactMap { $0.vintage?.id })
+        winesScanned = uniqueWines.count
+
+        // Count unique regions (mock for now - in production would be from wine.region)
+        regions = min(15, max(1, winesScanned / 8)) // Rough estimate
+
+        // Count favorites (wines with rating >= 4)
+        favorites = dataService.tastings.filter { ($0.verdict ?? 0) >= 4 }.count
+
+        // Mock wishlist and cellar for now
+        wishlist = max(0, winesScanned / 3)
+        cellar = max(0, winesScanned / 4)
+    }
 }

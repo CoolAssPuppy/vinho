@@ -8,44 +8,30 @@ struct JournalView: View {
     @State private var showingNewNote = false
     @State private var selectedTimeFilter = TimeFilter.all
     @State private var searchText = ""
-    
+
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Elegant background
-                elegantBackground
-                
-                VStack(spacing: 0) {
-                    // Search Bar
-                    searchBar
-                        .padding(.horizontal)
-                        .padding(.vertical, 12)
-                    
-                    // Time Filter
-                    timeFilterBar
-                        .padding(.horizontal)
-                        .padding(.bottom, 12)
-                    
-                    // Journal Entries
-                    if filteredNotes.isEmpty {
-                        emptyState
-                    } else {
-                        journalList
-                    }
-                }
-            }
-            .navigationTitle("Tasting Journal")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        hapticManager.mediumImpact()
-                        showingNewNote = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.vinoAccent)
-                            .font(.system(size: 24))
-                    }
+        ZStack {
+            // Background
+            Color.vinoDark
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Search Bar
+                searchBar
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+
+                // Time Filter
+                timeFilterBar
+                    .padding(.horizontal)
+                    .padding(.bottom, 12)
+
+                // Journal Entries
+                if filteredNotes.isEmpty {
+                    emptyState
+                } else {
+                    journalList
                 }
             }
         }
@@ -64,32 +50,6 @@ struct JournalView: View {
         }
     }
     
-    var elegantBackground: some View {
-        ZStack {
-            Color.vinoDark.ignoresSafeArea()
-            
-            // Subtle pattern
-            GeometryReader { geometry in
-                ForEach(0..<5) { index in
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.vinoPrimary.opacity(0.05), Color.clear],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 200
-                            )
-                        )
-                        .frame(width: 400, height: 400)
-                        .offset(
-                            x: CGFloat.random(in: -200...geometry.size.width),
-                            y: CGFloat(index) * 200
-                        )
-                        .blur(radius: 30)
-                }
-            }
-        }
-    }
     
     var searchBar: some View {
         HStack(spacing: 12) {
@@ -166,7 +126,7 @@ struct JournalView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.bottom, 100)
+            .padding(.bottom, 20)
         }
         .refreshable {
             hapticManager.mediumImpact()

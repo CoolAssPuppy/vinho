@@ -83,7 +83,7 @@ export default function WineMap({
   const defaultZoom = 2;
 
   return (
-    <div className="h-[600px] w-full rounded-lg overflow-hidden">
+    <div className="h-[800px] w-full rounded-lg overflow-hidden">
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}

@@ -43,7 +43,8 @@ export default function Home() {
           <Link href="/auth/login">
             <Button
               size="lg"
-              className="min-w-[140px] bg-black hover:bg-black/90 text-white border-0"
+              variant="default"
+              className="min-w-[140px] bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md font-semibold"
             >
               Sign In
             </Button>
@@ -51,7 +52,8 @@ export default function Home() {
           <Link href="/auth/register">
             <Button
               size="lg"
-              className="min-w-[140px] bg-black hover:bg-black/90 text-white border-0"
+              variant="default"
+              className="min-w-[140px] bg-primary hover:bg-primary/90 text-white border-0 font-semibold"
             >
               Get Started
             </Button>

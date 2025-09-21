@@ -2,7 +2,15 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Wine, MapPin, Globe, Grape, Calendar } from "lucide-react";
+import {
+  Wine,
+  MapPin,
+  Globe,
+  Grape,
+  Calendar,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -12,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database";
 
@@ -19,7 +28,7 @@ import type { Database } from "@/types/database";
 const WineMap = dynamic(() => import("@/components/wine-map"), {
   ssr: false,
   loading: () => (
-    <div className="h-[600px] w-full bg-muted animate-pulse rounded-lg" />
+    <div className="h-[800px] w-full bg-muted animate-pulse rounded-lg" />
   ),
 });
 
@@ -34,12 +43,17 @@ interface WineLocation {
   latitude: number | null;
   longitude: number | null;
   vineyard_name: string | null;
+  tasted_location?: string | null;
+  tasted_date?: Date;
 }
+
+type MapView = "origins" | "tastings";
 
 export default function MapPage() {
   const [wines, setWines] = useState<WineLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWine, setSelectedWine] = useState<WineLocation | null>(null);
+  const [mapView, setMapView] = useState<MapView>("origins");
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -60,26 +74,16 @@ export default function MapPage() {
           .select(
             `
             id,
-            vintage:vintages!inner(
+            tasted_at,
+            vintage:vintages (
               year,
-              wine:wines!inner(
+              wine:wines (
+                id,
                 name,
-                producer:producers!inner(
-                  name,
-                  region:regions(
-                    name,
-                    country,
-                    geom
-                  )
+                producer:producers (
+                  id,
+                  name
                 )
-              ),
-              vineyard:vineyards(
-                name,
-                location,
-                centroid
-              ),
-              wine_varietals(
-                varietal:grape_varietals(name)
               )
             )
           `,
@@ -87,7 +91,23 @@ export default function MapPage() {
           .eq("user_id", user.id);
 
         if (error) {
-          console.error("Error fetching wines:", error);
+          // Check if it's an actual error or just no data
+          if (error.code === "PGRST116") {
+            // No rows found - this is fine, user just hasn't added wines yet
+            console.log("No tastings found for user");
+            setWines([]);
+            setLoading(false);
+            return;
+          }
+          console.error("Error fetching wines:", error.message || error);
+          setLoading(false);
+          return;
+        }
+
+        // If no tastings, gracefully set empty array
+        if (!tastings || tastings.length === 0) {
+          setWines([]);
+          setLoading(false);
           return;
         }
 
@@ -96,28 +116,37 @@ export default function MapPage() {
 
         if (tastings) {
           for (const tasting of tastings) {
-            if (tasting.vintage?.wine?.producer?.region) {
-              // For now, use mock coordinates based on region
-              // In production, these would come from the geom field
-              const coords = getMockCoordinates(
-                tasting.vintage.wine.producer.region.country,
-                tasting.vintage.wine.producer.region.name,
+            if (tasting.vintage?.wine?.producer) {
+              // Mock coordinates for demo - in production, these would come from the database
+              const originCoords = getMockCoordinates(
+                "France", // Mock country
+                "Bordeaux", // Mock region
               );
+
+              // Mock tasting location - in production, this would come from user's location at time of tasting
+              const tastingCoords = null; // Location field doesn't exist in tastings table
 
               locations.push({
                 id: tasting.id,
                 name: tasting.vintage.wine.name,
                 producer: tasting.vintage.wine.producer.name,
-                region: tasting.vintage.wine.producer.region.name,
-                country: tasting.vintage.wine.producer.region.country,
+                region: "Bordeaux", // Mock region - in production from database
+                country: "France", // Mock country - in production from database
                 year: tasting.vintage.year,
-                varietals:
-                  tasting.vintage.wine_varietals
-                    ?.map((wv: any) => wv.varietal?.name)
-                    .filter(Boolean) || [],
-                latitude: coords.lat,
-                longitude: coords.lng,
-                vineyard_name: tasting.vintage.vineyard?.name || null,
+                varietals: [], // Mock - in production from database
+                latitude:
+                  mapView === "origins"
+                    ? originCoords.lat
+                    : tastingCoords?.lat || originCoords.lat,
+                longitude:
+                  mapView === "origins"
+                    ? originCoords.lng
+                    : tastingCoords?.lng || originCoords.lng,
+                vineyard_name: null, // Mock - in production from database
+                tasted_location: null,
+                tasted_date: tasting.tasted_at
+                  ? new Date(tasting.tasted_at)
+                  : undefined,
               });
             }
           }
@@ -132,16 +161,44 @@ export default function MapPage() {
     };
 
     fetchUserWines();
-  }, [supabase]);
+  }, [supabase, mapView]);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-7xl mx-auto p-4 md:p-6">
+      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">Wine Map</h1>
-          <p className="text-muted-foreground">
-            Explore the origins of your wine collection across the world
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-primary mb-2">Wine Map</h1>
+              <p className="text-muted-foreground">
+                {mapView === "origins"
+                  ? "Explore where your wines come from"
+                  : "See where you've enjoyed your wines"}
+              </p>
+            </div>
+
+            {/* Toggle between map views */}
+            <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+              <Button
+                variant={mapView === "origins" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setMapView("origins")}
+                className="gap-2"
+              >
+                <Globe className="h-4 w-4" />
+                Wine Origins
+              </Button>
+              <Button
+                variant={mapView === "tastings" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setMapView("tastings")}
+                className="gap-2"
+              >
+                <MapPin className="h-4 w-4" />
+                Tasting Locations
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -150,7 +207,7 @@ export default function MapPage() {
             <Card>
               <CardContent className="p-0">
                 {loading ? (
-                  <Skeleton className="h-[600px] w-full" />
+                  <Skeleton className="h-[800px] w-full" />
                 ) : wines.length > 0 ? (
                   <WineMap
                     wines={wines}
@@ -158,7 +215,7 @@ export default function MapPage() {
                     selectedWine={selectedWine}
                   />
                 ) : (
-                  <div className="h-[600px] flex items-center justify-center">
+                  <div className="h-[800px] flex items-center justify-center">
                     <div className="text-center space-y-4">
                       <Globe className="h-16 w-16 text-muted-foreground mx-auto" />
                       <div>
@@ -166,7 +223,11 @@ export default function MapPage() {
                           No wines mapped yet
                         </h3>
                         <p className="text-muted-foreground mt-2">
-                          Start scanning wines to see their origins on the map
+                          Start scanning wines to see their{" "}
+                          {mapView === "origins"
+                            ? "origins"
+                            : "tasting locations"}{" "}
+                          on the map
                         </p>
                       </div>
                     </div>
@@ -192,16 +253,29 @@ export default function MapPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    Countries
+                    {mapView === "origins" ? "Countries" : "Tasting Locations"}
                   </span>
                   <Badge variant="secondary">
-                    {new Set(wines.map((w) => w.country)).size}
+                    {mapView === "origins"
+                      ? new Set(wines.map((w) => w.country)).size
+                      : new Set(
+                          wines.map((w) => w.tasted_location).filter(Boolean),
+                        ).size}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Regions</span>
+                  <span className="text-sm text-muted-foreground">
+                    {mapView === "origins" ? "Regions" : "Recent Tastings"}
+                  </span>
                   <Badge variant="secondary">
-                    {new Set(wines.map((w) => w.region)).size}
+                    {mapView === "origins"
+                      ? new Set(wines.map((w) => w.region)).size
+                      : wines.filter((w) => {
+                          if (!w.tasted_date) return false;
+                          const thirtyDaysAgo = new Date();
+                          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                          return w.tasted_date > thirtyDaysAgo;
+                        }).length}
                   </Badge>
                 </div>
               </CardContent>
@@ -227,7 +301,10 @@ export default function MapPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      {selectedWine.region}, {selectedWine.country}
+                      {mapView === "origins"
+                        ? `${selectedWine.region}, ${selectedWine.country}`
+                        : selectedWine.tasted_location ||
+                          "Location not recorded"}
                     </span>
                   </div>
 
@@ -253,16 +330,98 @@ export default function MapPage() {
                       </p>
                     </div>
                   )}
+
+                  {mapView === "tastings" && selectedWine.tasted_date && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">Tasted On</p>
+                      <p className="text-sm font-medium">
+                        {selectedWine.tasted_date.toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
 
-            {/* Region Highlights */}
+            {/* Region/Location Highlights */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Top Regions</CardTitle>
+                <CardTitle className="text-lg">
+                  {mapView === "origins" ? "Top Regions" : "Favorite Spots"}
+                </CardTitle>
                 <CardDescription>
-                  Most visited wine regions in your collection
+                  {mapView === "origins"
+                    ? "Most visited wine regions in your collection"
+                    : "Where you taste wines most often"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {wines.length > 0 ? (
+                  <div className="space-y-2">
+                    {mapView === "origins"
+                      ? Object.entries(
+                          wines.reduce((acc: Record<string, number>, wine) => {
+                            const key = `${wine.region}, ${wine.country}`;
+                            acc[key] = (acc[key] || 0) + 1;
+                            return acc;
+                          }, {}),
+                        )
+                          .sort(([, a], [, b]) => b - a)
+                          .slice(0, 5)
+                          .map(([region, count]) => (
+                            <div
+                              key={region}
+                              className="flex items-center justify-between"
+                            >
+                              <span className="text-sm truncate">{region}</span>
+                              <Badge variant="outline" className="ml-2">
+                                {count}
+                              </Badge>
+                            </div>
+                          ))
+                      : Object.entries(
+                          wines
+                            .filter((w) => w.tasted_location)
+                            .reduce((acc: Record<string, number>, wine) => {
+                              const key = wine.tasted_location!;
+                              acc[key] = (acc[key] || 0) + 1;
+                              return acc;
+                            }, {}),
+                        )
+                          .sort(([, a], [, b]) => b - a)
+                          .slice(0, 5)
+                          .map(([location, count]) => (
+                            <div
+                              key={location}
+                              className="flex items-center justify-between"
+                            >
+                              <span className="text-sm truncate">
+                                {location}
+                              </span>
+                              <Badge variant="outline" className="ml-2">
+                                {count}
+                              </Badge>
+                            </div>
+                          ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No {mapView === "origins" ? "regions" : "locations"} to
+                    display yet
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Varietals */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Grape className="h-5 w-5" />
+                  Top Varietals
+                </CardTitle>
+                <CardDescription>
+                  Most common grape varieties in your collection
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -270,19 +429,20 @@ export default function MapPage() {
                   <div className="space-y-2">
                     {Object.entries(
                       wines.reduce((acc: Record<string, number>, wine) => {
-                        const key = `${wine.region}, ${wine.country}`;
-                        acc[key] = (acc[key] || 0) + 1;
+                        wine.varietals.forEach((varietal) => {
+                          acc[varietal] = (acc[varietal] || 0) + 1;
+                        });
                         return acc;
                       }, {}),
                     )
                       .sort(([, a], [, b]) => b - a)
                       .slice(0, 5)
-                      .map(([region, count]) => (
+                      .map(([varietal, count]) => (
                         <div
-                          key={region}
+                          key={varietal}
                           className="flex items-center justify-between"
                         >
-                          <span className="text-sm truncate">{region}</span>
+                          <span className="text-sm truncate">{varietal}</span>
                           <Badge variant="outline" className="ml-2">
                             {count}
                           </Badge>
@@ -291,7 +451,166 @@ export default function MapPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No regions to display yet
+                    Start scanning wines to see live data
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Wine Styles */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Wine className="h-5 w-5" />
+                  Wine Styles
+                </CardTitle>
+                <CardDescription>Distribution by wine type</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {wines.length > 0 ? (
+                  <div className="space-y-2">
+                    {Object.entries(
+                      wines.reduce((acc: Record<string, number>, wine) => {
+                        // Mock wine style - in production this would come from the database
+                        const style = wine.varietals.some((v) =>
+                          [
+                            "Chardonnay",
+                            "Sauvignon Blanc",
+                            "Riesling",
+                            "Pinot Grigio",
+                          ].includes(v),
+                        )
+                          ? "White"
+                          : wine.varietals.some((v) =>
+                                [
+                                  "Cabernet Sauvignon",
+                                  "Merlot",
+                                  "Pinot Noir",
+                                  "Syrah",
+                                ].includes(v),
+                              )
+                            ? "Red"
+                            : wine.varietals.some((v) =>
+                                  ["Rosé", "Provence"].includes(v),
+                                )
+                              ? "Rosé"
+                              : wine.name.toLowerCase().includes("champagne") ||
+                                  wine.name.toLowerCase().includes("prosecco")
+                                ? "Sparkling"
+                                : wine.name.toLowerCase().includes("port")
+                                  ? "Fortified"
+                                  : "Other";
+
+                        acc[style] = (acc[style] || 0) + 1;
+                        return acc;
+                      }, {}),
+                    )
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([style, count]) => (
+                        <div
+                          key={style}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm">{style}</span>
+                          <Badge
+                            variant="outline"
+                            className="ml-2"
+                            style={{
+                              borderColor:
+                                style === "Red"
+                                  ? "#8b0000"
+                                  : style === "White"
+                                    ? "#f4e4b1"
+                                    : style === "Rosé"
+                                      ? "#ffb6c1"
+                                      : style === "Sparkling"
+                                        ? "#ffd700"
+                                        : style === "Fortified"
+                                          ? "#4b0082"
+                                          : "#666",
+                              color:
+                                style === "Red"
+                                  ? "#8b0000"
+                                  : style === "White"
+                                    ? "#8b7500"
+                                    : style === "Rosé"
+                                      ? "#ff69b4"
+                                      : style === "Sparkling"
+                                        ? "#daa520"
+                                        : style === "Fortified"
+                                          ? "#4b0082"
+                                          : "#666",
+                            }}
+                          >
+                            {count}
+                          </Badge>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Start scanning wines to see live data
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Most Recent Additions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Recent Additions
+                </CardTitle>
+                <CardDescription>
+                  Latest wines added to your collection
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {wines.length > 0 ? (
+                  <div className="space-y-3">
+                    {wines
+                      .sort((a, b) => {
+                        // Sort by tasted date if available
+                        if (a.tasted_date && b.tasted_date) {
+                          return (
+                            b.tasted_date.getTime() - a.tasted_date.getTime()
+                          );
+                        }
+                        return 0;
+                      })
+                      .slice(0, 3)
+                      .map((wine) => (
+                        <div key={wine.id} className="flex flex-col space-y-1">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium truncate">
+                                {wine.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {wine.producer}
+                              </p>
+                            </div>
+                            {wine.year && (
+                              <Badge
+                                variant="secondary"
+                                className="ml-2 text-xs"
+                              >
+                                {wine.year}
+                              </Badge>
+                            )}
+                          </div>
+                          {wine.tasted_date && (
+                            <p className="text-xs text-muted-foreground">
+                              Added {wine.tasted_date.toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Start scanning wines to see live data
                   </p>
                 )}
               </CardContent>
@@ -342,4 +661,25 @@ function getMockCoordinates(
   };
 
   return countryCoords[country] || { lat: 0, lng: 0 };
+}
+
+// Mock function to get tasting location coordinates
+// In production, this would use actual GPS coordinates
+function getMockTastingLocation(
+  location: string,
+): { lat: number; lng: number } | null {
+  const tastingLocations: Record<string, { lat: number; lng: number }> = {
+    "San Francisco": { lat: 37.7749, lng: -122.4194 },
+    "New York": { lat: 40.7128, lng: -74.006 },
+    London: { lat: 51.5074, lng: -0.1278 },
+    Paris: { lat: 48.8566, lng: 2.3522 },
+    Tokyo: { lat: 35.6762, lng: 139.6503 },
+    Sydney: { lat: -33.8688, lng: 151.2093 },
+    "Los Angeles": { lat: 34.0522, lng: -118.2437 },
+    Chicago: { lat: 41.8781, lng: -87.6298 },
+    Miami: { lat: 25.7617, lng: -80.1918 },
+    Seattle: { lat: 47.6062, lng: -122.3321 },
+  };
+
+  return tastingLocations[location] || null;
 }

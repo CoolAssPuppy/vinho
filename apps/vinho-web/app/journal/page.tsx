@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Wine,
-  Camera,
-  Sparkles,
-  TrendingUp,
-  BookOpen,
-  MapPin,
-} from "lucide-react";
+import { Wine, Camera, TrendingUp, BookOpen, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,7 +15,7 @@ import Link from "next/link";
 export default function JournalPage() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-6xl mx-auto p-4 md:p-6">
+      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-primary mb-2">
@@ -34,7 +27,7 @@ export default function JournalPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Link href="/scan">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer">
               <CardContent className="p-6">
@@ -64,24 +57,6 @@ export default function JournalPage() {
                     <h3 className="font-semibold">Explore Regions</h3>
                     <p className="text-sm text-muted-foreground">
                       Learn about terroir
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/recommend">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Discover</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Find new favorites
                     </p>
                   </div>
                 </div>
@@ -188,7 +163,7 @@ export default function JournalPage() {
         <Card className="mt-8 bg-accent/20 border-accent/30">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Wine className="h-5 w-5 text-primary" />
               Wine Tip of the Day
             </CardTitle>
           </CardHeader>

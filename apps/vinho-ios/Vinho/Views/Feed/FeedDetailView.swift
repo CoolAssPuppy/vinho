@@ -380,7 +380,7 @@ struct SimilarWineRow: View {
             Spacer()
             
             HStack(spacing: 2) {
-                ForEach(0..<rating) { _ in
+                ForEach(0..<rating, id: \.self) { _ in
                     Image(systemName: "star.fill")
                         .font(.system(size: 10))
                         .foregroundColor(.vinoGold)

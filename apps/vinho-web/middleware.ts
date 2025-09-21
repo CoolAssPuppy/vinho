@@ -35,14 +35,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protected routes - redirect to login if not authenticated
-  const protectedPaths = [
-    "/journal",
-    "/scan",
-    "/map",
-    "/recommend",
-    "/profile",
-    "/settings",
-  ];
+  const protectedPaths = ["/journal", "/scan", "/map", "/profile", "/settings"];
   const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path),
   );
@@ -84,7 +77,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - images folder
      * - public files
+     * - manifest.json
+     * - icon files
      */
-    "/((?!_next/static|_next/image|favicon.ico|images|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|images|public|manifest.json|icon-.*|apple-touch-icon.png).*)",
   ],
 };

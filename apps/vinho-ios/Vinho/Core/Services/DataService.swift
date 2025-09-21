@@ -153,7 +153,7 @@ class DataService: ObservableObject {
             // Upload to storage
             try await client.storage
                 .from("scans")
-                .upload(path: fileName, file: imageData, options: FileOptions(contentType: "image/jpeg"))
+                .upload(fileName, data: imageData, options: FileOptions(contentType: "image/jpeg"))
 
             // Get public URL
             let publicUrl = try client.storage

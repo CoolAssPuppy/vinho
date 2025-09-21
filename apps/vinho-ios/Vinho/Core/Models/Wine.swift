@@ -127,18 +127,28 @@ struct UserProfile: Identifiable, Codable, Hashable, Equatable {
     let id: UUID
     var email: String?
     var fullName: String?
+    var firstName: String?
+    var lastName: String?
     var avatarUrl: String?
     var bio: String?
     var winePreferences: [String: String]? // Changed to String: String for Equatable conformance
+    var favoriteRegions: [String]?
+    var favoriteVarietals: [String]?
+    var favoriteStyles: [String]?
     let createdAt: Date
     var updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id, email
         case fullName = "full_name"
+        case firstName = "first_name"
+        case lastName = "last_name"
         case avatarUrl = "avatar_url"
         case bio
         case winePreferences = "wine_preferences"
+        case favoriteRegions = "favorite_regions"
+        case favoriteVarietals = "favorite_varietals"
+        case favoriteStyles = "favorite_styles"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }

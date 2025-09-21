@@ -44,13 +44,12 @@ function LoginForm() {
 
     if (error) {
       toast.error(error.message);
+      setIsLoading(false);
     } else {
       toast.success("Welcome back!");
-      router.push("/");
-      router.refresh();
+      // Force refresh to trigger middleware redirect
+      window.location.href = "/journal";
     }
-
-    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {

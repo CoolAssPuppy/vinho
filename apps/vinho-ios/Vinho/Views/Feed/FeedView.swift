@@ -383,6 +383,7 @@ struct EngagementButton: View {
 }
 
 // MARK: - View Model
+@MainActor
 class FeedViewModel: ObservableObject {
     @Published var feedItems: [FeedItem] = []
     @Published var isLoading = false
@@ -390,14 +391,12 @@ class FeedViewModel: ObservableObject {
 
     private let dataService = DataService.shared
 
-    @MainActor
     func loadFeed() async {
         isLoading = true
         feedItems = await dataService.fetchRecentActivity()
         isLoading = false
     }
 
-    @MainActor
     func refreshFeed() async {
         await loadFeed()
     }
