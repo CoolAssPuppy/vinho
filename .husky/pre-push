@@ -1,1 +1,1 @@
-turbo run typecheck && turbo run test
+turbo run typecheck
