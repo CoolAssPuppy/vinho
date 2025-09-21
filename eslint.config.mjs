@@ -1,4 +1,5 @@
-export default {
-  root: true,
-  ignorePatterns: ['node_modules/', 'dist/', 'build/', '.next/', 'coverage/'],
-}
+export default [
+  {
+    ignores: ['node_modules/**', 'dist/**', 'build/**', '.next/**', 'coverage/**'],
+  }
+]

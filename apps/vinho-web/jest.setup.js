@@ -1,7 +1,12 @@
-import '@testing-library/jest-dom'
+import "@testing-library/jest-dom";
+
+// Polyfill for TextEncoder/TextDecoder
+const { TextEncoder, TextDecoder } = require("util");
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
 
 // Mock Next.js router
-jest.mock('next/navigation', () => ({
+jest.mock("next/navigation", () => ({
   useRouter() {
     return {
       push: jest.fn(),
@@ -10,18 +15,18 @@ jest.mock('next/navigation', () => ({
       prefetch: jest.fn(),
       back: jest.fn(),
       forward: jest.fn(),
-    }
+    };
   },
   useSearchParams() {
-    return new URLSearchParams()
+    return new URLSearchParams();
   },
   usePathname() {
-    return '/'
+    return "/";
   },
-}))
+}));
 
 // Mock Supabase client
-jest.mock('@/lib/supabase', () => ({
+jest.mock("@/lib/supabase", () => ({
   createClient: jest.fn(() => ({
     auth: {
       signInWithPassword: jest.fn(),
@@ -44,8 +49,8 @@ jest.mock('@/lib/supabase', () => ({
       delete: jest.fn(),
     })),
   })),
-}))
+}));
 
 // Mock environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";

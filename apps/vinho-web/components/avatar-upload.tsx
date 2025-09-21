@@ -46,11 +46,9 @@ export function AvatarUpload({
 
       // Remove old avatar if exists
       if (currentAvatarUrl) {
-        const oldPath = currentAvatarUrl.split("/").pop();
+        const oldPath = currentAvatarUrl.split("/").slice(-2).join("/");
         if (oldPath) {
-          await supabase.storage
-            .from("avatars")
-            .remove([`${userId}/${oldPath}`]);
+          await supabase.storage.from("avatars").remove([oldPath]);
         }
       }
 

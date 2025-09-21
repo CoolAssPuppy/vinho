@@ -150,6 +150,24 @@ export default function ScanPage() {
           </p>
         </div>
 
+        {/* Privacy Notice */}
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 mb-1">
+                Privacy Notice
+              </p>
+              <p className="text-xs text-amber-700">
+                Wine label images are processed by third-party AI services to
+                identify wine details. Please ensure your photos focus only on
+                the wine label and avoid including personal information or
+                background details that you don't want to share.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <Card className={`${getStatusColor()} transition-all duration-300`}>
           <CardContent className="p-8">
             <div className="flex flex-col items-center justify-center space-y-6">
