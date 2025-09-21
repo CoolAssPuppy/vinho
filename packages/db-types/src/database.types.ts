@@ -143,6 +143,7 @@ export type Database = {
       };
       profiles: {
         Row: {
+          avatar_url: string | null;
           created_at: string | null;
           favorite_regions: string[] | null;
           favorite_styles: string[] | null;
@@ -154,6 +155,7 @@ export type Database = {
           wine_preferences: Json | null;
         };
         Insert: {
+          avatar_url?: string | null;
           created_at?: string | null;
           favorite_regions?: string[] | null;
           favorite_styles?: string[] | null;
@@ -165,6 +167,7 @@ export type Database = {
           wine_preferences?: Json | null;
         };
         Update: {
+          avatar_url?: string | null;
           created_at?: string | null;
           favorite_regions?: string[] | null;
           favorite_styles?: string[] | null;

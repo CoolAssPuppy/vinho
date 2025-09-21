@@ -31,6 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { WineQuiz } from "@/components/wine-quiz";
 import { WinePreferences } from "@/components/wine-preferences";
+import { AvatarUpload } from "@/components/avatar-upload";
 import type { Database } from "@/types/database";
 
 export default function ProfilePage() {
@@ -209,6 +210,23 @@ export default function ProfilePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    <div>
+                      <Label className="text-sm font-medium mb-3">
+                        Profile Picture
+                      </Label>
+                      <AvatarUpload
+                        userId={user?.id || ""}
+                        currentAvatarUrl={profile?.avatar_url}
+                        onAvatarUpdate={(url) =>
+                          setProfile((prev) =>
+                            prev ? { ...prev, avatar_url: url } : null,
+                          )
+                        }
+                      />
+                    </div>
+
+                    <Separator />
+
                     <div>
                       <Label className="text-sm font-medium mb-2">Name</Label>
                       <div className="flex items-center space-x-2">
