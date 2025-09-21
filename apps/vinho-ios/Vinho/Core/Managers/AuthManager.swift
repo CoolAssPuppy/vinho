@@ -12,7 +12,7 @@ class AuthManager: ObservableObject {
     @Published var errorMessage: String?
 
     private var cancellables = Set<AnyCancellable>()
-    private let supabase = SupabaseClient.shared.client
+    private let client = SupabaseClient.shared.client
 
     init() {
         Task {
@@ -23,11 +23,11 @@ class AuthManager: ObservableObject {
     func checkSession() async {
         isLoading = true
         do {
-            let session = try await supabase.auth.session
-            if let user = session.user {
-                self.user = user
-                self.isAuthenticated = true
-                await fetchUserProfile(userId: user.id)
+            let session = try await client.session
+            self.user = session.user
+            self.isAuthenticated = session.user != nil
+            if let userId = session.user?.id {
+                await fetchUserProfile(userId: UUID(uuidString: userId) ?? UUID())
             }
         } catch {
             self.user = nil
@@ -41,10 +41,10 @@ class AuthManager: ObservableObject {
         errorMessage = nil
 
         do {
-            let response = try await supabase.auth.signUp(
+            let response = try await client.signUp(
                 email: email,
                 password: password,
-                data: ["full_name": .string(fullName)]
+                data: ["full_name": fullName]
             )
 
             if let user = response.user {
@@ -60,7 +60,7 @@ class AuthManager: ObservableObject {
                     "updated_at": ISO8601DateFormatter().string(from: Date())
                 ]
 
-                try await supabase
+                try await client.database
                     .from("profiles")
                     .insert(profile)
                     .execute()
@@ -78,7 +78,7 @@ class AuthManager: ObservableObject {
         errorMessage = nil
 
         do {
-            let response = try await supabase.auth.signIn(
+            let response = try await client.signIn(
                 email: email,
                 password: password
             )
@@ -97,7 +97,7 @@ class AuthManager: ObservableObject {
     func signOut() async {
         isLoading = true
         do {
-            try await supabase.auth.signOut()
+            try await client.signOut()
             self.user = nil
             self.userProfile = nil
             self.isAuthenticated = false
@@ -109,13 +109,16 @@ class AuthManager: ObservableObject {
 
     func fetchUserProfile(userId: UUID) async {
         do {
-            let response: UserProfile = try await supabase
+            let response = try await client.database
                 .from("profiles")
                 .select()
                 .eq("id", value: userId.uuidString)
                 .single()
                 .execute()
-                .value
+
+            if let data = response.data {
+                self.userProfile = try JSONDecoder().decode(UserProfile.self, from: data)
+            }
 
             self.userProfile = response
         } catch {
@@ -141,7 +144,7 @@ class AuthManager: ObservableObject {
         }
 
         do {
-            try await supabase
+            try await client.database
                 .from("profiles")
                 .update(updates)
                 .eq("id", value: userId.uuidString)
