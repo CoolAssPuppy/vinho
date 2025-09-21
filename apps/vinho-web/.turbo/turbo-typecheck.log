@@ -1,0 +1,35 @@
+
+> vinho-web@0.1.0 typecheck /Users/prashant/Developer/vinho/apps/vinho-web
+> tsc --noEmit
+
+__tests__/components/wine-map.test.tsx(1,56): error TS2307: Cannot find module '@jest/globals' or its corresponding type declarations.
+__tests__/components/wine-preferences.test.tsx(1,56): error TS2307: Cannot find module '@jest/globals' or its corresponding type declarations.
+__tests__/components/wine-preferences.test.tsx(56,5): error TS2353: Object literal may only specify known properties, and 'email' does not exist in type '{ created_at: string | null; favorite_regions: string[] | null; favorite_styles: string[] | null; favorite_varietals: string[] | null; first_name: string | null; id: string; last_name: string | null; updated_at: string | null; wine_preferences: Json; }'.
+__tests__/components/wine-quiz.test.tsx(1,56): error TS2307: Cannot find module '@jest/globals' or its corresponding type declarations.
+__tests__/edge-functions/process-wine-queue.test.ts(8,8): error TS2307: Cannot find module '@jest/globals' or its corresponding type declarations.
+__tests__/edge-functions/process-wine-queue.test.ts(11,48): error TS7006: Parameter 'url' implicitly has an 'any' type.
+__tests__/edge-functions/process-wine-queue.test.ts(11,53): error TS7006: Parameter 'options' implicitly has an 'any' type.
+__tests__/edge-functions/process-wine-queue.test.ts(17,49): error TS7006: Parameter 'body' implicitly has an 'any' type.
+__tests__/edge-functions/process-wine-queue.test.ts(17,55): error TS7006: Parameter 'options' implicitly has an 'any' type.
+__tests__/edge-functions/process-wine-queue.test.ts(24,48): error TS7006: Parameter 'init' implicitly has an 'any' type.
+__tests__/lib/actions/scan.test.ts(8,8): error TS2307: Cannot find module '@jest/globals' or its corresponding type declarations.
+lib/actions/scan.ts(50,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "grape_varietals" | "tastings" | "regions" | "climate_zones" | "vintages" | "producers" | "soil_types" | "vineyards" | "wines" | "wine_lists" | "photos" | "restaurant_favorites" | "scans" | "wine_list_items" | "wine_varietals"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"wines_added"' is not assignable to parameter of type '"grape_varietals" | "tastings" | "regions" | "climate_zones" | "vintages" | "producers" | "soil_types" | "vineyards" | "wines" | "wine_lists" | "photos" | "restaurant_favorites" | "scans" | "wine_list_items" | "wine_varietals"'.
+  Overload 2 of 2, '(relation: never): PostgrestQueryBuilder<{ PostgrestVersion: "12"; }, { Tables: { climate_zones: { Row: { id: number; koppen: string; name: string; notes: string | null; }; Insert: { id?: number | undefined; koppen: string; name: string; notes?: string | ... 1 more ... | undefined; }; Update: { ...; }; Relationships: []; }; ... 13 more ...; wines: { ...; }; }; Views: {}; Functions: {}; Enums: {}; CompositeTypes: {}; }, never, never, never>', gave the following error.
+    Argument of type '"wines_added"' is not assignable to parameter of type 'never'.
+lib/actions/scan.ts(64,28): error TS2339: Property 'id' does not exist on type '{ confidence: number | null; created_at: string | null; id: string; image_path: string; matched_vintage_id: string | null; ocr_text: string | null; user_id: string | null; } | { id: number; koppen: string; name: string; notes: string | null; } | ... 12 more ... | { ...; }'.
+  Property 'id' does not exist on type '{ percent: number | null; varietal_id: number; vintage_id: string; }'.
+supabase/functions/process-wine-queue/index.ts(2,30): error TS2307: Cannot find module 'jsr:@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/process-wine-queue/index.ts(3,24): error TS2307: Cannot find module 'https://deno.land/x/openai@v4.20.1/mod.ts' or its corresponding type declarations.
+supabase/functions/process-wine-queue/index.ts(5,22): error TS2304: Cannot find name 'Deno'.
+supabase/functions/process-wine-queue/index.ts(6,35): error TS2304: Cannot find name 'Deno'.
+supabase/functions/process-wine-queue/index.ts(7,24): error TS2304: Cannot find name 'Deno'.
+supabase/functions/process-wine-queue/index.ts(236,24): error TS18046: 'error' is of type 'unknown'.
+supabase/functions/process-wine-queue/index.ts(240,37): error TS18046: 'error' is of type 'unknown'.
+supabase/functions/process-wine-queue/index.ts(244,1): error TS2304: Cannot find name 'Deno'.
+supabase/functions/process-wine-queue/index.ts(271,23): error TS7006: Parameter 'item' implicitly has an 'any' type.
+supabase/functions/process-wine-queue/index.ts(275,8): error TS7006: Parameter 'r' implicitly has an 'any' type.
+supabase/functions/process-wine-queue/index.ts(278,8): error TS7006: Parameter 'r' implicitly has an 'any' type.
+supabase/functions/process-wine-queue/index.ts(300,49): error TS18046: 'error' is of type 'unknown'.
+ ELIFECYCLE  Command failed with exit code 2.
