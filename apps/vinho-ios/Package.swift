@@ -3,14 +3,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "VinhoApp",
+    name: "vinho-ios",
     platforms: [
         .iOS(.v17),
     ],
     products: [
         .library(
-            name: "VinhoApp",
-            targets: ["VinhoApp"]),
+            name: "vinho-ios",
+            targets: ["vinho-ios"]),
     ],
     dependencies: [
         .package(url: "https://github.com/supabase-community/supabase-swift", from: "2.0.0"),
@@ -20,7 +20,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "VinhoApp",
+            name: "vinho-ios",
             dependencies: [
                 .product(name: "Supabase", package: "supabase-swift"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
@@ -29,7 +29,7 @@ let package = Package(
                 .product(name: "MapLibre", package: "maplibre-gl-native-distribution"),
             ]),
         .testTarget(
-            name: "VinhoAppTests",
-            dependencies: ["VinhoApp"]),
+            name: "vinho-ios-tests",
+            dependencies: ["vinho-ios"]),
     ]
 )
