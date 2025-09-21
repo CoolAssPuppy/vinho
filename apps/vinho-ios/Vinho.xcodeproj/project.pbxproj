@@ -8,17 +8,20 @@
 
 /* Begin PBXBuildFile section */
 		143A27A98DEE7FDC4140DFA0 /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424DB00EBA1869AA2305A38A /* ScannerView.swift */; };
+		2B153EC92E7CA8643DAB1D7C /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 973411BA5C1ADCC5C1AD5777 /* Lottie */; };
 		3299AD7BD31BB010C3C95D33 /* VinoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F35B623A39A4E69CF7377EBF /* VinoApp.swift */; };
 		38138BE828B613092B1F1921 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D4E98265B16E5F972A19092 /* FeedView.swift */; };
 		3DA6839B39CE325E23CA89F5 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */; };
 		3FAE5321AD98A735DA17C531 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 606B033C31499FD7E913B4BA /* SplashScreen.swift */; };
 		4558B4AAD211568905B60DBD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90C8394DD2C607793EEF947A /* ContentView.swift */; };
+		5C06A4568DEE8645D0E19F3D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = E2FCDDA193BCB2EEF7F9D294 /* Supabase */; };
 		6A260EC6AE91F6BCDA66B3A6 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502BA12366C095B71BC59DC7 /* Colors.swift */; };
 		8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76EC39A8B54340E597E5A1C /* WineDetailView.swift */; };
 		8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */; };
 		A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACE8A61FC77F5216858D38 /* ThemeManager.swift */; };
 		AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */; };
 		B5E389EE06A1018722836AE9 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E81AE2E53674E7F6EDA972 /* PreviewContainer.swift */; };
+		B653E262BEBE917EFF46D52D /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 2F796CEA6EE2797CF27D8203 /* Kingfisher */; };
 		B6778FAC52FC305D601ADD3B /* Wine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C5FF736994778CE20D63418 /* Wine.swift */; };
 		BAEDAB496398490D44302725 /* WineListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FF4D04198FB8957C739FEE1 /* WineListView.swift */; };
 		C0348ACC34903A81CF748F9F /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CA3B36B6C96D776DE7016D /* JournalView.swift */; };
@@ -51,6 +54,19 @@
 		EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		F35B623A39A4E69CF7377EBF /* VinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VinoApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		97F183B7C13E60F1AFF8EC9D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C06A4568DEE8645D0E19F3D /* Supabase in Frameworks */,
+				B653E262BEBE917EFF46D52D /* Kingfisher in Frameworks */,
+				2B153EC92E7CA8643DAB1D7C /* Lottie in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0EB56D46823F30E632C1C04C = {
@@ -211,6 +227,7 @@
 			buildConfigurationList = 8B117300505FB246F9F801FC /* Build configuration list for PBXNativeTarget "Vinho" */;
 			buildPhases = (
 				CDDC79EFD3F0CBEA40D51048 /* Sources */,
+				97F183B7C13E60F1AFF8EC9D /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -218,6 +235,9 @@
 			);
 			name = Vinho;
 			packageProductDependencies = (
+				E2FCDDA193BCB2EEF7F9D294 /* Supabase */,
+				2F796CEA6EE2797CF27D8203 /* Kingfisher */,
+				973411BA5C1ADCC5C1AD5777 /* Lottie */,
 			);
 			productName = Vinho;
 			productReference = 5F381A633A953D96111A3722 /* Vinho.app */;
@@ -519,6 +539,24 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2F796CEA6EE2797CF27D8203 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 462AFD02504931377E0DF39D /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+		973411BA5C1ADCC5C1AD5777 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 076EF2D10255E9DC649822BC /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+		E2FCDDA193BCB2EEF7F9D294 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7635433D62507E29747941EF /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 47095AE7EE983BD536F3A41A /* Project object */;
 }

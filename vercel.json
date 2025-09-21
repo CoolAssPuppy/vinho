@@ -1,6 +1,5 @@
 {
-  "buildCommand": "pnpm turbo run build --filter=vinho-web",
+  "buildCommand": "cd apps/vinho-web && pnpm run build",
   "installCommand": "pnpm install",
-  "framework": "nextjs",
-  "rootDirectory": "apps/vinho-web"
+  "framework": "nextjs"
 }

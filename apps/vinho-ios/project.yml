@@ -29,6 +29,10 @@ targets:
     platform: iOS
     sources:
       - Vinho
+    dependencies:
+      - package: Supabase
+      - package: Kingfisher
+      - package: Lottie
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.vinho.app
