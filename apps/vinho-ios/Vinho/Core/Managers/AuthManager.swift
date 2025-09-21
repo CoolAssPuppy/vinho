@@ -23,12 +23,10 @@ class AuthManager: ObservableObject {
     func checkSession() async {
         isLoading = true
         do {
-            let session = try await client.session
+            let session = try await client.auth.session
             self.user = session.user
-            self.isAuthenticated = session.user != nil
-            if let userId = session.user?.id {
-                await fetchUserProfile(userId: UUID(uuidString: userId) ?? UUID())
-            }
+            self.isAuthenticated = true
+            await fetchUserProfile(userId: session.user.id)
         } catch {
             self.user = nil
             self.isAuthenticated = false
@@ -41,10 +39,10 @@ class AuthManager: ObservableObject {
         errorMessage = nil
 
         do {
-            let response = try await client.signUp(
+            let response = try await client.auth.signUp(
                 email: email,
                 password: password,
-                data: ["full_name": fullName]
+                data: ["full_name": .string(fullName)]
             )
 
             if let user = response.user {
@@ -52,20 +50,22 @@ class AuthManager: ObservableObject {
                 self.isAuthenticated = true
 
                 // Create user profile
-                let profile = [
-                    "id": user.id.uuidString,
-                    "email": email,
-                    "full_name": fullName,
-                    "created_at": ISO8601DateFormatter().string(from: Date()),
-                    "updated_at": ISO8601DateFormatter().string(from: Date())
-                ]
+                let profile = UserProfile(
+                    id: user.id,
+                    email: email,
+                    fullName: fullName,
+                    bio: nil,
+                    avatarUrl: nil,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                )
 
-                try await client.database
+                try await client
                     .from("profiles")
                     .insert(profile)
                     .execute()
 
-                await fetchUserProfile(userId: user.id)
+                self.userProfile = profile
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -78,16 +78,14 @@ class AuthManager: ObservableObject {
         errorMessage = nil
 
         do {
-            let response = try await client.signIn(
+            let session = try await client.auth.signIn(
                 email: email,
                 password: password
             )
 
-            if let user = response.user {
-                self.user = user
-                self.isAuthenticated = true
-                await fetchUserProfile(userId: user.id)
-            }
+            self.user = session.user
+            self.isAuthenticated = true
+            await fetchUserProfile(userId: session.user.id)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -97,7 +95,7 @@ class AuthManager: ObservableObject {
     func signOut() async {
         isLoading = true
         do {
-            try await client.signOut()
+            try await client.auth.signOut()
             self.user = nil
             self.userProfile = nil
             self.isAuthenticated = false
@@ -109,18 +107,15 @@ class AuthManager: ObservableObject {
 
     func fetchUserProfile(userId: UUID) async {
         do {
-            let response = try await client.database
+            let profile: UserProfile = try await client
                 .from("profiles")
                 .select()
                 .eq("id", value: userId.uuidString)
                 .single()
                 .execute()
+                .value
 
-            if let data = response.data {
-                self.userProfile = try JSONDecoder().decode(UserProfile.self, from: data)
-            }
-
-            self.userProfile = response
+            self.userProfile = profile
         } catch {
             print("Error fetching user profile: \(error)")
         }
@@ -128,29 +123,28 @@ class AuthManager: ObservableObject {
 
     func updateProfile(fullName: String? = nil, bio: String? = nil, avatarUrl: String? = nil) async {
         guard let userId = user?.id else { return }
+        guard var profile = userProfile else { return }
 
-        var updates: [String: Any] = [
-            "updated_at": ISO8601DateFormatter().string(from: Date())
-        ]
-
+        // Update the profile object
         if let fullName = fullName {
-            updates["full_name"] = fullName
+            profile.fullName = fullName
         }
         if let bio = bio {
-            updates["bio"] = bio
+            profile.bio = bio
         }
         if let avatarUrl = avatarUrl {
-            updates["avatar_url"] = avatarUrl
+            profile.avatarUrl = avatarUrl
         }
+        profile.updatedAt = Date()
 
         do {
-            try await client.database
+            try await client
                 .from("profiles")
-                .update(updates)
+                .update(profile)
                 .eq("id", value: userId.uuidString)
                 .execute()
 
-            await fetchUserProfile(userId: userId)
+            self.userProfile = profile
         } catch {
             errorMessage = error.localizedDescription
         }

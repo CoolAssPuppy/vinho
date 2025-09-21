@@ -1,6 +1,7 @@
 import SwiftUI
 
 #if DEBUG
+@MainActor
 struct PreviewContainer {
     static let shared = PreviewContainer()
 

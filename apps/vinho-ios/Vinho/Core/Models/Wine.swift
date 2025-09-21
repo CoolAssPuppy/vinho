@@ -108,15 +108,15 @@ struct TastingNote: Identifiable, Codable, Hashable {
 }
 
 // MARK: - UserProfile Model
-struct UserProfile: Identifiable, Codable, Hashable {
-    let id: String
-    let email: String?
-    let fullName: String?
-    let avatarUrl: String?
-    let bio: String?
-    let winePreferences: [String: Any]?
+struct UserProfile: Identifiable, Codable, Hashable, Equatable {
+    let id: UUID
+    var email: String?
+    var fullName: String?
+    var avatarUrl: String?
+    var bio: String?
+    var winePreferences: [String: String]? // Changed to String: String for Equatable conformance
     let createdAt: Date
-    let updatedAt: Date
+    var updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id, email
@@ -128,36 +128,26 @@ struct UserProfile: Identifiable, Codable, Hashable {
         case updatedAt = "updated_at"
     }
 
-    // Custom encoding/decoding for dictionary
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(email, forKey: .email)
-        try container.encode(fullName, forKey: .fullName)
-        try container.encode(avatarUrl, forKey: .avatarUrl)
-        try container.encode(bio, forKey: .bio)
-        if let prefs = winePreferences {
-            let data = try JSONSerialization.data(withJSONObject: prefs)
-            try container.encode(data, forKey: .winePreferences)
-        }
-        try container.encode(createdAt, forKey: .createdAt)
-        try container.encode(updatedAt, forKey: .updatedAt)
+    // Conform to Equatable
+    static func == (lhs: UserProfile, rhs: UserProfile) -> Bool {
+        lhs.id == rhs.id
     }
 
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        email = try container.decodeIfPresent(String.self, forKey: .email)
-        fullName = try container.decodeIfPresent(String.self, forKey: .fullName)
-        avatarUrl = try container.decodeIfPresent(String.self, forKey: .avatarUrl)
-        bio = try container.decodeIfPresent(String.self, forKey: .bio)
-        if let prefsData = try container.decodeIfPresent(Data.self, forKey: .winePreferences) {
-            winePreferences = try JSONSerialization.jsonObject(with: prefsData) as? [String: Any]
-        } else {
-            winePreferences = nil
-        }
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    // Conform to Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    // Custom initializer for creating new profiles
+    init(id: UUID, email: String?, fullName: String?, bio: String? = nil, avatarUrl: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
+        self.id = id
+        self.email = email
+        self.fullName = fullName
+        self.bio = bio
+        self.avatarUrl = avatarUrl
+        self.winePreferences = nil
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
     }
 }
 
