@@ -1,0 +1,6 @@
+// Configuration file for build settings
+// Copy this file to Config.local.xcconfig and add your actual API keys
+// Never commit Config.local.xcconfig to version control
+
+// Google Maps API Key - Get from https://console.cloud.google.com/
+GOOGLE_MAPS_API_KEY = YOUR_API_KEY_HERE
