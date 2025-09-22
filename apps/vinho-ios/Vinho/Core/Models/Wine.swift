@@ -17,7 +17,7 @@ struct Wine: Identifiable, Codable, Hashable {
         case name
         case isNV = "is_nv"
         case createdAt = "created_at"
-        case producer
+        case producer = "producers"
         case vintages
     }
 
@@ -53,7 +53,7 @@ struct Vintage: Identifiable, Codable, Hashable {
         case climateZoneId = "climate_zone_id"
         case soilTypeId = "soil_type_id"
         case createdAt = "created_at"
-        case wine
+        case wine = "wines"
     }
 }
 
@@ -93,20 +93,22 @@ struct Scan: Identifiable, Codable, Hashable {
         case confidence
         case createdAt = "created_at"
         case scanImageUrl = "scan_image_url"
-        case matchedVintage = "matched_vintage"
+        case matchedVintage = "vintages"
     }
 }
 
 // MARK: - Tasting Model
-struct Tasting: Identifiable, Codable, Hashable {
+struct Tasting: Identifiable, Hashable {
     let id: UUID
     let userId: UUID
     let vintageId: UUID
-    let verdict: Int16?
+    let verdict: Int?  // Changed from Int16? to Int? for 1-5 star rating
     let notes: String?
+    let detailedNotes: String?  // Added for technical notes
     let tastedAt: Date
     let createdAt: Date
     let updatedAt: Date
+    let imageUrl: String?  // URL of the wine bottle image
     var vintage: Vintage?
 
     enum CodingKeys: String, CodingKey {
@@ -115,10 +117,67 @@ struct Tasting: Identifiable, Codable, Hashable {
         case vintageId = "vintage_id"
         case verdict
         case notes
+        case detailedNotes = "detailed_notes"
         case tastedAt = "tasted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
-        case vintage
+        case imageUrl = "image_url"
+        case vintage = "vintages"
+    }
+}
+
+// MARK: - Tasting Codable Implementation
+extension Tasting: Codable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(UUID.self, forKey: .id)
+        userId = try container.decode(UUID.self, forKey: .userId)
+        vintageId = try container.decode(UUID.self, forKey: .vintageId)
+        verdict = try container.decodeIfPresent(Int.self, forKey: .verdict)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        detailedNotes = try container.decodeIfPresent(String.self, forKey: .detailedNotes)
+        imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        vintage = try container.decodeIfPresent(Vintage.self, forKey: .vintage)
+
+        // Handle date-only format for tastedAt
+        if let dateString = try? container.decode(String.self, forKey: .tastedAt) {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            tastedAt = dateFormatter.date(from: dateString) ?? Date()
+        } else {
+            tastedAt = try container.decode(Date.self, forKey: .tastedAt)
+        }
+
+        // Handle ISO8601 format for timestamps
+        if let dateString = try? container.decode(String.self, forKey: .createdAt) {
+            let dateFormatter = ISO8601DateFormatter()
+            createdAt = dateFormatter.date(from: dateString) ?? Date()
+        } else {
+            createdAt = try container.decode(Date.self, forKey: .createdAt)
+        }
+
+        if let dateString = try? container.decode(String.self, forKey: .updatedAt) {
+            let dateFormatter = ISO8601DateFormatter()
+            updatedAt = dateFormatter.date(from: dateString) ?? Date()
+        } else {
+            updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(vintageId, forKey: .vintageId)
+        try container.encodeIfPresent(verdict, forKey: .verdict)
+        try container.encodeIfPresent(notes, forKey: .notes)
+        try container.encodeIfPresent(detailedNotes, forKey: .detailedNotes)
+        try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
+        try container.encodeIfPresent(vintage, forKey: .vintage)
+        try container.encode(tastedAt, forKey: .tastedAt)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
     }
 }
 
@@ -229,7 +288,7 @@ struct UserProfile: Identifiable, Codable, Hashable, Equatable {
         self.favoriteVarietals = nil
         self.favoriteStyles = nil
         self.priceRange = nil
-        self.tastingNoteStyle = nil
+        self.tastingNoteStyle = "casual"  // Default to casual
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

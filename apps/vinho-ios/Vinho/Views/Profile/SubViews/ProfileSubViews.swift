@@ -157,7 +157,7 @@ struct WinePreferencesView: View {
     @State private var selectedVarietals: Set<String> = []
     @State private var selectedStyles: Set<String> = []
     @State private var priceRange = PriceRange(low: 20, high: 100)
-    @State private var tastingNoteStyle = "Casual"
+    @State private var tastingNoteStyle = "casual"
     @State private var customRegionInput = ""
     @State private var isSaving = false
     @State private var saveStatus = "Save Preferences"
@@ -192,7 +192,7 @@ struct WinePreferencesView: View {
         "Floral", "Spicy", "Oaky", "Crisp", "Smooth", "Complex", "Simple", "Dry", "Off-dry", "Sweet"
     ]
     
-    private let tastingNoteStyles = ["Casual", "Professional Sommelier", "Professional Winemaker"]
+    private let tastingNoteStyles = ["casual", "sommelier", "winemaker"]
 
     var body: some View {
         ZStack {
@@ -481,7 +481,7 @@ struct WinePreferencesView: View {
         }
         
         // Load tasting note style
-        tastingNoteStyle = profile.tastingNoteStyle ?? "Casual"
+        tastingNoteStyle = profile.tastingNoteStyle ?? "casual"
         
         isLoading = false
     }
@@ -536,7 +536,7 @@ struct WinePreferencesView: View {
                 "low": profile.priceRange?.low ?? 20,
                 "high": profile.priceRange?.high ?? 100
             ],
-            tastingNoteStyle: profile.tastingNoteStyle ?? "Casual",
+            tastingNoteStyle: profile.tastingNoteStyle ?? "casual",
             winePreferences: profile.winePreferences ?? WinePreferences(),
             updatedAt: profile.updatedAt.ISO8601Format()
         )

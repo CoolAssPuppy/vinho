@@ -1,13 +1,19 @@
 import SwiftUI
+import Supabase
+import CoreLocation
 
 /// Beautiful journal view for wine tasting notes
 struct JournalView: View {
     @StateObject private var viewModel = JournalViewModel()
     @EnvironmentObject var hapticManager: HapticManager
+    @EnvironmentObject var authManager: AuthManager
     @State private var selectedNote: TastingNoteWithWine?
     @State private var showingNewNote = false
+    @State private var noteToEdit: TastingNoteWithWine?
     @State private var selectedTimeFilter = TimeFilter.all
     @State private var searchText = ""
+    @State private var pendingWinesCount = 0
+    @State private var selectedTab = 0
 
     var body: some View {
         ZStack {
@@ -16,36 +22,101 @@ struct JournalView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Search Bar
-                searchBar
+                // Pending wines banner
+                if pendingWinesCount > 0 {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .vinoGold))
+                            .scaleEffect(0.8)
+
+                        Text("\(pendingWinesCount) wine\(pendingWinesCount > 1 ? "s" : "") \(pendingWinesCount > 1 ? "are" : "is") being processed")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.vinoText)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.vinoGold.opacity(0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.vinoGold.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .move(edge: .top).combined(with: .opacity)
+                    ))
+                    .animation(.easeInOut(duration: 0.3), value: pendingWinesCount)
+                }
+
+                // Tab Selection
+                tabSelector
                     .padding(.horizontal)
                     .padding(.top, 8)
                     .padding(.bottom, 12)
 
-                // Time Filter
-                timeFilterBar
-                    .padding(.horizontal)
-                    .padding(.bottom, 12)
+                // Tab Content
+                if selectedTab == 0 {
+                    // Tastings Tab
+                    VStack(spacing: 0) {
+                        // Search Bar
+                        searchBar
+                            .padding(.horizontal)
+                            .padding(.bottom, 12)
 
-                // Journal Entries
-                if filteredNotes.isEmpty {
-                    emptyState
+                        // Time Filter
+                        timeFilterBar
+                            .padding(.horizontal)
+                            .padding(.bottom, 12)
+
+                        // Journal Entries
+                        if filteredNotes.isEmpty {
+                            emptyState
+                        } else {
+                            journalList
+                        }
+                    }
                 } else {
-                    journalList
+                    // Suggestions Tab
+                    suggestionsTab
+                        .padding(.horizontal)
                 }
             }
         }
         .sheet(item: $selectedNote) { note in
-            TastingNoteDetailView(note: note)
+            TastingNoteDetailView(note: note, onEdit: {
+                noteToEdit = note
+            })
                 .environmentObject(hapticManager)
         }
         .sheet(isPresented: $showingNewNote) {
-            NewTastingNoteView()
+            TastingNoteEditorView(vintageId: nil, existingTasting: nil)
                 .environmentObject(hapticManager)
+                .environmentObject(authManager)
+        }
+        .sheet(item: $noteToEdit) { note in
+            // Find the original Tasting object from DataService
+            if let tasting = viewModel.dataService.tastings.first(where: { $0.id == note.id }) {
+                TastingNoteEditorView(vintageId: note.vintageId, existingTasting: tasting)
+                    .environmentObject(hapticManager)
+                    .environmentObject(authManager)
+            } else {
+                // Fallback if we can't find the tasting
+                TastingNoteDetailView(note: note, onEdit: {
+                    // Already in edit mode
+                })
+                    .environmentObject(hapticManager)
+            }
         }
         .onAppear {
             Task {
                 await viewModel.loadNotes()
+                await loadPendingWines()
             }
         }
     }
@@ -216,6 +287,67 @@ struct JournalView: View {
             return formatter.string(from: date)
         }
     }
+
+    var tabSelector: some View {
+        HStack(spacing: 0) {
+            // Tastings Tab
+            Button {
+                hapticManager.lightImpact()
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    selectedTab = 0
+                }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "book.pages")
+                        .font(.system(size: 16, weight: .medium))
+                    Text("Tastings")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(selectedTab == 0 ? .white : .vinoTextSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(selectedTab == 0 ? LinearGradient.vinoGradient : LinearGradient(colors: [Color.clear], startPoint: .leading, endPoint: .trailing))
+                )
+            }
+
+            // Suggestions Tab
+            Button {
+                hapticManager.lightImpact()
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    selectedTab = 1
+                }
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "lightbulb")
+                        .font(.system(size: 16, weight: .medium))
+                    Text("Suggestions")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(selectedTab == 1 ? .white : .vinoTextSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(selectedTab == 1 ? LinearGradient.vinoGradient : LinearGradient(colors: [Color.clear], startPoint: .leading, endPoint: .trailing))
+                )
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.vinoDarkSecondary)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.vinoBorder, lineWidth: 1)
+                )
+        )
+    }
+
+    var suggestionsTab: some View {
+        SuggestionsView(tastings: viewModel.notes)
+            .environmentObject(hapticManager)
+    }
 }
 
 // MARK: - Tasting Note Card
@@ -256,17 +388,25 @@ struct TastingNoteCard: View {
             
             // Note Details
             VStack(alignment: .leading, spacing: 6) {
-                // Wine Info
-                Text(note.producer)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.vinoAccent)
-                    .textCase(.uppercase)
-                    .lineLimit(1)
-                
-                Text(note.wineName)
+                // Wine Name + Vintage as title
+                Text("\(note.wineName) \(note.vintage != nil ? String(note.vintage!) : "NV")")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.vinoText)
                     .lineLimit(1)
+
+                // Producer name as secondary
+                Text(note.producer)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.vinoTextSecondary)
+                    .lineLimit(1)
+
+                // Producer city if available
+                if let city = note.producerCity {
+                    Text(city)
+                        .font(.system(size: 12))
+                        .foregroundColor(.vinoTextTertiary)
+                        .lineLimit(1)
+                }
                 
                 // Rating
                 HStack(spacing: 4) {
@@ -374,35 +514,87 @@ struct FlavorTag: View {
 
 // MARK: - View Model
 @MainActor
+// MARK: - Realtime and Pending Wines
+extension JournalView {
+    func loadPendingWines() async {
+        let supabase = SupabaseManager.shared.client
+
+        guard let userId = try? await supabase.auth.session.user.id else { return }
+
+        do {
+            let response = try await supabase
+                .from("wines_added")
+                .select("id, status")
+                .eq("user_id", value: userId.uuidString)
+                .in("status", values: ["pending", "working"])
+                .execute()
+
+            let decoder = JSONDecoder()
+            let wines = try decoder.decode([WineAddedStatus].self, from: response.data)
+            await MainActor.run {
+                pendingWinesCount = wines.count
+            }
+        } catch {
+            print("Error loading pending wines: \(error)")
+        }
+    }
+
+}
+
+// Simple model for wine status
+struct WineAddedStatus: Decodable {
+    let id: UUID
+    let status: String
+}
+
+@MainActor
 class JournalViewModel: ObservableObject {
     @Published var notes: [TastingNoteWithWine] = []
     @Published var isLoading = false
 
-    private let dataService = DataService.shared
+    public let dataService = DataService.shared
 
     func loadNotes() async {
         isLoading = true
         await dataService.fetchUserTastings()
 
+        print("DataService has \(dataService.tastings.count) tastings")
+
         // Convert tastings to TastingNoteWithWine format
-        notes = dataService.tastings.compactMap { tasting in
+        notes = dataService.tastings.compactMap { tasting -> TastingNoteWithWine? in
+            print("Processing tasting: \(tasting.id)")
+            print("  - Has vintage: \(tasting.vintage != nil)")
+            if let vintage = tasting.vintage {
+                print("  - Has wine: \(vintage.wine != nil)")
+                if let wine = vintage.wine {
+                    print("  - Has producer: \(wine.producer != nil)")
+                }
+            }
+
             guard let vintage = tasting.vintage,
                   let wine = vintage.wine,
-                  let producer = wine.producer else { return nil }
+                  let producer = wine.producer else {
+                print("  - Skipping tasting due to missing data")
+                return nil
+            }
 
             return TastingNoteWithWine(
                 id: tasting.id,
                 wineName: wine.name,
                 producer: producer.name,
+                producerCity: nil,
                 vintage: vintage.year,
-                rating: Int(tasting.verdict ?? 0),
+                rating: tasting.verdict ?? 0,
                 notes: tasting.notes,
-                aromas: [], // You can parse these from notes if needed
-                flavors: [], // You can parse these from notes if needed
+                detailedNotes: tasting.detailedNotes,
+                aromas: [],
+                flavors: [],
                 date: tasting.tastedAt,
-                imageUrl: nil
+                imageUrl: tasting.imageUrl,  // Use the actual image URL from the tasting
+                vintageId: vintage.id
             )
         }
+        print("Converted to \(notes.count) TastingNoteWithWine objects")
         isLoading = false
     }
 
@@ -432,11 +624,14 @@ struct TastingNoteWithWine: Identifiable {
     let id: UUID
     let wineName: String
     let producer: String
+    let producerCity: String?
     let vintage: Int?
     let rating: Int
     let notes: String?
+    let detailedNotes: String?
     let aromas: [String]
     let flavors: [String]
     let date: Date
     let imageUrl: String?
+    let vintageId: UUID
 }

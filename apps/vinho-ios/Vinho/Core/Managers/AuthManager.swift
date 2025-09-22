@@ -14,6 +14,9 @@ class AuthManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     let client = SupabaseManager.shared.client
 
+    // Computed property for convenience
+    var currentUser: User? { user }
+
     init() {
         Task {
             await checkSession()

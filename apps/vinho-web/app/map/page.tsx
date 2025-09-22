@@ -36,6 +36,9 @@ interface WineLocation {
   id: string;
   name: string;
   producer: string;
+  producer_address?: string | null;
+  producer_city?: string | null;
+  producer_website?: string | null;
   region: string;
   country: string;
   year: number | null;
@@ -75,6 +78,11 @@ export default function MapPage() {
             `
             id,
             tasted_at,
+            location_name,
+            location_address,
+            location_city,
+            location_latitude,
+            location_longitude,
             vintage:vintages (
               year,
               wine:wines (
@@ -82,7 +90,17 @@ export default function MapPage() {
                 name,
                 producer:producers (
                   id,
-                  name
+                  name,
+                  address,
+                  city,
+                  postal_code,
+                  website,
+                  latitude,
+                  longitude,
+                  region:regions (
+                    name,
+                    country
+                  )
                 )
               )
             )
@@ -116,33 +134,52 @@ export default function MapPage() {
 
         if (tastings) {
           for (const tasting of tastings) {
-            if (tasting.vintage?.wine?.producer) {
-              // Mock coordinates for demo - in production, these would come from the database
-              const originCoords = getMockCoordinates(
-                "France", // Mock country
-                "Bordeaux", // Mock region
-              );
+            // Type assertion to help TypeScript understand the structure
+            const typedTasting = tasting as any;
+            if (typedTasting.vintage?.wine?.producer) {
+              const producer = typedTasting.vintage.wine.producer as any;
 
-              // Mock tasting location - in production, this would come from user's location at time of tasting
-              // For now, using origin coords as tasting coords are not available
-              const tastingLat = originCoords.lat; // In production, would get from tasting location
-              const tastingLng = originCoords.lng; // In production, would get from tasting location
+              // Extract region and country from producer's linked region or fallback
+              const region = producer.region?.name || "Unknown Region";
+              const country = producer.region?.country || "Unknown Country";
+
+              // For origins view, use producer coordinates
+              let originLat = producer.latitude;
+              let originLng = producer.longitude;
+
+              // If no coordinates, try to get from region/country as fallback
+              if (!originLat || !originLng) {
+                const fallbackCoords = getMockCoordinates(country, region);
+                originLat = fallbackCoords.lat;
+                originLng = fallbackCoords.lng;
+              }
+
+              // For tasting view, use actual tasting location if available
+              const tastingLat = typedTasting.location_latitude || originLat;
+              const tastingLng = typedTasting.location_longitude || originLng;
+              const locationName = typedTasting.location_name;
+              const locationCity = typedTasting.location_city;
 
               locations.push({
-                id: tasting.id,
-                name: tasting.vintage.wine.name,
-                producer: tasting.vintage.wine.producer.name,
-                region: "Bordeaux", // Mock region - in production from database
-                country: "France", // Mock country - in production from database
-                year: tasting.vintage.year,
-                varietals: [], // Mock - in production from database
-                latitude: mapView === "origins" ? originCoords.lat : tastingLat,
-                longitude:
-                  mapView === "origins" ? originCoords.lng : tastingLng,
+                id: typedTasting.id,
+                name: typedTasting.vintage.wine.name,
+                producer: producer.name,
+                producer_address: producer.address,
+                producer_city: producer.city,
+                producer_website: producer.website,
+                region: region,
+                country: country,
+                year: typedTasting.vintage.year,
+                varietals: [], // TODO: fetch from wine_varietals table
+                latitude: mapView === "origins" ? originLat : tastingLat,
+                longitude: mapView === "origins" ? originLng : tastingLng,
                 vineyard_name: null, // Mock - in production from database
-                tasted_location: null,
-                tasted_date: tasting.tasted_at
-                  ? new Date(tasting.tasted_at)
+                tasted_location:
+                  mapView === "tastings"
+                    ? locationName || locationCity || null
+                    : null,
+                tasted_date: typedTasting.tasted_at
+                  ? new Date(typedTasting.tasted_at)
                   : undefined,
               });
             }
@@ -304,6 +341,36 @@ export default function MapPage() {
                           "Location not recorded"}
                     </span>
                   </div>
+
+                  {selectedWine.producer_address && (
+                    <div className="text-sm space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        Producer Address:
+                      </p>
+                      <p>{selectedWine.producer_address}</p>
+                      {selectedWine.producer_city && (
+                        <p>{selectedWine.producer_city}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedWine.producer_website && (
+                    <div className="text-sm">
+                      <a
+                        href={
+                          selectedWine.producer_website.startsWith("http")
+                            ? selectedWine.producer_website
+                            : `https://${selectedWine.producer_website}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Globe className="h-3 w-3" />
+                        Visit Website
+                      </a>
+                    </div>
+                  )}
 
                   {selectedWine.year && (
                     <div className="flex items-center gap-2 text-sm">
@@ -630,6 +697,8 @@ function getMockCoordinates(
     "Burgundy, France": { lat: 47.0525, lng: 4.3837 },
     "Napa Valley, USA": { lat: 38.3047, lng: -122.2989 },
     "Tuscany, Italy": { lat: 43.0709, lng: 11.2248 },
+    "Etna, Italy": { lat: 37.751, lng: 14.9934 }, // Mount Etna, Sicily
+    "Sicily, Italy": { lat: 37.6, lng: 14.0154 }, // Sicily center
     "Rioja, Spain": { lat: 42.2871, lng: -2.5396 },
     "Mendoza, Argentina": { lat: -32.8895, lng: -68.8458 },
     "Barossa Valley, Australia": { lat: -34.5312, lng: 138.9883 },

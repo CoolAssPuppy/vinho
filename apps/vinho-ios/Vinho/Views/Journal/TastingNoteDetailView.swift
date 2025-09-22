@@ -3,6 +3,7 @@ import SwiftUI
 /// Detailed view for a single tasting note
 struct TastingNoteDetailView: View {
     let note: TastingNoteWithWine
+    let onEdit: () -> Void
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
     @State private var showingEditView = false
@@ -56,7 +57,8 @@ struct TastingNoteDetailView: View {
                     Menu {
                         Button {
                             hapticManager.lightImpact()
-                            showingEditView = true
+                            dismiss()
+                            onEdit()
                         } label: {
                             Label("Edit", systemImage: "pencil")
                         }

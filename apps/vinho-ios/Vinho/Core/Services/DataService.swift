@@ -11,6 +11,7 @@ class DataService: ObservableObject {
     @Published var producers: [Producer] = []
     @Published var tastings: [Tasting] = []
     @Published var scans: [Scan] = []
+    @Published var userProfile: UserProfile?
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -26,7 +27,7 @@ class DataService: ObservableObject {
         do {
             let response: [Wine] = try await client
                 .from("wines")
-                .select("*, producer:producers(*)")
+                .select("*, producers!producer_id(*)")
                 .execute()
                 .value
 
@@ -41,7 +42,7 @@ class DataService: ObservableObject {
         do {
             let wine: Wine = try await client
                 .from("wines")
-                .select("*, producer:producers(*), vintages(*)")
+                .select("*, producers!producer_id(*), vintages(*)")
                 .eq("id", value: wineId)
                 .single()
                 .execute()
@@ -57,7 +58,7 @@ class DataService: ObservableObject {
     // MARK: - Tastings
 
     func fetchUserTastings() async {
-        guard let userId = AuthManager().user?.id else { return }
+        guard let userId = try? await client.auth.session.user.id else { return }
 
         isLoading = true
         do {
@@ -65,11 +66,11 @@ class DataService: ObservableObject {
                 .from("tastings")
                 .select("""
                     *,
-                    vintage:vintages(
+                    vintages!vintage_id(
                         *,
-                        wine:wines(
+                        wines!wine_id(
                             *,
-                            producer:producers(*)
+                            producers!producer_id(*)
                         )
                     )
                 """)
@@ -78,15 +79,17 @@ class DataService: ObservableObject {
                 .execute()
                 .value
 
+            print("Successfully fetched \(response.count) tastings")
             self.tastings = response
         } catch {
+            print("Error fetching tastings: \(error)")
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
         }
         isLoading = false
     }
 
-    func createTasting(vintageId: String, verdict: Int16?, notes: String?, tastedAt: Date) async -> Bool {
-        guard let userId = AuthManager().user?.id else { return false }
+    func createTasting(vintageId: String, verdict: Int?, notes: String?, tastedAt: Date) async -> Bool {
+        guard let userId = try? await client.auth.session.user.id else { return false }
 
         let newTasting = Tasting(
             id: UUID(),
@@ -94,9 +97,12 @@ class DataService: ObservableObject {
             vintageId: UUID(uuidString: vintageId) ?? UUID(),
             verdict: verdict,
             notes: notes,
+            detailedNotes: nil,
             tastedAt: tastedAt,
             createdAt: Date(),
-            updatedAt: Date()
+            updatedAt: Date(),
+            imageUrl: nil,
+            vintage: nil
         )
 
         do {
@@ -116,7 +122,7 @@ class DataService: ObservableObject {
     // MARK: - Scans
 
     func fetchUserScans() async {
-        guard let userId = AuthManager().user?.id else { return }
+        guard let userId = try? await client.auth.session.user.id else { return }
 
         isLoading = true
         do {
@@ -124,11 +130,11 @@ class DataService: ObservableObject {
                 .from("scans")
                 .select("""
                     *,
-                    matched_vintage:vintages(
+                    vintages!matched_vintage_id(
                         *,
-                        wine:wines(
+                        wines!wine_id(
                             *,
-                            producer:producers(*)
+                            producers!producer_id(*)
                         )
                     )
                 """)
@@ -145,7 +151,7 @@ class DataService: ObservableObject {
     }
 
     func uploadScan(imageData: Data) async -> String? {
-        guard let userId = AuthManager().user?.id else { return nil }
+        guard let userId = try? await client.auth.session.user.id else { return nil }
 
         let fileName = "\(userId.uuidString)/\(Date().timeIntervalSince1970).jpg"
 
@@ -219,8 +225,8 @@ class DataService: ObservableObject {
         do {
             let response: [Wine] = try await client
                 .from("wines")
-                .select("*, producer:producers(*)")
-                .or("name.ilike.%\(query)%,producer.name.ilike.%\(query)%")
+                .select("*, producers!producer_id(*)")
+                .or("name.ilike.%\(query)%")
                 .execute()
                 .value
 
@@ -242,14 +248,14 @@ class DataService: ObservableObject {
                 .from("tastings")
                 .select("""
                     *,
-                    vintage:vintages(
+                    vintages!vintage_id(
                         *,
-                        wine:wines(
+                        wines!wine_id(
                             *,
-                            producer:producers(*)
+                            producers!producer_id(*)
                         )
                     ),
-                    user:profiles(*)
+                    profiles!user_id(*)
                 """)
                 .order("created_at", ascending: false)
                 .limit(10)
@@ -287,14 +293,14 @@ class DataService: ObservableObject {
                 .from("scans")
                 .select("""
                     *,
-                    matched_vintage:vintages(
+                    vintages!matched_vintage_id(
                         *,
-                        wine:wines(
+                        wines!wine_id(
                             *,
-                            producer:producers(*)
+                            producers!producer_id(*)
                         )
                     ),
-                    user:profiles(*)
+                    profiles!user_id(*)
                 """)
                 .order("created_at", ascending: false)
                 .limit(10)
@@ -330,6 +336,99 @@ class DataService: ObservableObject {
         feedItems.sort { $0.timestamp > $1.timestamp }
 
         return Array(feedItems.prefix(20))
+    }
+
+    // MARK: - User Profile
+
+    func fetchUserProfile(for userId: UUID) async {
+        do {
+            let response: UserProfile = try await client
+                .from("profiles")
+                .select("*")
+                .eq("id", value: userId.uuidString)
+                .single()
+                .execute()
+                .value
+
+            self.userProfile = response
+        } catch {
+            errorMessage = "Failed to fetch user profile: \(error.localizedDescription)"
+        }
+    }
+
+    func updateUserProfile(_ profile: UserProfile) async -> Bool {
+        do {
+            try await client
+                .from("profiles")
+                .update(profile)
+                .eq("id", value: profile.id.uuidString)
+                .execute()
+
+            self.userProfile = profile
+            return true
+        } catch {
+            errorMessage = "Failed to update profile: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    // MARK: - Enhanced Tasting Methods
+
+    func saveTasting(id: UUID? = nil, vintageId: UUID, verdict: Int?, notes: String?, detailedNotes: String?, tastedAt: Date) async -> Bool {
+        guard let userId = try? await client.auth.session.user.id else { return false }
+
+        let tasting = Tasting(
+            id: id ?? UUID(),
+            userId: userId,
+            vintageId: vintageId,
+            verdict: verdict,
+            notes: notes,
+            detailedNotes: detailedNotes,
+            tastedAt: tastedAt,
+            createdAt: Date(),
+            updatedAt: Date(),
+            imageUrl: nil,
+            vintage: nil
+        )
+
+        do {
+            if id != nil {
+                // Update existing
+                try await client
+                    .from("tastings")
+                    .update(tasting)
+                    .eq("id", value: tasting.id.uuidString)
+                    .execute()
+            } else {
+                // Create new
+                try await client
+                    .from("tastings")
+                    .insert(tasting)
+                    .execute()
+            }
+
+            await fetchUserTastings()
+            return true
+        } catch {
+            errorMessage = "Failed to save tasting: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    func deleteTasting(_ tastingId: UUID) async -> Bool {
+        do {
+            try await client
+                .from("tastings")
+                .delete()
+                .eq("id", value: tastingId.uuidString)
+                .execute()
+
+            await fetchUserTastings()
+            return true
+        } catch {
+            errorMessage = "Failed to delete tasting: \(error.localizedDescription)"
+            return false
+        }
     }
 }
 

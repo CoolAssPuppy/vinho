@@ -25,6 +25,8 @@
 		72F3A047DDFBDC0CE0472531 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02C9057D8AF0972213CD07D5 /* MapView.swift */; };
 		8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76EC39A8B54340E597E5A1C /* WineDetailView.swift */; };
 		8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */; };
+		8B93B5F8B8BDB5B16674C939 /* TastingNoteEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BE /* TastingNoteEditorView.swift */; };
+		8B93B5F8B8BDB5B16674C940 /* SuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BF /* SuggestionsView.swift */; };
 		941BDD7A62A6BB225FA38720 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8380926523C07A9EB6D6FF80 /* AboutView.swift */; };
 		9E4345E9AC2409591D402624 /* LegalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26EA17E6CF360D78D73F9084 /* LegalViews.swift */; };
 		A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACE8A61FC77F5216858D38 /* ThemeManager.swift */; };
@@ -55,6 +57,8 @@
 		5F49D7A5F5DD6F829E31C878 /* ContactUsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactUsView.swift; sourceTree = "<group>"; };
 		606B033C31499FD7E913B4BA /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteDetailView.swift; sourceTree = "<group>"; };
+		60D87C31A920448B8906C9BE /* TastingNoteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteEditorView.swift; sourceTree = "<group>"; };
+		60D87C31A920448B8906C9BF /* SuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsView.swift; sourceTree = "<group>"; };
 		6781C9995199363EC644A617 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
 		7A27E917BF1FA98E3754F275 /* ProfileSubViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSubViews.swift; sourceTree = "<group>"; };
@@ -269,6 +273,8 @@
 			children = (
 				B5CA3B36B6C96D776DE7016D /* JournalView.swift */,
 				60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */,
+				60D87C31A920448B8906C9BE /* TastingNoteEditorView.swift */,
+				60D87C31A920448B8906C9BF /* SuggestionsView.swift */,
 			);
 			path = Journal;
 			sourceTree = "<group>";
@@ -377,6 +383,8 @@
 				3FAE5321AD98A735DA17C531 /* SplashScreen.swift in Sources */,
 				AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */,
 				8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */,
+				8B93B5F8B8BDB5B16674C939 /* TastingNoteEditorView.swift in Sources */,
+				8B93B5F8B8BDB5B16674C940 /* SuggestionsView.swift in Sources */,
 				A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */,
 				3299AD7BD31BB010C3C95D33 /* VinoApp.swift in Sources */,
 				B6778FAC52FC305D601ADD3B /* Wine.swift in Sources */,
