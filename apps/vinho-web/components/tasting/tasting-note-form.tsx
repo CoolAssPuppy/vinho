@@ -25,6 +25,9 @@ interface TastingNoteFormProps {
   initialDetailedNotes?: string;
   initialLocationName?: string;
   initialLocationAddress?: string;
+  initialLocationCity?: string;
+  initialLocationLat?: number | null;
+  initialLocationLng?: number | null;
   onSave?: () => void;
 }
 
@@ -38,6 +41,9 @@ export function TastingNoteForm({
   initialDetailedNotes = "",
   initialLocationName = "",
   initialLocationAddress = "",
+  initialLocationCity = "",
+  initialLocationLat = null,
+  initialLocationLng = null,
   onSave,
 }: TastingNoteFormProps) {
   const [rating, setRating] = useState(initialRating);
@@ -47,13 +53,17 @@ export function TastingNoteForm({
   const [tastingStyle, setTastingStyle] = useState<TastingStyle>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [locationName, setLocationName] = useState(initialLocationName);
+  const [locationName, setLocationName] = useState(initialLocationName || "");
   const [locationAddress, setLocationAddress] = useState(
-    initialLocationAddress,
+    initialLocationAddress || "",
   );
-  const [locationCity, setLocationCity] = useState("");
-  const [locationLat, setLocationLat] = useState<number | null>(null);
-  const [locationLng, setLocationLng] = useState<number | null>(null);
+  const [locationCity, setLocationCity] = useState(initialLocationCity || "");
+  const [locationLat, setLocationLat] = useState<number | null>(
+    initialLocationLat || null,
+  );
+  const [locationLng, setLocationLng] = useState<number | null>(
+    initialLocationLng || null,
+  );
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

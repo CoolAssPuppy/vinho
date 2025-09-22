@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
+import { VivinoMigration } from "@/app/components/vivino-migration";
 import {
   Select,
   SelectContent,
@@ -716,6 +717,21 @@ export function WinePreferencesTab({
               : "Save Preferences"}
         </Button>
       </div>
+
+      {/* Vivino Migration Section */}
+      <Separator className="my-8" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Import from Vivino</CardTitle>
+          <CardDescription className="text-base">
+            Migrate your wine collection and tasting history from Vivino
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VivinoMigration />
+        </CardContent>
+      </Card>
     </div>
   );
 }

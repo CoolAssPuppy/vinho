@@ -88,6 +88,94 @@ class DataService: ObservableObject {
         isLoading = false
     }
 
+    // Paginated fetching for tastings
+    func fetchUserTastingsPaginated(page: Int, pageSize: Int = 12) async -> [Tasting] {
+        guard let userId = try? await client.auth.session.user.id else { return [] }
+
+        let from = page * pageSize
+        let to = from + pageSize - 1
+
+        do {
+            let response: [Tasting] = try await client
+                .from("tastings")
+                .select("""
+                    *,
+                    vintages!vintage_id(
+                        *,
+                        wines!wine_id(
+                            *,
+                            producers!producer_id(*)
+                        )
+                    )
+                """)
+                .eq("user_id", value: userId.uuidString)
+                .order("tasted_at", ascending: false)
+                .range(from: from, to: to)
+                .execute()
+                .value
+
+            print("Successfully fetched \(response.count) tastings for page \(page)")
+            return response
+        } catch {
+            print("Error fetching paginated tastings: \(error)")
+            errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
+            return []
+        }
+    }
+
+    // Search tastings using the search function
+    func searchTastings(query: String) async -> [Tasting] {
+        guard !query.isEmpty else { return [] }
+        guard let userId = try? await client.auth.session.user.id else { return [] }
+
+        do {
+            // Use RPC to call the search function
+            let response = try await client
+                .rpc("search_tastings_text", params: [
+                    "query": query,
+                    "match_count": "20",
+                    "user_id_filter": userId.uuidString
+                ])
+                .execute()
+
+            // The function returns tasting IDs, so we need to fetch the full tastings
+            struct SearchResult: Decodable {
+                let tasting_id: UUID
+            }
+
+            let decoder = JSONDecoder()
+            let searchResults = try decoder.decode([SearchResult].self, from: response.data)
+
+            if searchResults.isEmpty {
+                return []
+            }
+
+            // Fetch the full tasting records
+            let tastingIds = searchResults.map { $0.tasting_id.uuidString }
+            let tastings: [Tasting] = try await client
+                .from("tastings")
+                .select("""
+                    *,
+                    vintages!vintage_id(
+                        *,
+                        wines!wine_id(
+                            *,
+                            producers!producer_id(*)
+                        )
+                    )
+                """)
+                .in("id", values: tastingIds)
+                .execute()
+                .value
+
+            return tastings
+        } catch {
+            print("Search failed: \(error)")
+            errorMessage = "Search failed: \(error.localizedDescription)"
+            return []
+        }
+    }
+
     func createTasting(vintageId: String, verdict: Int?, notes: String?, tastedAt: Date) async -> Bool {
         guard let userId = try? await client.auth.session.user.id else { return false }
 

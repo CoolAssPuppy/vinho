@@ -14,6 +14,7 @@ struct JournalView: View {
     @State private var searchText = ""
     @State private var pendingWinesCount = 0
     @State private var selectedTab = 0
+    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         ZStack {
@@ -64,10 +65,22 @@ struct JournalView: View {
                 if selectedTab == 0 {
                     // Tastings Tab
                     VStack(spacing: 0) {
-                        // Search Bar
+                        // Search Bar with improved search functionality
                         searchBar
                             .padding(.horizontal)
                             .padding(.bottom, 12)
+                            .onChange(of: searchText) { newValue in
+                                // Cancel previous search task
+                                searchTask?.cancel()
+
+                                // Debounce search with 0.5 second delay
+                                searchTask = Task {
+                                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                                    if !Task.isCancelled {
+                                        await viewModel.searchNotes(query: newValue)
+                                    }
+                                }
+                            }
 
                         // Time Filter
                         timeFilterBar
@@ -127,15 +140,20 @@ struct JournalView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.vinoTextSecondary)
-            
-            TextField("Search notes, wines, or flavors...", text: $searchText)
+
+            TextField("Search for anything", text: $searchText)
                 .font(.system(size: 16))
                 .foregroundColor(.vinoText)
-            
-            if !searchText.isEmpty {
+
+            if viewModel.isSearching {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .vinoGold))
+                    .scaleEffect(0.8)
+            } else if !searchText.isEmpty {
                 Button {
                     hapticManager.lightImpact()
                     searchText = ""
+                    viewModel.searchResults.removeAll()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14))
@@ -184,7 +202,7 @@ struct JournalView: View {
                             .foregroundColor(.vinoTextSecondary)
                             .textCase(.uppercase)
                             .padding(.horizontal, 4)
-                        
+
                         // Notes for this date
                         ForEach(groupedNotes[date] ?? []) { note in
                             TastingNoteCard(note: note)
@@ -192,8 +210,23 @@ struct JournalView: View {
                                     hapticManager.lightImpact()
                                     selectedNote = note
                                 }
+                                .onAppear {
+                                    // Load more when approaching the end
+                                    if note.id == filteredNotes.last?.id && searchText.isEmpty {
+                                        Task {
+                                            await viewModel.loadMoreNotes()
+                                        }
+                                    }
+                                }
                         }
                     }
+                }
+
+                // Loading indicator for pagination
+                if viewModel.isLoadingMore {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .vinoGold))
+                        .padding()
                 }
             }
             .padding(.horizontal)
@@ -241,7 +274,10 @@ struct JournalView: View {
     }
     
     var filteredNotes: [TastingNoteWithWine] {
-        viewModel.notes.filter { note in
+        // Use search results if searching, otherwise use normal notes
+        let notesToFilter = !searchText.isEmpty && !viewModel.searchResults.isEmpty ? viewModel.searchResults : viewModel.notes
+
+        return notesToFilter.filter { note in
             // Apply time filter
             let passesTimeFilter = switch selectedTimeFilter {
             case .all:
@@ -255,18 +291,8 @@ struct JournalView: View {
             case .year:
                 note.date > Date().addingTimeInterval(-365 * 24 * 3600)
             }
-            
-            guard passesTimeFilter else { return false }
-            
-            // Apply search filter
-            if searchText.isEmpty { return true }
-            
-            let searchLower = searchText.lowercased()
-            return note.wineName.lowercased().contains(searchLower) ||
-                   note.producer.lowercased().contains(searchLower) ||
-                   note.notes?.lowercased().contains(searchLower) ?? false ||
-                   note.aromas.contains { $0.lowercased().contains(searchLower) } ||
-                   note.flavors.contains { $0.lowercased().contains(searchLower) }
+
+            return passesTimeFilter
         }
     }
     
@@ -551,30 +577,69 @@ struct WineAddedStatus: Decodable {
 class JournalViewModel: ObservableObject {
     @Published var notes: [TastingNoteWithWine] = []
     @Published var isLoading = false
+    @Published var isLoadingMore = false
+    @Published var hasMorePages = true
+    @Published var searchResults: [TastingNoteWithWine] = []
+    @Published var isSearching = false
+
+    private var currentPage = 0
+    private let pageSize = 12
+    private var allNotes: [TastingNoteWithWine] = []
 
     public let dataService = DataService.shared
 
     func loadNotes() async {
         isLoading = true
-        await dataService.fetchUserTastings()
+        currentPage = 0
+        allNotes.removeAll()
 
-        print("DataService has \(dataService.tastings.count) tastings")
+        let tastings = await dataService.fetchUserTastingsPaginated(page: 0, pageSize: pageSize)
+        hasMorePages = tastings.count == pageSize
+
+        print("DataService has \(tastings.count) tastings for page 0")
 
         // Convert tastings to TastingNoteWithWine format
-        notes = dataService.tastings.compactMap { tasting -> TastingNoteWithWine? in
-            print("Processing tasting: \(tasting.id)")
-            print("  - Has vintage: \(tasting.vintage != nil)")
-            if let vintage = tasting.vintage {
-                print("  - Has wine: \(vintage.wine != nil)")
-                if let wine = vintage.wine {
-                    print("  - Has producer: \(wine.producer != nil)")
-                }
-            }
+        let newNotes = convertTastings(tastings)
+        allNotes = newNotes
+        notes = allNotes
+        print("Converted to \(notes.count) TastingNoteWithWine objects")
+        isLoading = false
+    }
 
+    func loadMoreNotes() async {
+        guard !isLoadingMore && hasMorePages else { return }
+
+        isLoadingMore = true
+        currentPage += 1
+
+        let tastings = await dataService.fetchUserTastingsPaginated(page: currentPage, pageSize: pageSize)
+        hasMorePages = tastings.count == pageSize
+
+        let newNotes = convertTastings(tastings)
+        allNotes.append(contentsOf: newNotes)
+        notes = allNotes
+
+        isLoadingMore = false
+    }
+
+    func searchNotes(query: String) async {
+        guard !query.isEmpty else {
+            searchResults.removeAll()
+            isSearching = false
+            return
+        }
+
+        isSearching = true
+        let tastings = await dataService.searchTastings(query: query)
+        searchResults = convertTastings(tastings)
+        isSearching = false
+    }
+
+    private func convertTastings(_ tastings: [Tasting]) -> [TastingNoteWithWine] {
+        return tastings.compactMap { tasting -> TastingNoteWithWine? in
             guard let vintage = tasting.vintage,
                   let wine = vintage.wine,
                   let producer = wine.producer else {
-                print("  - Skipping tasting due to missing data")
                 return nil
             }
 
@@ -590,12 +655,10 @@ class JournalViewModel: ObservableObject {
                 aromas: [],
                 flavors: [],
                 date: tasting.tastedAt,
-                imageUrl: tasting.imageUrl,  // Use the actual image URL from the tasting
+                imageUrl: tasting.imageUrl,
                 vintageId: vintage.id
             )
         }
-        print("Converted to \(notes.count) TastingNoteWithWine objects")
-        isLoading = false
     }
 
     func refreshNotes() async {

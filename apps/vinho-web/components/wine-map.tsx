@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import { Wine, MapPin, Calendar, Grape } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -31,6 +38,12 @@ interface WineMapProps {
   wines: WineLocation[];
   onWineSelect: (wine: WineLocation | null) => void;
   selectedWine: WineLocation | null;
+  onBoundsChange?: (bounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  }) => void;
 }
 
 // Custom wine marker icon
@@ -50,12 +63,26 @@ function createWineIcon(isSelected: boolean = false) {
   });
 }
 
-// Component to fit map bounds to markers
-function FitBounds({ wines }: { wines: WineLocation[] }) {
+// Component to fit map bounds to markers and track viewport changes
+function MapViewController({
+  wines,
+  onBoundsChange,
+  initialFit = true,
+}: {
+  wines: WineLocation[];
+  onBoundsChange?: (bounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  }) => void;
+  initialFit?: boolean;
+}) {
   const map = useMap();
 
+  // Fit bounds on initial load if wines exist
   useEffect(() => {
-    if (wines.length > 0) {
+    if (initialFit && wines.length > 0) {
       const validWines = wines.filter((w) => w.latitude && w.longitude);
       if (validWines.length > 0) {
         const bounds = L.latLngBounds(
@@ -66,7 +93,33 @@ function FitBounds({ wines }: { wines: WineLocation[] }) {
         map.fitBounds(bounds, { padding: [50, 50] });
       }
     }
-  }, [wines, map]);
+  }, [initialFit, map]); // Only run once on mount
+
+  // Handle map events
+  useMapEvents({
+    moveend: () => {
+      if (onBoundsChange) {
+        const bounds = map.getBounds();
+        onBoundsChange({
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        });
+      }
+    },
+    zoomend: () => {
+      if (onBoundsChange) {
+        const bounds = map.getBounds();
+        onBoundsChange({
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        });
+      }
+    },
+  });
 
   return null;
 }
@@ -75,6 +128,7 @@ export default function WineMap({
   wines,
   onWineSelect,
   selectedWine,
+  onBoundsChange,
 }: WineMapProps) {
   const validWines = wines.filter((w) => w.latitude && w.longitude);
 
@@ -95,7 +149,11 @@ export default function WineMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <FitBounds wines={validWines} />
+        <MapViewController
+          wines={validWines}
+          onBoundsChange={onBoundsChange}
+          initialFit={wines.length <= 50} // Only auto-fit for small datasets
+        />
 
         {validWines.map((wine) => (
           <Marker

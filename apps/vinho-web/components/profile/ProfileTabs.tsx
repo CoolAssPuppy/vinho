@@ -1,10 +1,11 @@
-import { User, Lock, Wine, HelpCircle, Info } from "lucide-react";
+import { User, Lock, Wine, HelpCircle, Info, Upload } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonalInfoTab } from "./PersonalInfoTab";
 import { PrivacySecurityTab } from "./PrivacySecurityTab";
 import { WinePreferencesTab } from "./WinePreferencesTab";
 import { HelpCenterTab } from "./HelpCenterTab";
 import { AboutTab } from "./AboutTab";
+import { VivinoMigration } from "@/app/components/vivino-migration";
 
 interface ProfileData {
   firstName: string;
@@ -62,6 +63,13 @@ export function ProfileTabs({
               Wine Preferences
             </TabsTrigger>
             <TabsTrigger
+              value="import"
+              className="w-full justify-start text-base py-3"
+            >
+              <Upload className="mr-2 h-5 w-5" />
+              Import from Vivino
+            </TabsTrigger>
+            <TabsTrigger
               value="help"
               className="w-full justify-start text-base py-3"
             >
@@ -93,6 +101,10 @@ export function ProfileTabs({
 
           <TabsContent value="preferences">
             <WinePreferencesTab />
+          </TabsContent>
+
+          <TabsContent value="import">
+            <VivinoMigration />
           </TabsContent>
 
           <TabsContent value="help">

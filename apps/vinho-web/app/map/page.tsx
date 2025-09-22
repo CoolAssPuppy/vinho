@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Wine,
   MapPin,
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@supabase/ssr";
+import { useDebounce } from "@/hooks/use-debounce";
 import type { Database } from "@/types/database";
 
 // Dynamically import map component to avoid SSR issues with Leaflet
@@ -52,19 +53,31 @@ interface WineLocation {
 
 type MapView = "origins" | "tastings";
 
+interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
 export default function MapPage() {
   const [wines, setWines] = useState<WineLocation[]>([]);
+  const [allWines, setAllWines] = useState<WineLocation[]>([]); // Store all wines for stats
   const [loading, setLoading] = useState(true);
   const [selectedWine, setSelectedWine] = useState<WineLocation | null>(null);
   const [mapView, setMapView] = useState<MapView>("origins");
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
+  const debouncedBounds = useDebounce(mapBounds, 500);
+  const hasInitialLoad = useRef(false);
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 
-  useEffect(() => {
-    const fetchUserWines = async () => {
+  // Fetch wines based on viewport bounds
+  const fetchWinesInBounds = useCallback(
+    async (bounds: MapBounds | null) => {
       try {
         const {
           data: { user },
@@ -186,16 +199,60 @@ export default function MapPage() {
           }
         }
 
-        setWines(locations);
+        // Store all wines for stats
+        if (!hasInitialLoad.current) {
+          setAllWines(locations);
+          setWines(locations);
+          hasInitialLoad.current = true;
+        } else if (bounds) {
+          // Filter locations based on viewport bounds
+          const filtered = locations.filter((wine) => {
+            if (!wine.latitude || !wine.longitude) return false;
+            return (
+              wine.latitude >= bounds.south &&
+              wine.latitude <= bounds.north &&
+              wine.longitude >= bounds.west &&
+              wine.longitude <= bounds.east
+            );
+          });
+          setWines(filtered);
+          setAllWines(locations); // Keep all wines for stats
+        } else {
+          setWines(locations);
+          setAllWines(locations);
+        }
       } catch (error) {
         console.error("Error:", error);
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [supabase, mapView],
+  );
 
-    fetchUserWines();
-  }, [supabase, mapView]);
+  // Initial load
+  useEffect(() => {
+    fetchWinesInBounds(null);
+  }, []);
+
+  // Handle bounds changes
+  useEffect(() => {
+    if (debouncedBounds && hasInitialLoad.current) {
+      fetchWinesInBounds(debouncedBounds);
+    }
+  }, [debouncedBounds, fetchWinesInBounds]);
+
+  // Handle view mode changes
+  useEffect(() => {
+    if (hasInitialLoad.current) {
+      fetchWinesInBounds(mapBounds);
+    }
+  }, [mapView, mapBounds, fetchWinesInBounds]);
+
+  // Handle map bounds update
+  const handleBoundsChange = useCallback((bounds: MapBounds) => {
+    setMapBounds(bounds);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -242,11 +299,12 @@ export default function MapPage() {
               <CardContent className="p-0">
                 {loading ? (
                   <Skeleton className="h-[800px] w-full" />
-                ) : wines.length > 0 ? (
+                ) : allWines.length > 0 ? (
                   <WineMap
                     wines={wines}
                     onWineSelect={setSelectedWine}
                     selectedWine={selectedWine}
+                    onBoundsChange={handleBoundsChange}
                   />
                 ) : (
                   <div className="h-[800px] flex items-center justify-center">
@@ -283,7 +341,7 @@ export default function MapPage() {
                   <span className="text-sm text-muted-foreground">
                     Total Wines
                   </span>
-                  <Badge variant="secondary">{wines.length}</Badge>
+                  <Badge variant="secondary">{allWines.length}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
@@ -291,9 +349,11 @@ export default function MapPage() {
                   </span>
                   <Badge variant="secondary">
                     {mapView === "origins"
-                      ? new Set(wines.map((w) => w.country)).size
+                      ? new Set(allWines.map((w) => w.country)).size
                       : new Set(
-                          wines.map((w) => w.tasted_location).filter(Boolean),
+                          allWines
+                            .map((w) => w.tasted_location)
+                            .filter(Boolean),
                         ).size}
                   </Badge>
                 </div>
@@ -303,8 +363,8 @@ export default function MapPage() {
                   </span>
                   <Badge variant="secondary">
                     {mapView === "origins"
-                      ? new Set(wines.map((w) => w.region)).size
-                      : wines.filter((w) => {
+                      ? new Set(allWines.map((w) => w.region)).size
+                      : allWines.filter((w) => {
                           if (!w.tasted_date) return false;
                           const thirtyDaysAgo = new Date();
                           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -420,15 +480,18 @@ export default function MapPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {wines.length > 0 ? (
+                {allWines.length > 0 ? (
                   <div className="space-y-2">
                     {mapView === "origins"
                       ? Object.entries(
-                          wines.reduce((acc: Record<string, number>, wine) => {
-                            const key = `${wine.region}, ${wine.country}`;
-                            acc[key] = (acc[key] || 0) + 1;
-                            return acc;
-                          }, {}),
+                          allWines.reduce(
+                            (acc: Record<string, number>, wine) => {
+                              const key = `${wine.region}, ${wine.country}`;
+                              acc[key] = (acc[key] || 0) + 1;
+                              return acc;
+                            },
+                            {},
+                          ),
                         )
                           .sort(([, a], [, b]) => b - a)
                           .slice(0, 5)
@@ -444,7 +507,7 @@ export default function MapPage() {
                             </div>
                           ))
                       : Object.entries(
-                          wines
+                          allWines
                             .filter((w) => w.tasted_location)
                             .reduce((acc: Record<string, number>, wine) => {
                               const key = wine.tasted_location!;
@@ -489,10 +552,10 @@ export default function MapPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {wines.length > 0 ? (
+                {allWines.length > 0 ? (
                   <div className="space-y-2">
                     {Object.entries(
-                      wines.reduce((acc: Record<string, number>, wine) => {
+                      allWines.reduce((acc: Record<string, number>, wine) => {
                         wine.varietals.forEach((varietal) => {
                           acc[varietal] = (acc[varietal] || 0) + 1;
                         });
@@ -531,10 +594,10 @@ export default function MapPage() {
                 <CardDescription>Distribution by wine type</CardDescription>
               </CardHeader>
               <CardContent>
-                {wines.length > 0 ? (
+                {allWines.length > 0 ? (
                   <div className="space-y-2">
                     {Object.entries(
-                      wines.reduce((acc: Record<string, number>, wine) => {
+                      allWines.reduce((acc: Record<string, number>, wine) => {
                         // Mock wine style - in production this would come from the database
                         const style = wine.varietals.some((v) =>
                           [
@@ -631,9 +694,9 @@ export default function MapPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {wines.length > 0 ? (
+                {allWines.length > 0 ? (
                   <div className="space-y-3">
-                    {wines
+                    {allWines
                       .sort((a, b) => {
                         // Sort by tasted date if available
                         if (a.tasted_date && b.tasted_date) {
