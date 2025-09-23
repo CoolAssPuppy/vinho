@@ -58,14 +58,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TEST: Only process first 3 entries for testing
-    const testEntries = vivinoEntries.slice(0, 3);
-    console.log(
-      `Testing with first 3 entries out of ${vivinoEntries.length} total`,
-    );
-
     // Process entries
-    const processedEntries = testEntries
+    const processedEntries = vivinoEntries
       .filter((entry) => entry.winery || entry.wineName) // Skip completely empty entries
       .map(processVivinoEntry);
 
