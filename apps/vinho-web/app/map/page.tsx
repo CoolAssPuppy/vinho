@@ -35,17 +35,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogContentNoX } from "@/components/ui/dialog-no-x";
 import { TastingNoteForm } from "@/components/tasting/tasting-note-form";
 import { useRouter } from "next/navigation";
 
 // Dynamically import map component to avoid SSR issues with Leaflet
-const WineMap = dynamic(() => import("@/components/wine-map"), {
+const WineMap = dynamic(() => import("@/components/map/WineMap"), {
   ssr: false,
   loading: () => (
     <div className="h-[600px] w-full bg-muted animate-pulse rounded-lg" />
@@ -419,10 +415,10 @@ export default function MapPage() {
   // Stats cards configuration
   const statsCards = [
     {
-      title: "Total Wines",
+      title: "Unique Wines",
       value: stats?.unique_wines || 0,
       icon: Wine,
-      description: `${stats?.total_tastings || 0} total tastings`,
+      description: `from ${stats?.total_tastings || 0} tastings`,
       color: "text-purple-500",
     },
     {
@@ -628,7 +624,7 @@ export default function MapPage() {
 
       {/* Edit Tasting Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContentNoX className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Edit Tasting Notes - {selectedTasting?.producer_name}
@@ -648,9 +644,25 @@ export default function MapPage() {
               initialLocationLat={selectedTasting.location_latitude}
               initialLocationLng={selectedTasting.location_longitude}
               onSave={handleSaveTasting}
+              onDelete={async () => {
+                if (selectedTasting) {
+                  const { error } = await supabase
+                    .from("tastings")
+                    .delete()
+                    .eq("id", selectedTasting.id);
+
+                  if (!error) {
+                    setIsEditDialogOpen(false);
+                    // Refresh the data
+                    await fetchRecentWines();
+                    await fetchWinesInBounds(debouncedBounds);
+                  }
+                }
+              }}
+              onCancel={() => setIsEditDialogOpen(false)}
             />
           )}
-        </DialogContent>
+        </DialogContentNoX>
       </Dialog>
     </div>
   );

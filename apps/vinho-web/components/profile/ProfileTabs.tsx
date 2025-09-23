@@ -5,7 +5,7 @@ import { PrivacySecurityTab } from "./PrivacySecurityTab";
 import { WinePreferencesTab } from "./WinePreferencesTab";
 import { HelpCenterTab } from "./HelpCenterTab";
 import { AboutTab } from "./AboutTab";
-import { VivinoMigration } from "@/components/vivino-migration";
+import { VivinoMigration } from "@/components/profile/VivinoMigration";
 
 interface ProfileData {
   firstName: string;

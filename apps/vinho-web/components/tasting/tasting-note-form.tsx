@@ -31,6 +31,8 @@ interface TastingNoteFormProps {
   initialLocationLat?: number | null;
   initialLocationLng?: number | null;
   onSave?: () => void;
+  onDelete?: () => void;
+  onCancel?: () => void;
 }
 
 type TastingStyle = "casual" | "sommelier" | "winemaker" | null;
@@ -48,6 +50,8 @@ export function TastingNoteForm({
   initialLocationLat = null,
   initialLocationLng = null,
   onSave,
+  onDelete,
+  onCancel,
 }: TastingNoteFormProps) {
   const [rating, setRating] = useState(initialRating);
   const [hoverRating, setHoverRating] = useState(0);
@@ -230,13 +234,37 @@ export function TastingNoteForm({
             />
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || rating === 0}
-            className="w-full"
-          >
-            {isSaving ? "Saving..." : "Save Rating"}
-          </Button>
+          <div className="flex justify-between">
+            {onDelete && tastingId && (
+              <Button
+                onClick={onDelete}
+                disabled={isSaving}
+                variant="outline"
+                className="border-red-600 text-red-600 hover:bg-red-50"
+              >
+                Delete Tasting
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              {onCancel && (
+                <Button
+                  onClick={onCancel}
+                  disabled={isSaving}
+                  variant="default"
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || rating === 0}
+                className="bg-black text-white hover:bg-gray-800"
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -304,9 +332,37 @@ export function TastingNoteForm({
             />
           </div>
 
-          <Button onClick={handleSave} disabled={isSaving} className="w-full">
-            {isSaving ? "Saving..." : "Save Tasting Notes"}
-          </Button>
+          <div className="flex justify-between">
+            {onDelete && tastingId && (
+              <Button
+                onClick={onDelete}
+                disabled={isSaving}
+                variant="outline"
+                className="border-red-600 text-red-600 hover:bg-red-50"
+              >
+                Delete Tasting
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              {onCancel && (
+                <Button
+                  onClick={onCancel}
+                  disabled={isSaving}
+                  variant="default"
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-black text-white hover:bg-gray-800"
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -397,20 +453,143 @@ export function TastingNoteForm({
               />
             </div>
 
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full"
-              size="lg"
-            >
-              {isSaving ? "Saving..." : "Save Complete Analysis"}
-            </Button>
+            <div className="flex justify-between">
+              {onDelete && tastingId && (
+                <Button
+                  onClick={onDelete}
+                  disabled={isSaving}
+                  variant="outline"
+                  className="border-red-600 text-red-600 hover:bg-red-50"
+                >
+                  Delete Tasting
+                </Button>
+              )}
+              <div className="flex gap-2 ml-auto">
+                {onCancel && (
+                  <Button
+                    onClick={onCancel}
+                    disabled={isSaving}
+                    variant="default"
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    Cancel
+                  </Button>
+                )}
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="bg-black text-white hover:bg-gray-800"
+                  size="lg"
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Fallback for null/undefined style
-  return null;
+  // Fallback for null/undefined style - show a simple form
+  return (
+    <Card className="w-full max-w-2xl">
+      <CardHeader>
+        <CardTitle>Edit Tasting Note</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Star Rating */}
+          <div className="space-y-2">
+            <Label>How did you like this wine?</Label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setRating(star)}
+                  className="transition-all hover:scale-110"
+                  type="button"
+                >
+                  <Star
+                    className={`h-10 w-10 ${
+                      (hoverRating || rating) >= star
+                        ? "fill-yellow-500 text-yellow-500"
+                        : "text-muted-foreground"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Tasting Notes</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="What did you think about this wine?"
+              rows={4}
+            />
+          </div>
+
+          {/* Location */}
+          <div className="space-y-2">
+            <Label htmlFor="location" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Where did you taste this wine? (optional)
+            </Label>
+            <PlaceAutocomplete
+              value={locationName}
+              onChange={setLocationName}
+              onSelect={(place) => {
+                setLocationName(place.name);
+                setLocationAddress(place.address);
+                setLocationCity(place.city || "");
+                setLocationLat(place.latitude || null);
+                setLocationLng(place.longitude || null);
+              }}
+              placeholder="Restaurant, bar, home, vineyard..."
+              types="restaurant,bar,cafe,food"
+            />
+          </div>
+
+          <div className="flex justify-between">
+            {onDelete && tastingId && (
+              <Button
+                onClick={onDelete}
+                disabled={isSaving}
+                variant="outline"
+                className="border-red-600 text-red-600 hover:bg-red-50"
+              >
+                Delete Tasting
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              {onCancel && (
+                <Button
+                  onClick={onCancel}
+                  disabled={isSaving}
+                  variant="default"
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-black text-white hover:bg-gray-800"
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }

@@ -514,7 +514,8 @@ struct TastingNoteEditorView: View {
             vintageId: vintageId,
             rating: rating > 0 ? rating : nil,
             notes: tastingNotes,
-            detailedNotes: technicalNotes
+            detailedNotes: technicalNotes,
+            tastedAt: tastedAt
         )
 
         if success {
@@ -542,7 +543,8 @@ class TastingNoteEditorViewModel: ObservableObject {
         vintageId: UUID,
         rating: Int?,
         notes: String?,
-        detailedNotes: String?
+        detailedNotes: String?,
+        tastedAt: Date
     ) async -> Bool {
         isSaving = true
         defer { isSaving = false }

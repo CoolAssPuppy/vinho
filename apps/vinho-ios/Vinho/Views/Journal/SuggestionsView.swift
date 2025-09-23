@@ -87,6 +87,7 @@ struct SuggestionsView: View {
     @StateObject private var locationManager = LocationManager()
 
     @State private var userLocation: String? = nil
+    @State private var hasFetchedOnce = false
     @State private var manualLocation: String = ""
     @State private var showManualLocationInput = false
     @State private var isLoadingRecommendations = false
@@ -136,6 +137,17 @@ struct SuggestionsView: View {
         .background(Color.vinoDark)
         .onAppear {
             checkLocationStatus()
+        }
+        .onChange(of: locationManager.city) { _, newCity in
+            if let city = newCity {
+                userLocation = city
+                // Auto-fetch recommendations when we get the location
+                if !hasFetchedOnce && highRatedWines.count >= 3 {
+                    Task {
+                        await getWineRecommendations()
+                    }
+                }
+            }
         }
     }
 
@@ -206,6 +218,12 @@ struct SuggestionsView: View {
                         hapticManager.lightImpact()
                         userLocation = manualLocation
                         showManualLocationInput = false
+                        // Auto-fetch recommendations after setting location
+                        if highRatedWines.count >= 3 {
+                            Task {
+                                await getWineRecommendations()
+                            }
+                        }
                     }
                 } label: {
                     Text("Set")
@@ -336,16 +354,15 @@ struct SuggestionsView: View {
             locationManager.requestLocation()
         }
 
-        // Check if we already have a city from location manager
-        if let city = locationManager.city {
-            userLocation = city
-        }
+        // Load cached recommendations if available
+        loadCachedRecommendations()
     }
 
     private func getWineRecommendations() async {
         guard let location = userLocation else { return }
 
         isLoadingRecommendations = true
+        hasFetchedOnce = true
 
         do {
             // Get the auth session
@@ -378,19 +395,56 @@ struct SuggestionsView: View {
                     restaurants: [
                         WineRecommendation.Restaurant(
                             name: "The Wine Bar",
-                            address: "123 Main St",
-                            whyGood: "Excellent wine selection",
+                            address: "123 Main St, \(location)",
+                            whyGood: "Excellent wine selection with focus on Burgundy",
                             priceRange: "$$"
+                        ),
+                        WineRecommendation.Restaurant(
+                            name: "Terroir Wine Bar",
+                            address: "456 Oak Ave, \(location)",
+                            whyGood: "Natural wine focus, great small producers",
+                            priceRange: "$$$"
+                        )
+                    ]
+                ),
+                WineRecommendation(
+                    wine: "Barolo",
+                    producer: "Bartolo Mascarello",
+                    reason: "You seem to enjoy structured, age-worthy wines",
+                    restaurants: [
+                        WineRecommendation.Restaurant(
+                            name: "Il Posto",
+                            address: "789 Wine St, \(location)",
+                            whyGood: "Italian wine specialist, extensive Piedmont selection",
+                            priceRange: "$$$"
                         )
                     ]
                 )
             ]
+
+            // Cache the recommendations
+            saveCachedRecommendations()
         } catch {
             print("Error getting recommendations: \(error)")
             errorMessage = "Failed to get recommendations"
         }
 
         isLoadingRecommendations = false
+    }
+
+    private func loadCachedRecommendations() {
+        let key = "cached_recommendations_\(userLocation ?? "default")"
+        if let data = UserDefaults.standard.data(forKey: key),
+           let cached = try? JSONDecoder().decode([WineRecommendation].self, from: data) {
+            recommendations = cached
+        }
+    }
+
+    private func saveCachedRecommendations() {
+        let key = "cached_recommendations_\(userLocation ?? "default")"
+        if let data = try? JSONEncoder().encode(recommendations) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
     }
 }
 

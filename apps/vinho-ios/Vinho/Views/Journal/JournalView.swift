@@ -88,7 +88,13 @@ struct JournalView: View {
                             .padding(.bottom, 12)
 
                         // Journal Entries
-                        if filteredNotes.isEmpty {
+                        if viewModel.isLoading && viewModel.notes.isEmpty {
+                            // Show loading spinner only on initial load
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .vinoGold))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .padding()
+                        } else if filteredNotes.isEmpty && !viewModel.isLoading {
                             emptyState
                         } else {
                             journalList
@@ -106,9 +112,17 @@ struct JournalView: View {
             }
         }
         .sheet(item: $selectedNote) { note in
-            TastingNoteDetailView(note: note, onEdit: {
-                noteToEdit = note
-            })
+            TastingNoteDetailView(
+                note: note,
+                onEdit: {
+                    noteToEdit = note
+                },
+                onDelete: {
+                    Task {
+                        await viewModel.deleteTasting(note.id)
+                    }
+                }
+            )
                 .environmentObject(hapticManager)
         }
         .sheet(isPresented: $showingNewNote) {
@@ -124,9 +138,17 @@ struct JournalView: View {
                     .environmentObject(authManager)
             } else {
                 // Fallback if we can't find the tasting
-                TastingNoteDetailView(note: note, onEdit: {
-                    // Already in edit mode
-                })
+                TastingNoteDetailView(
+                    note: note,
+                    onEdit: {
+                        // Already in edit mode
+                    },
+                    onDelete: {
+                        Task {
+                            await viewModel.deleteTasting(note.id)
+                        }
+                    }
+                )
                     .environmentObject(hapticManager)
             }
         }
@@ -665,7 +687,34 @@ class JournalViewModel: ObservableObject {
         }
     }
 
+    func deleteTasting(_ tastingId: UUID) async {
+        do {
+            // Delete from Supabase
+            let supabase = SupabaseManager.shared.client
+            try await supabase
+                .from("tastings")
+                .delete()
+                .eq("id", value: tastingId.uuidString)
+                .execute()
+
+            // Remove from local arrays
+            await MainActor.run {
+                notes.removeAll { $0.id == tastingId }
+                allNotes.removeAll { $0.id == tastingId }
+                searchResults.removeAll { $0.id == tastingId }
+            }
+
+            // Refresh the data service
+            await dataService.fetchUserTastings()
+        } catch {
+            print("Error deleting tasting: \(error)")
+        }
+    }
+
     func refreshNotes() async {
+        // Clear search when refreshing
+        searchResults.removeAll()
+        // Reload notes from the beginning
         await loadNotes()
     }
 }

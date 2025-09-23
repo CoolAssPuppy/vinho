@@ -363,9 +363,4 @@ struct ProcessedWineData: Codable, Hashable {
 }
 
 // MARK: - ProfileStats Model
-struct ProfileStats: Codable {
-    let uniqueWines: Int
-    let totalTastings: Int
-    let favorites: Int
-    let uniqueRegions: Int
-}
+// ProfileStats has been removed in favor of unified WineStats in StatsService.swift

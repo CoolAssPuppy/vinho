@@ -97,6 +97,11 @@ struct ProfileView: View {
                 }
             }
         }
+        .onAppear {
+            Task {
+                await viewModel.loadStats()
+            }
+        }
         .sheet(isPresented: $showingEditProfile) {
             EditProfileView()
                 .environmentObject(authManager)
@@ -230,7 +235,7 @@ struct ProfileView: View {
         HStack(spacing: 0) {
             StatItem(
                 value: viewModel.winesScanned,
-                label: "Wines",
+                label: "Unique Wines",
                 icon: "wineglass"
             )
             
@@ -725,8 +730,6 @@ class ProfileViewModel: ObservableObject {
     @Published var wishlist = 0
     @Published var cellar = 0
 
-    private let dataService = DataService.shared
-
     init() {
         Task {
             await loadStats()
@@ -734,24 +737,19 @@ class ProfileViewModel: ObservableObject {
     }
 
     func loadStats() async {
-        // Fetch tastings to calculate stats
-        await dataService.fetchUserTastings()
+        // Use the unified StatsService
+        let statsService = StatsService.shared
+        if let stats = await statsService.fetchUserStats() {
+            await MainActor.run {
+                self.winesScanned = stats.uniqueWines
+                self.tastingNotes = stats.totalTastings
+                self.regions = stats.uniqueRegions
+                self.favorites = stats.favorites
 
-        // Count total tastings
-        tastingNotes = dataService.tastings.count
-
-        // Count unique wines (vintages)
-        let uniqueWines = Set(dataService.tastings.compactMap { $0.vintage?.id })
-        winesScanned = uniqueWines.count
-
-        // Count unique regions (mock for now - in production would be from wine.region)
-        regions = min(15, max(1, winesScanned / 8)) // Rough estimate
-
-        // Count favorites (wines with rating >= 4)
-        favorites = dataService.tastings.filter { ($0.verdict ?? 0) >= 4 }.count
-
-        // Mock wishlist and cellar for now
-        wishlist = max(0, winesScanned / 3)
-        cellar = max(0, winesScanned / 4)
+                // Mock wishlist and cellar for now (not in the view yet)
+                self.wishlist = max(0, stats.uniqueWines / 3)
+                self.cellar = max(0, stats.uniqueWines / 4)
+            }
+        }
     }
 }

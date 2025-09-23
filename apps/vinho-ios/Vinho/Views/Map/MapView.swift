@@ -6,7 +6,7 @@ struct MapView: View {
     @EnvironmentObject var hapticManager: HapticManager
     @State private var mapView: MapViewType = .origins
     @State private var selectedWine: WineMapLocation?
-    @State private var wineStats: WineStats?
+    @ObservedObject private var statsService = StatsService.shared
     @State private var mapRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 40.0, longitude: -20.0),
         span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
@@ -34,7 +34,7 @@ struct MapView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Stats Cards
-            if let stats = wineStats {
+            if let stats = statsService.currentStats {
                 statsCardsView(stats: stats)
                     .padding(.horizontal)
                     .padding(.top, 8)
@@ -80,7 +80,8 @@ struct MapView: View {
         .onAppear {
             Task {
                 await viewModel.loadWines(for: mapView)
-                wineStats = await DataService.shared.fetchWineStats()
+                // Fetch stats using unified StatsService
+                await statsService.fetchUserStats()
             }
         }
     }
@@ -129,11 +130,11 @@ struct MapView: View {
     func statsCardsView(stats: WineStats) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
-                // Total Wines Card
+                // Unique Wines Card
                 StatsCard(
-                    title: "Total Wines",
+                    title: "Unique Wines",
                     value: "\(stats.uniqueWines)",
-                    subtitle: "\(stats.totalTastings) tastings",
+                    subtitle: "from \(stats.totalTastings) tastings",
                     icon: "wineglass.fill",
                     color: .vinoPrimary
                 )
@@ -260,7 +261,7 @@ struct WineMapDetailCard: View {
                 Spacer()
 
                 if let year = wine.year {
-                    Text("\(year)")
+                    Text(String(year))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.vinoAccent)
                         .padding(.horizontal, 10)
@@ -330,49 +331,49 @@ class MapViewModel: ObservableObject {
         // Fetch tastings from DataService
         await dataService.fetchUserTastings()
 
-        // Transform tastings into map locations
-        locations = dataService.tastings.compactMap { tasting -> WineMapLocation? in
-            guard let vintage = tasting.vintage,
-                  let wine = vintage.wine,
-                  let producer = wine.producer else { return nil }
+        // Transform tastings into map locations based on view type
+        if mapView == .origins {
+            // For wine origins, show producer locations only
+            locations = dataService.tastings.compactMap { tasting -> WineMapLocation? in
+                guard let vintage = tasting.vintage,
+                      let wine = vintage.wine,
+                      let producer = wine.producer,
+                      let lat = producer.latitude,
+                      let lng = producer.longitude else { return nil }
 
-            // Determine coordinates based on view type
-            let latitude: Double?
-            let longitude: Double?
-            let locationName: String?
-
-            if mapView == .origins {
-                // Use producer coordinates for wine origins
-                latitude = producer.latitude
-                longitude = producer.longitude
-                locationName = nil
-            } else {
-                // Use tasting location coordinates if available, otherwise fall back to producer
-                if let tastingLat = tasting.locationLatitude, let tastingLng = tasting.locationLongitude {
-                    latitude = tastingLat
-                    longitude = tastingLng
-                    locationName = tasting.locationName ?? tasting.locationCity
-                } else {
-                    latitude = producer.latitude
-                    longitude = producer.longitude
-                    locationName = tasting.locationName ?? producer.city
-                }
+                return WineMapLocation(
+                    id: tasting.id,
+                    name: wine.name,
+                    producer: producer.name,
+                    region: producer.region?.name ?? "Unknown Region",
+                    country: producer.region?.country ?? "Unknown Country",
+                    year: vintage.year,
+                    coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                    tastingLocation: nil,
+                    tastedDate: tasting.tastedAt
+                )
             }
+        } else {
+            // For tasting locations, show where wines were tasted (only those with tasting coordinates)
+            locations = dataService.tastings.compactMap { tasting -> WineMapLocation? in
+                guard let vintage = tasting.vintage,
+                      let wine = vintage.wine,
+                      let producer = wine.producer,
+                      let tastingLat = tasting.locationLatitude,
+                      let tastingLng = tasting.locationLongitude else { return nil }
 
-            // Skip if no valid coordinates
-            guard let lat = latitude, let lng = longitude else { return nil }
-
-            return WineMapLocation(
-                id: tasting.id,
-                name: wine.name,
-                producer: producer.name,
-                region: producer.region?.name ?? "Unknown Region",
-                country: producer.region?.country ?? "Unknown Country",
-                year: vintage.year,
-                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
-                tastingLocation: locationName,
-                tastedDate: tasting.tastedAt
-            )
+                return WineMapLocation(
+                    id: tasting.id,
+                    name: wine.name,
+                    producer: producer.name,
+                    region: producer.region?.name ?? "Unknown Region",
+                    country: producer.region?.country ?? "Unknown Country",
+                    year: vintage.year,
+                    coordinate: CLLocationCoordinate2D(latitude: tastingLat, longitude: tastingLng),
+                    tastingLocation: tasting.locationName ?? tasting.locationCity,
+                    tastedDate: tasting.tastedAt
+                )
+            }
         }
 
         isLoading = false

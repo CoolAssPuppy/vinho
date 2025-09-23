@@ -4,10 +4,12 @@ import SwiftUI
 struct TastingNoteDetailView: View {
     let note: TastingNoteWithWine
     let onEdit: () -> Void
+    let onDelete: () -> Void
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
     @State private var showingEditView = false
     @State private var showingShareSheet = false
+    @State private var showingDeleteAlert = false
     
     var body: some View {
         NavigationView {
@@ -72,7 +74,7 @@ struct TastingNoteDetailView: View {
                         
                         Button(role: .destructive) {
                             hapticManager.lightImpact()
-                            // Delete note
+                            showingDeleteAlert = true
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -82,9 +84,18 @@ struct TastingNoteDetailView: View {
                     }
                 }
             }
+            .alert("Delete Tasting Note?", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    dismiss()
+                    onDelete()
+                }
+            } message: {
+                Text("This action cannot be undone.")
+            }
         }
     }
-    
+
     var wineHeader: some View {
         VStack(spacing: 16) {
             // Wine Image

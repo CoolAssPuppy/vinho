@@ -45,7 +45,7 @@ jest.mock("react-dom/server", () => ({
   renderToStaticMarkup: jest.fn(() => "<div>Wine Icon</div>"),
 }));
 
-import WineMap from "@/components/wine-map";
+import WineMap from "@/components/map/WineMap";
 
 const mockWines = [
   {

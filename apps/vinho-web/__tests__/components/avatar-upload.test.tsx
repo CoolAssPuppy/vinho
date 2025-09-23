@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { AvatarUpload } from "@/components/avatar-upload";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { toast } from "sonner";
 import { createBrowserClient } from "@supabase/ssr";
 

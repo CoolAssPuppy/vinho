@@ -23,7 +23,7 @@ export function ProfileStatsCards({ stats }: ProfileStatsCardsProps) {
               {stats.wines}
             </span>
           </div>
-          <p className="text-sm text-vino-text-secondary">Wines Tasted</p>
+          <p className="text-sm text-vino-text-secondary">Unique Wines</p>
         </CardContent>
       </Card>
       <Card className="bg-vino-dark-secondary border-vino-border">

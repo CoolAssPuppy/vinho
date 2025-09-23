@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { VivinoMigration } from "@/components/vivino-migration";
+import { VivinoMigration } from "@/components/profile/VivinoMigration";
 import {
   Select,
   SelectContent,

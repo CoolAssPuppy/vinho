@@ -39,13 +39,12 @@ export default function ProfilePage() {
   useEffect(() => {
     let mounted = true;
 
-    const loadStats = async (userId: string) => {
+    const loadStats = async () => {
       try {
-        // Get all stats from the materialized view in a single query
+        // Use the unified user_wine_stats view - it automatically filters by auth.uid()
         const { data, error } = await supabase
-          .from("user_profile_stats")
+          .from("user_wine_stats")
           .select("unique_wines, total_tastings, favorites, unique_regions")
-          .eq("user_id", userId)
           .single();
 
         if (error && error.code !== "PGRST116") {
@@ -149,7 +148,7 @@ export default function ProfilePage() {
 
           // Load stats
           if (mounted) {
-            await loadStats(session.user.id);
+            await loadStats();
           }
         } else {
           // Don't redirect here - let the middleware handle it

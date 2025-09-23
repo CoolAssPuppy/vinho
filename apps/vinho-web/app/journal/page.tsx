@@ -14,12 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogContentNoX } from "@/components/ui/dialog-no-x";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/types/database";
@@ -756,7 +752,7 @@ export default function JournalPage() {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContentNoX className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 Edit Tasting Notes -{" "}
@@ -777,9 +773,26 @@ export default function JournalPage() {
                 initialLocationLat={selectedTasting.location_latitude}
                 initialLocationLng={selectedTasting.location_longitude}
                 onSave={handleSaveTasting}
+                onDelete={async () => {
+                  if (selectedTasting) {
+                    const { error } = await supabase
+                      .from("tastings")
+                      .delete()
+                      .eq("id", selectedTasting.id);
+
+                    if (!error) {
+                      setIsEditDialogOpen(false);
+                      // Remove from local state
+                      setTastings((prev) =>
+                        prev.filter((t) => t.id !== selectedTasting.id),
+                      );
+                    }
+                  }
+                }}
+                onCancel={() => setIsEditDialogOpen(false)}
               />
             )}
-          </DialogContent>
+          </DialogContentNoX>
         </Dialog>
 
         {/* Educational Tip */}
