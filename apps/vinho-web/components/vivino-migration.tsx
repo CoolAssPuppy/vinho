@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Upload,
   FileUp,
@@ -9,6 +9,10 @@ import {
   Loader2,
   Wine,
   AlertCircle,
+  Sparkles,
+  Database,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,12 +29,41 @@ interface MigrationResult {
   };
 }
 
+interface QueueStatus {
+  pending: number;
+  working: number;
+  completed: number;
+  failed: number;
+  total: number;
+  isProcessing: boolean;
+  recentlyCompleted: Array<{
+    wine_name: string;
+    producer_name: string;
+    completed_at: string;
+  }>;
+  errors: Array<{
+    wine_name: string;
+    producer_name: string;
+    error_message: string;
+  }>;
+}
+
 export function VivinoMigration() {
   const [isUploading, setIsUploading] = useState(false);
+  const [isFixing, setIsFixing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<MigrationResult | null>(null);
   const [progress, setProgress] = useState<string>("");
+  const [fixResult, setFixResult] = useState<{
+    success: boolean;
+    queued: number;
+    skipped: number;
+    message: string;
+    errors?: string[];
+  } | null>(null);
+  const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -121,6 +154,97 @@ export function VivinoMigration() {
     setFile(null);
     setResult(null);
     setProgress("");
+  };
+
+  const fetchQueueStatus = async () => {
+    try {
+      const response = await fetch("/api/wine-queue-status");
+      if (response.ok) {
+        const status = await response.json();
+        setQueueStatus(status);
+        return status;
+      }
+    } catch (error) {
+      console.error("Failed to fetch queue status:", error);
+    }
+    return null;
+  };
+
+  // Poll queue status when processing
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isPolling) {
+      // Initial fetch
+      fetchQueueStatus();
+
+      // Poll every 3 seconds
+      interval = setInterval(async () => {
+        const status = await fetchQueueStatus();
+        if (status && !status.isProcessing && status.pending === 0) {
+          setIsPolling(false);
+          if (status.total > 0) {
+            toast.success("Wine enhancement complete!", {
+              description: `Enhanced ${status.completed} wines with AI data`,
+            });
+          }
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPolling]);
+
+  // Check queue status on component mount
+  useEffect(() => {
+    fetchQueueStatus();
+  }, []);
+
+  const handleFixDatabase = async () => {
+    setIsFixing(true);
+    setFixResult(null);
+
+    try {
+      const response = await fetch("/api/fix-database", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to queue wines for enhancement");
+      }
+
+      setFixResult(data);
+
+      if (data.success && data.queued > 0) {
+        toast.success("Wines queued for enhancement!", {
+          description: `${data.queued} wines are being processed with AI. You can leave this page.`,
+        });
+        setIsPolling(true);
+      } else if (data.success && data.queued === 0) {
+        toast.info("Database is already enhanced", {
+          description: data.message || "No wines needed enhancement",
+        });
+      } else {
+        toast.warning("Some wines could not be queued", {
+          description: data.message || "Please try again",
+        });
+      }
+
+      // Fetch updated queue status
+      await fetchQueueStatus();
+    } catch (error) {
+      console.error("Database fix error:", error);
+      toast.error("Failed to queue wines for enhancement", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    } finally {
+      setIsFixing(false);
+    }
   };
 
   return (
@@ -379,6 +503,205 @@ export function VivinoMigration() {
           </div>
         </div>
       )}
+
+      {/* Database Fixer Section - Always visible */}
+      <div className="mt-8 pt-8 border-t">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-medium flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-green-500" />
+              Enhance Your Wine Database
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Use AI to automatically fill in missing information about your
+              wines, including regions, alcohol content, tasting notes, and food
+              pairings.
+            </p>
+          </div>
+
+          <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-6">
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <Database className="w-5 h-5 text-green-500 mt-1" />
+                <div className="flex-1">
+                  <h4 className="font-medium">What this does:</h4>
+                  <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                    <li>
+                      • Identifies wines with missing region or country data
+                    </li>
+                    <li>• Adds typical alcohol content (ABV) for each wine</li>
+                    <li>
+                      • Generates tasting notes based on wine characteristics
+                    </li>
+                    <li>• Suggests food pairings and serving temperatures</li>
+                    <li>• Enriches producer information with proper regions</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Note:</strong> This process uses OpenAI to analyze
+                  your wine data. Wines are processed in the background, so you
+                  can leave this page while enhancement continues.
+                </p>
+              </div>
+
+              {/* Queue Status Display */}
+              {queueStatus && queueStatus.total > 0 && (
+                <div className="space-y-3">
+                  {/* Progress Overview */}
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        {queueStatus.isProcessing ? (
+                          <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                        ) : queueStatus.pending > 0 ? (
+                          <Clock className="w-5 h-5 text-yellow-500" />
+                        ) : (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        )}
+                        <div>
+                          <p className="font-medium">
+                            {queueStatus.isProcessing
+                              ? "Enhancing wines..."
+                              : queueStatus.pending > 0
+                                ? "Wines queued for enhancement"
+                                : "Enhancement complete"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {queueStatus.completed} completed •{" "}
+                            {queueStatus.pending} pending
+                            {queueStatus.working > 0 &&
+                              ` • ${queueStatus.working} processing`}
+                            {queueStatus.failed > 0 &&
+                              ` • ${queueStatus.failed} failed`}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={fetchQueueStatus}
+                        className="p-2 hover:bg-background rounded-lg transition-colors"
+                        title="Refresh status"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Progress Bar */}
+                    {queueStatus.total > 0 && (
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                          <span>Progress</span>
+                          <span>
+                            {Math.round(
+                              (queueStatus.completed / queueStatus.total) * 100,
+                            )}
+                            %
+                          </span>
+                        </div>
+                        <div className="w-full bg-background rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                            style={{
+                              width: `${(queueStatus.completed / queueStatus.total) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recently Completed Wines */}
+                  {queueStatus.recentlyCompleted.length > 0 && (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                      <h5 className="font-medium text-sm mb-2">
+                        Recently Enhanced
+                      </h5>
+                      <div className="space-y-1">
+                        {queueStatus.recentlyCompleted
+                          .slice(0, 3)
+                          .map((wine, i) => (
+                            <p
+                              key={i}
+                              className="text-xs text-muted-foreground"
+                            >
+                              • {wine.producer_name} - {wine.wine_name}
+                            </p>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Errors */}
+                  {queueStatus.errors.length > 0 && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                      <h5 className="font-medium text-sm mb-2">
+                        Recent Errors
+                      </h5>
+                      <div className="space-y-1">
+                        {queueStatus.errors.slice(0, 2).map((error, i) => (
+                          <p key={i} className="text-xs text-muted-foreground">
+                            • {error.producer_name} - {error.wine_name}:{" "}
+                            {error.error_message}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Legacy fix result for immediate feedback */}
+              {fixResult && !queueStatus?.total && (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium">
+                        {fixResult.queued > 0
+                          ? "Wines Queued for Enhancement"
+                          : "No Enhancement Needed"}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {fixResult.queued > 0
+                          ? `${fixResult.queued} wines queued for processing`
+                          : fixResult.message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleFixDatabase}
+                disabled={
+                  isFixing ||
+                  (queueStatus?.isProcessing && queueStatus.pending > 0)
+                }
+                className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 text-white hover:bg-green-700 h-12 px-6"
+              >
+                {isFixing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Queuing wines for enhancement...
+                  </>
+                ) : queueStatus?.isProcessing && queueStatus.pending > 0 ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Enhancement in progress...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Queue Wines for AI Enhancement
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

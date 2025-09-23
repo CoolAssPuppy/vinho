@@ -6,6 +6,7 @@ struct MapView: View {
     @EnvironmentObject var hapticManager: HapticManager
     @State private var mapView: MapViewType = .origins
     @State private var selectedWine: WineMapLocation?
+    @State private var wineStats: WineStats?
     @State private var mapRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 40.0, longitude: -20.0),
         span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
@@ -32,10 +33,17 @@ struct MapView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Stats Cards
+            if let stats = wineStats {
+                statsCardsView(stats: stats)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+            }
+
             // Toggle View
             mapViewToggle
                 .padding(.horizontal)
-                .padding(.top, 8)
                 .padding(.bottom, 12)
 
             // Map
@@ -72,6 +80,7 @@ struct MapView: View {
         .onAppear {
             Task {
                 await viewModel.loadWines(for: mapView)
+                wineStats = await DataService.shared.fetchWineStats()
             }
         }
     }
@@ -115,6 +124,93 @@ struct MapView: View {
         .padding(.vertical, 4)
         .background(Color.vinoDarkSecondary.opacity(0.5))
         .clipShape(Capsule())
+    }
+
+    func statsCardsView(stats: WineStats) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                // Total Wines Card
+                StatsCard(
+                    title: "Total Wines",
+                    value: "\(stats.uniqueWines)",
+                    subtitle: "\(stats.totalTastings) tastings",
+                    icon: "wineglass.fill",
+                    color: .vinoPrimary
+                )
+
+                // Countries Card
+                StatsCard(
+                    title: "Countries",
+                    value: "\(stats.uniqueCountries)",
+                    subtitle: "\(stats.uniqueRegions) regions",
+                    icon: "globe",
+                    color: .vinoAccent
+                )
+
+                // Average Rating Card
+                StatsCard(
+                    title: "Avg Rating",
+                    value: String(format: "%.1f", stats.averageRating ?? 0),
+                    subtitle: "\(stats.favorites) favorites",
+                    icon: "star.fill",
+                    color: .yellow
+                )
+
+                // Recent Activity Card
+                StatsCard(
+                    title: "This Month",
+                    value: "\(stats.tastingsLast30Days)",
+                    subtitle: "tastings",
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: .green
+                )
+            }
+            .padding(.horizontal, 2)
+        }
+    }
+}
+
+// MARK: - Stats Card
+struct StatsCard: View {
+    let title: String
+    let value: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(color)
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12))
+                    .foregroundColor(.vinoTextSecondary)
+
+                Text(value)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.vinoText)
+
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundColor(.vinoTextSecondary)
+            }
+        }
+        .padding(12)
+        .frame(width: 110, height: 100)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.vinoDarkSecondary)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.vinoBorder.opacity(0.5), lineWidth: 1)
+                )
+        )
     }
 }
 
@@ -240,20 +336,41 @@ class MapViewModel: ObservableObject {
                   let wine = vintage.wine,
                   let producer = wine.producer else { return nil }
 
-            // Mock coordinates for demo - in production, these would come from the database
-            let coords = mapView == .origins ?
-                getMockWineOriginCoordinates(producer: producer.name) :
-                getMockTastingCoordinates()
+            // Determine coordinates based on view type
+            let latitude: Double?
+            let longitude: Double?
+            let locationName: String?
+
+            if mapView == .origins {
+                // Use producer coordinates for wine origins
+                latitude = producer.latitude
+                longitude = producer.longitude
+                locationName = nil
+            } else {
+                // Use tasting location coordinates if available, otherwise fall back to producer
+                if let tastingLat = tasting.locationLatitude, let tastingLng = tasting.locationLongitude {
+                    latitude = tastingLat
+                    longitude = tastingLng
+                    locationName = tasting.locationName ?? tasting.locationCity
+                } else {
+                    latitude = producer.latitude
+                    longitude = producer.longitude
+                    locationName = tasting.locationName ?? producer.city
+                }
+            }
+
+            // Skip if no valid coordinates
+            guard let lat = latitude, let lng = longitude else { return nil }
 
             return WineMapLocation(
                 id: tasting.id,
                 name: wine.name,
                 producer: producer.name,
-                region: "Wine Region", // Mock region - in production this would come from a join with regions table
-                country: "France", // Mock country - in production this would come from a join with regions table
+                region: producer.region?.name ?? "Unknown Region",
+                country: producer.region?.country ?? "Unknown Country",
                 year: vintage.year,
-                coordinate: CLLocationCoordinate2D(latitude: coords.lat, longitude: coords.lng),
-                tastingLocation: mapView == .tastings ? "San Francisco" : nil,
+                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                tastingLocation: locationName,
                 tastedDate: tasting.tastedAt
             )
         }
@@ -261,29 +378,6 @@ class MapViewModel: ObservableObject {
         isLoading = false
     }
 
-    private func getMockWineOriginCoordinates(producer: String) -> (lat: Double, lng: Double) {
-        // Mock coordinates for demo purposes
-        let origins: [String: (lat: Double, lng: Double)] = [
-            "Château Margaux": (45.0403, -0.6730),
-            "Opus One": (38.4012, -122.3932),
-            "Penfolds": (-34.5312, 138.9883),
-            "Antinori": (43.4695, 11.2558)
-        ]
-
-        return origins.randomElement()?.value ?? (44.8378, -0.5792) // Default to Bordeaux
-    }
-
-    private func getMockTastingCoordinates() -> (lat: Double, lng: Double) {
-        // Mock tasting locations for demo
-        let locations = [
-            (37.7749, -122.4194), // San Francisco
-            (40.7128, -74.0060),  // New York
-            (51.5074, -0.1278),   // London
-            (48.8566, 2.3522),    // Paris
-        ]
-
-        return locations.randomElement() ?? locations[0]
-    }
 }
 
 // MARK: - Models

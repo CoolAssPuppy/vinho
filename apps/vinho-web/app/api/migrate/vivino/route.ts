@@ -11,6 +11,10 @@ import {
   type ProcessedWineData,
 } from "@/app/lib/vivino-migration";
 import { generateEmbedding, generateTastingSearchText } from "@/lib/embeddings";
+import {
+  downloadVivinoImage,
+  ensureWineImagesBucket,
+} from "@/app/lib/image-storage";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes for large imports
@@ -83,6 +87,14 @@ export async function POST(request: NextRequest) {
 
     // Extract unique regions for batch creation
     const uniqueRegions = extractUniqueRegions(processedEntries);
+
+    // Ensure wine-images bucket exists
+    const bucketReady = await ensureWineImagesBucket();
+    if (!bucketReady) {
+      console.warn(
+        "Failed to create wine-images bucket - images will not be stored locally",
+      );
+    }
 
     // Migration statistics
     const stats = {
@@ -254,6 +266,36 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            // Download and store image locally if it exists
+            let localImageUrl: string | null = null;
+            if (wineData.metadata.vivinoImageUrl && bucketReady) {
+              try {
+                const imageResult = await downloadVivinoImage(
+                  wineData.metadata.vivinoImageUrl,
+                  producerName,
+                  wineData.wine.name,
+                  wineData.vintage.year,
+                );
+
+                if (imageResult.success && imageResult.localUrl) {
+                  localImageUrl = imageResult.localUrl;
+                } else {
+                  console.warn(
+                    `Failed to download image for ${wineData.wine.name}: ${imageResult.error}`,
+                  );
+                  // Fall back to original URL
+                  localImageUrl = wineData.metadata.vivinoImageUrl;
+                }
+              } catch (error) {
+                console.error("Error downloading image:", error);
+                // Fall back to original URL
+                localImageUrl = wineData.metadata.vivinoImageUrl;
+              }
+            } else {
+              // Use original URL if bucket not ready or no image
+              localImageUrl = wineData.metadata.vivinoImageUrl || null;
+            }
+
             // Step 5: Create tasting record
             if (vintageId || wineData.wine.isNV) {
               // For NV wines, create a vintage entry with null year
@@ -318,9 +360,9 @@ export async function POST(request: NextRequest) {
                         .toISOString()
                         .split("T")[0],
                       location_name: wineData.tasting.locationName,
-                      image_url: wineData.metadata.vivinoImageUrl,
+                      image_url: localImageUrl,
                       search_text: searchText,
-                      embedding: embedding,
+                      embedding: embedding ? `[${embedding.join(",")}]` : null,
                     });
 
                   if (tastingError) {
@@ -341,18 +383,20 @@ export async function POST(request: NextRequest) {
             }
 
             // Step 6: Queue for enrichment if image exists
-            if (wineData.metadata.vivinoImageUrl) {
+            if (localImageUrl || wineData.metadata.vivinoImageUrl) {
               const idempotencyKey = generateIdempotencyKey(wineData, user.id);
 
               // Add to wines_added for processing
               await supabase.from("wines_added").insert({
                 user_id: user.id,
-                image_url: wineData.metadata.vivinoImageUrl,
+                image_url: localImageUrl || wineData.metadata.vivinoImageUrl,
                 status: "pending",
                 idempotency_key: idempotencyKey,
                 processed_data: {
                   source: "vivino_migration",
                   original_url: wineData.metadata.vivinoUrl,
+                  vivino_image_url: wineData.metadata.vivinoImageUrl,
+                  local_image_url: localImageUrl,
                   producer_name: producerName,
                   wine_name: wineData.wine.name,
                   vintage_year: wineData.vintage.year,

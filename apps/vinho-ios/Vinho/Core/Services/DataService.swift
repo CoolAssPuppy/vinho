@@ -76,6 +76,7 @@ class DataService: ObservableObject {
                 """)
                 .eq("user_id", value: userId.uuidString)
                 .order("tasted_at", ascending: false)
+                .order("created_at", ascending: false)
                 .execute()
                 .value
 
@@ -110,6 +111,7 @@ class DataService: ObservableObject {
                 """)
                 .eq("user_id", value: userId.uuidString)
                 .order("tasted_at", ascending: false)
+                .order("created_at", ascending: false)
                 .range(from: from, to: to)
                 .execute()
                 .value
@@ -190,6 +192,11 @@ class DataService: ObservableObject {
             createdAt: Date(),
             updatedAt: Date(),
             imageUrl: nil,
+            locationName: nil,
+            locationAddress: nil,
+            locationCity: nil,
+            locationLatitude: nil,
+            locationLongitude: nil,
             vintage: nil
         )
 
@@ -476,6 +483,11 @@ class DataService: ObservableObject {
             createdAt: Date(),
             updatedAt: Date(),
             imageUrl: nil,
+            locationName: nil,
+            locationAddress: nil,
+            locationCity: nil,
+            locationLatitude: nil,
+            locationLongitude: nil,
             vintage: nil
         )
 
@@ -516,6 +528,64 @@ class DataService: ObservableObject {
         } catch {
             errorMessage = "Failed to delete tasting: \(error.localizedDescription)"
             return false
+        }
+    }
+
+    // MARK: - Wine Statistics
+
+    func fetchWineStats() async -> WineStats? {
+        guard let _ = try? await client.auth.session.user.id else { return nil }
+
+        do {
+            // The view automatically filters by current user, no need to pass user_id
+            let stats: WineStats = try await client
+                .from("user_wine_stats")
+                .select("*")
+                .single()
+                .execute()
+                .value
+
+            return stats
+        } catch {
+            print("Failed to fetch wine stats: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    // MARK: - Profile Statistics
+
+    func fetchProfileStats() async -> ProfileStats? {
+        guard let userId = try? await client.auth.session.user.id else { return nil }
+
+        do {
+            // Use the secure view that filters by auth.uid()
+            let response = try await client
+                .from("user_profile_stats")
+                .select("unique_wines, total_tastings, favorites, unique_regions")
+                .eq("user_id", value: userId.uuidString)
+                .single()
+                .execute()
+
+            // Decode the response
+            struct StatsResponse: Decodable {
+                let unique_wines: Int?
+                let total_tastings: Int?
+                let favorites: Int?
+                let unique_regions: Int?
+            }
+
+            let decoder = JSONDecoder()
+            let stats = try decoder.decode(StatsResponse.self, from: response.data)
+
+            return ProfileStats(
+                uniqueWines: stats.unique_wines ?? 0,
+                totalTastings: stats.total_tastings ?? 0,
+                favorites: stats.favorites ?? 0,
+                uniqueRegions: stats.unique_regions ?? 0
+            )
+        } catch {
+            print("Failed to fetch profile stats: \(error.localizedDescription)")
+            return nil
         }
     }
 }

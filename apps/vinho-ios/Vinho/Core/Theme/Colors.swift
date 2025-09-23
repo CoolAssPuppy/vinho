@@ -9,6 +9,7 @@ extension Color {
     static let vinoDark = Color(red: 0.078, green: 0.078, blue: 0.086) // #141416 - Deep Dark
     static let vinoDarkSecondary = Color(red: 0.110, green: 0.110, blue: 0.118) // #1C1C1E - Card Background
     static let vinoDarkTertiary = Color(red: 0.157, green: 0.157, blue: 0.169) // #28282B - Elevated Surface
+    static let vinoCardBg = Color(red: 0.110, green: 0.110, blue: 0.118) // #1C1C1E - Card Background (alias)
 
     // Text Colors
     static let vinoText = Color(red: 0.949, green: 0.949, blue: 0.969) // #F2F2F7 - Primary Text

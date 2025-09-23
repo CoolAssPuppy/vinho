@@ -41,41 +41,34 @@ export default function ProfilePage() {
 
     const loadStats = async (userId: string) => {
       try {
-        // Get tastings count
-        const { count: tastingCount } = await supabase
-          .from("tastings")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", userId);
+        // Get all stats from the materialized view in a single query
+        const { data, error } = await supabase
+          .from("user_profile_stats")
+          .select("unique_wines, total_tastings, favorites, unique_regions")
+          .eq("user_id", userId)
+          .single();
 
-        // Get unique wines count
-        const wineResponse = await supabase
-          .from("tastings")
-          .select("vintage_id")
-          .eq("user_id", userId);
-
-        let uniqueWines = 0;
-        if (wineResponse.data) {
-          const data = wineResponse.data as Array<{
-            vintage_id: string | null;
-          }>;
-          const vintageIds = data.map((t) => t.vintage_id).filter(Boolean);
-          uniqueWines = new Set(vintageIds).size;
+        if (error && error.code !== "PGRST116") {
+          console.error("Error fetching stats:", error);
         }
 
-        // Get favorites (ratings >= 4)
-        const { count: favoriteCount } = await supabase
-          .from("tastings")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", userId)
-          .gte("verdict", 4);
-
         if (mounted) {
-          setStats({
-            wines: uniqueWines,
-            notes: tastingCount || 0,
-            regions: Math.min(15, Math.max(1, Math.floor(uniqueWines / 8))), // Estimate
-            favorites: favoriteCount || 0,
-          });
+          if (data) {
+            setStats({
+              wines: data.unique_wines || 0,
+              notes: data.total_tastings || 0,
+              regions: data.unique_regions || 0,
+              favorites: data.favorites || 0,
+            });
+          } else {
+            // User has no tastings yet
+            setStats({
+              wines: 0,
+              notes: 0,
+              regions: 0,
+              favorites: 0,
+            });
+          }
         }
       } catch (error) {
         console.error("Error fetching stats:", error);

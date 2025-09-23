@@ -69,7 +69,7 @@ struct JournalView: View {
                         searchBar
                             .padding(.horizontal)
                             .padding(.bottom, 12)
-                            .onChange(of: searchText) { newValue in
+                            .onChange(of: searchText) { _, newValue in
                                 // Cancel previous search task
                                 searchTask?.cancel()
 
@@ -92,6 +92,10 @@ struct JournalView: View {
                             emptyState
                         } else {
                             journalList
+                                .refreshable {
+                                    await viewModel.refreshNotes()
+                                    await loadPendingWines()
+                                }
                         }
                     }
                 } else {

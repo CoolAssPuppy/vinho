@@ -350,10 +350,10 @@ struct SuggestionsView: View {
         do {
             // Get the auth session
             let supabase = SupabaseManager.shared.client
-            let session = try await supabase.auth.session
+            _ = try await supabase.auth.session
 
-            // Prepare the request body
-            let requestBody = WineRecommendationRequest(
+            // Prepare the request body (currently using mock data)
+            _ = WineRecommendationRequest(
                 city: location,
                 wines: highRatedWines.map { wine in
                     WineRecommendationRequest.WineInput(

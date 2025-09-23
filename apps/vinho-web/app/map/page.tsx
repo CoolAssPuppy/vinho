@@ -6,10 +6,13 @@ import {
   Wine,
   MapPin,
   Globe,
-  Grape,
   Calendar,
   ToggleLeft,
   ToggleRight,
+  Star,
+  TrendingUp,
+  Users,
+  Activity,
 } from "lucide-react";
 import {
   Card,
@@ -24,12 +27,28 @@ import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@supabase/ssr";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { Database } from "@/types/database";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { TastingNoteForm } from "@/components/tasting/tasting-note-form";
+import { useRouter } from "next/navigation";
 
 // Dynamically import map component to avoid SSR issues with Leaflet
 const WineMap = dynamic(() => import("@/components/wine-map"), {
   ssr: false,
   loading: () => (
-    <div className="h-[800px] w-full bg-muted animate-pulse rounded-lg" />
+    <div className="h-[600px] w-full bg-muted animate-pulse rounded-lg" />
   ),
 });
 
@@ -51,6 +70,26 @@ interface WineLocation {
   tasted_date?: Date;
 }
 
+interface RecentWine {
+  id: string;
+  wine_name: string;
+  producer_name: string;
+  region: string;
+  country: string;
+  vintage_year: number | null;
+  vintage_id: string;
+  abv: number | null;
+  rating: number | null;
+  tasted_at: string;
+  location_name: string | null;
+  location_address: string | null;
+  location_city: string | null;
+  location_latitude: number | null;
+  location_longitude: number | null;
+  notes: string | null;
+  detailed_notes: string | null;
+}
+
 type MapView = "origins" | "tastings";
 
 interface MapBounds {
@@ -60,20 +99,140 @@ interface MapBounds {
   west: number;
 }
 
+interface WineStats {
+  total_tastings: number;
+  unique_wines: number;
+  unique_producers: number;
+  unique_regions: number;
+  unique_countries: number;
+  white_wines: number;
+  red_wines: number;
+  rose_wines: number;
+  sparkling_wines: number;
+  fortified_wines: number;
+  unique_tasting_locations: number;
+  tastings_last_30_days: number;
+  average_rating: number;
+  favorites: number;
+}
+
 export default function MapPage() {
   const [wines, setWines] = useState<WineLocation[]>([]);
-  const [allWines, setAllWines] = useState<WineLocation[]>([]); // Store all wines for stats
+  const [recentWines, setRecentWines] = useState<RecentWine[]>([]);
+  const [stats, setStats] = useState<WineStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasWines, setHasWines] = useState(false);
   const [selectedWine, setSelectedWine] = useState<WineLocation | null>(null);
   const [mapView, setMapView] = useState<MapView>("origins");
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
+  const [selectedTasting, setSelectedTasting] = useState<RecentWine | null>(
+    null,
+  );
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const debouncedBounds = useDebounce(mapBounds, 500);
   const hasInitialLoad = useRef(false);
+  const router = useRouter();
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
+
+  // Fetch complete stats from materialized view
+  const fetchStats = useCallback(async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch stats from secure view (automatically filters by auth.uid())
+      const { data: statsData } = await supabase
+        .from("user_wine_stats")
+        .select("*")
+        .single();
+
+      if (statsData) {
+        setStats(statsData as WineStats);
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  }, [supabase]);
+
+  // Fetch recent wines
+  const fetchRecentWines = useCallback(async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: recentData } = await supabase
+        .from("tastings")
+        .select(
+          `
+          id,
+          verdict,
+          notes,
+          detailed_notes,
+          tasted_at,
+          location_name,
+          location_address,
+          location_city,
+          location_latitude,
+          location_longitude,
+          vintage:vintages (
+            id,
+            year,
+            abv,
+            wine:wines (
+              name,
+              producer:producers (
+                name,
+                region:regions (
+                  name,
+                  country
+                )
+              )
+            )
+          )
+        `,
+        )
+        .eq("user_id", user.id)
+        .order("tasted_at", { ascending: false })
+        .limit(10);
+
+      if (recentData) {
+        const formattedRecent: RecentWine[] = recentData.map(
+          (tasting: any) => ({
+            id: tasting.id,
+            wine_name: tasting.vintage?.wine?.name || "Unknown Wine",
+            producer_name:
+              tasting.vintage?.wine?.producer?.name || "Unknown Producer",
+            region: tasting.vintage?.wine?.producer?.region?.name || "",
+            country: tasting.vintage?.wine?.producer?.region?.country || "",
+            vintage_year: tasting.vintage?.year,
+            vintage_id: tasting.vintage?.id,
+            abv: tasting.vintage?.abv,
+            rating: tasting.verdict,
+            tasted_at: tasting.tasted_at,
+            location_name: tasting.location_name,
+            location_address: tasting.location_address,
+            location_city: tasting.location_city,
+            location_latitude: tasting.location_latitude,
+            location_longitude: tasting.location_longitude,
+            notes: tasting.notes,
+            detailed_notes: tasting.detailed_notes,
+          }),
+        );
+
+        setRecentWines(formattedRecent);
+      }
+    } catch (error) {
+      console.error("Error fetching recent wines:", error);
+    }
+  }, [supabase]);
 
   // Fetch wines based on viewport bounds
   const fetchWinesInBounds = useCallback(
@@ -119,25 +278,19 @@ export default function MapPage() {
             )
           `,
           )
-          .eq("user_id", user.id);
+          .eq("user_id", user.id)
+          .order("tasted_at", { ascending: false })
+          .limit(100);
 
         if (error) {
-          // Check if it's an actual error or just no data
-          if (error.code === "PGRST116") {
-            // No rows found - this is fine, user just hasn't added wines yet
-            console.log("No tastings found for user");
-            setWines([]);
-            setLoading(false);
-            return;
-          }
           console.error("Error fetching wines:", error.message || error);
           setLoading(false);
           return;
         }
 
-        // If no tastings, gracefully set empty array
         if (!tastings || tastings.length === 0) {
           setWines([]);
+          setHasWines(false);
           setLoading(false);
           return;
         }
@@ -145,85 +298,78 @@ export default function MapPage() {
         // Transform data into wine locations
         const locations: WineLocation[] = [];
 
-        if (tastings) {
-          for (const tasting of tastings) {
-            // Type assertion to help TypeScript understand the structure
-            const typedTasting = tasting as any;
-            if (typedTasting.vintage?.wine?.producer) {
-              const producer = typedTasting.vintage.wine.producer as any;
+        for (const tasting of tastings) {
+          const typedTasting = tasting as any;
+          if (typedTasting.vintage?.wine?.producer) {
+            const producer = typedTasting.vintage.wine.producer as any;
+            const region = producer.region?.name || "";
+            const country = producer.region?.country || "";
 
-              // Extract region and country from producer's linked region or fallback
-              const region = producer.region?.name || "Unknown Region";
-              const country = producer.region?.country || "Unknown Country";
+            // For origins view, use producer coordinates
+            const originLat = producer.latitude;
+            const originLng = producer.longitude;
 
-              // For origins view, use producer coordinates
-              let originLat = producer.latitude;
-              let originLng = producer.longitude;
+            // For tasting view, use actual tasting location if available
+            const tastingLat = typedTasting.location_latitude || originLat;
+            const tastingLng = typedTasting.location_longitude || originLng;
 
-              // If no coordinates, try to get from region/country as fallback
-              if (!originLat || !originLng) {
-                const fallbackCoords = getMockCoordinates(country, region);
-                originLat = fallbackCoords.lat;
-                originLng = fallbackCoords.lng;
-              }
-
-              // For tasting view, use actual tasting location if available
-              const tastingLat = typedTasting.location_latitude || originLat;
-              const tastingLng = typedTasting.location_longitude || originLng;
-              const locationName = typedTasting.location_name;
-              const locationCity = typedTasting.location_city;
-
-              locations.push({
-                id: typedTasting.id,
-                name: typedTasting.vintage.wine.name,
-                producer: producer.name,
-                producer_address: producer.address,
-                producer_city: producer.city,
-                producer_website: producer.website,
-                region: region,
-                country: country,
-                year: typedTasting.vintage.year,
-                varietals: [], // TODO: fetch from wine_varietals table
-                latitude: mapView === "origins" ? originLat : tastingLat,
-                longitude: mapView === "origins" ? originLng : tastingLng,
-                vineyard_name: null, // Mock - in production from database
-                tasted_location:
-                  mapView === "tastings"
-                    ? locationName || locationCity || null
-                    : null,
-                tasted_date: typedTasting.tasted_at
-                  ? new Date(typedTasting.tasted_at)
-                  : undefined,
-              });
-            }
+            locations.push({
+              id: typedTasting.id,
+              name: typedTasting.vintage.wine.name,
+              producer: producer.name,
+              producer_address: producer.address,
+              producer_city: producer.city,
+              producer_website: producer.website,
+              region: region,
+              country: country,
+              year: typedTasting.vintage.year,
+              varietals: [],
+              latitude: mapView === "origins" ? originLat : tastingLat,
+              longitude: mapView === "origins" ? originLng : tastingLng,
+              vineyard_name: null,
+              tasted_location:
+                mapView === "tastings"
+                  ? typedTasting.location_name ||
+                    typedTasting.location_city ||
+                    null
+                  : null,
+              tasted_date: typedTasting.tasted_at
+                ? new Date(typedTasting.tasted_at)
+                : undefined,
+            });
           }
         }
 
-        // Store all wines for stats
-        if (!hasInitialLoad.current) {
-          setAllWines(locations);
-          setWines(locations);
-          hasInitialLoad.current = true;
-        } else if (bounds) {
-          // Filter locations based on viewport bounds
-          const filtered = locations.filter((wine) => {
-            if (!wine.latitude || !wine.longitude) return false;
+        // Filter only wines with valid coordinates
+        const validLocations = locations.filter(
+          (w) => w.latitude && w.longitude,
+        );
+
+        // Track if we have ANY wines with coordinates (for showing map vs empty state)
+        setHasWines(validLocations.length > 0);
+
+        // Filter by bounds if provided
+        let filtered = validLocations;
+        if (bounds && hasInitialLoad.current) {
+          filtered = validLocations.filter((wine) => {
             return (
-              wine.latitude >= bounds.south &&
-              wine.latitude <= bounds.north &&
-              wine.longitude >= bounds.west &&
-              wine.longitude <= bounds.east
+              wine.latitude! >= bounds.south &&
+              wine.latitude! <= bounds.north &&
+              wine.longitude! >= bounds.west &&
+              wine.longitude! <= bounds.east
             );
           });
-          setWines(filtered);
-          setAllWines(locations); // Keep all wines for stats
-        } else {
-          setWines(locations);
-          setAllWines(locations);
+        }
+
+        // Show max 20 wines in viewport for performance
+        setWines(filtered.slice(0, 20));
+        setLoading(false);
+
+        if (!hasInitialLoad.current) {
+          hasInitialLoad.current = true;
         }
       } catch (error) {
-        console.error("Error:", error);
-      } finally {
+        console.error("Error in fetchWinesInBounds:", error);
         setLoading(false);
       }
     },
@@ -233,7 +379,9 @@ export default function MapPage() {
   // Initial load
   useEffect(() => {
     fetchWinesInBounds(null);
-  }, []);
+    fetchStats();
+    fetchRecentWines();
+  }, [fetchWinesInBounds, fetchStats, fetchRecentWines]);
 
   // Handle bounds changes
   useEffect(() => {
@@ -250,565 +398,260 @@ export default function MapPage() {
   }, [mapView, mapBounds, fetchWinesInBounds]);
 
   // Handle map bounds update
-  const handleBoundsChange = useCallback((bounds: MapBounds) => {
-    setMapBounds(bounds);
+  const handleBoundsChange = useCallback((newBounds: MapBounds) => {
+    setMapBounds(newBounds);
   }, []);
 
+  // Handle tasting edit
+  const handleEditTasting = (wine: RecentWine) => {
+    setSelectedTasting(wine);
+    setIsEditDialogOpen(true);
+  };
+
+  // Handle save tasting
+  const handleSaveTasting = async () => {
+    setIsEditDialogOpen(false);
+    setSelectedTasting(null);
+    // Refresh the recent wines
+    await fetchRecentWines();
+  };
+
+  // Stats cards configuration
+  const statsCards = [
+    {
+      title: "Total Wines",
+      value: stats?.unique_wines || 0,
+      icon: Wine,
+      description: `${stats?.total_tastings || 0} total tastings`,
+      color: "text-purple-500",
+    },
+    {
+      title: "Countries",
+      value: stats?.unique_countries || 0,
+      icon: Globe,
+      description: `${stats?.unique_regions || 0} regions explored`,
+      color: "text-blue-500",
+    },
+    {
+      title: "Average Rating",
+      value: (stats?.average_rating || 0).toFixed(1),
+      icon: Star,
+      description: `${stats?.favorites || 0} favorites (4+ stars)`,
+      color: "text-yellow-500",
+    },
+    {
+      title: "Recent Activity",
+      value: stats?.tastings_last_30_days || 0,
+      icon: Activity,
+      description: "Tastings last 30 days",
+      color: "text-green-500",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-primary mb-2">Wine Map</h1>
-              <p className="text-muted-foreground">
-                {mapView === "origins"
-                  ? "Explore where your wines come from"
-                  : "See where you've enjoyed your wines"}
-              </p>
-            </div>
-
-            {/* Toggle between map views */}
-            <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-              <Button
-                variant={mapView === "origins" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setMapView("origins")}
-                className="gap-2"
-              >
-                <Globe className="h-4 w-4" />
-                Wine Origins
-              </Button>
-              <Button
-                variant={mapView === "tastings" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setMapView("tastings")}
-                className="gap-2"
-              >
-                <MapPin className="h-4 w-4" />
-                Tasting Locations
-              </Button>
-            </div>
-          </div>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Wine Map</h1>
+          <p className="text-muted-foreground">
+            Explore your wine journey across the world
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Map Section */}
-          <div className="lg:col-span-3">
-            <Card>
-              <CardContent className="p-0">
-                {loading ? (
-                  <Skeleton className="h-[800px] w-full" />
-                ) : allWines.length > 0 ? (
-                  <WineMap
-                    wines={wines}
-                    onWineSelect={setSelectedWine}
-                    selectedWine={selectedWine}
-                    onBoundsChange={handleBoundsChange}
-                  />
-                ) : (
-                  <div className="h-[800px] flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <Globe className="h-16 w-16 text-muted-foreground mx-auto" />
-                      <div>
-                        <h3 className="text-xl font-semibold">
-                          No wines mapped yet
-                        </h3>
-                        <p className="text-muted-foreground mt-2">
-                          Start scanning wines to see their{" "}
-                          {mapView === "origins"
-                            ? "origins"
-                            : "tasting locations"}{" "}
-                          on the map
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Info Panel */}
-          <div className="lg:col-span-1 space-y-4">
-            {/* Stats Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Collection Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Total Wines
-                  </span>
-                  <Badge variant="secondary">{allWines.length}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {mapView === "origins" ? "Countries" : "Tasting Locations"}
-                  </span>
-                  <Badge variant="secondary">
-                    {mapView === "origins"
-                      ? new Set(allWines.map((w) => w.country)).size
-                      : new Set(
-                          allWines
-                            .map((w) => w.tasted_location)
-                            .filter(Boolean),
-                        ).size}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {mapView === "origins" ? "Regions" : "Recent Tastings"}
-                  </span>
-                  <Badge variant="secondary">
-                    {mapView === "origins"
-                      ? new Set(allWines.map((w) => w.region)).size
-                      : allWines.filter((w) => {
-                          if (!w.tasted_date) return false;
-                          const thirtyDaysAgo = new Date();
-                          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                          return w.tasted_date > thirtyDaysAgo;
-                        }).length}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Selected Wine Details */}
-            {selectedWine && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Wine className="h-5 w-5" />
-                    Wine Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <h3 className="font-semibold">{selectedWine.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedWine.producer}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                      {mapView === "origins"
-                        ? `${selectedWine.region}, ${selectedWine.country}`
-                        : selectedWine.tasted_location ||
-                          "Location not recorded"}
-                    </span>
-                  </div>
-
-                  {selectedWine.producer_address && (
-                    <div className="text-sm space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Producer Address:
-                      </p>
-                      <p>{selectedWine.producer_address}</p>
-                      {selectedWine.producer_city && (
-                        <p>{selectedWine.producer_city}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {selectedWine.producer_website && (
-                    <div className="text-sm">
-                      <a
-                        href={
-                          selectedWine.producer_website.startsWith("http")
-                            ? selectedWine.producer_website
-                            : `https://${selectedWine.producer_website}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                      >
-                        <Globe className="h-3 w-3" />
-                        Visit Website
-                      </a>
-                    </div>
-                  )}
-
-                  {selectedWine.year && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedWine.year} Vintage</span>
-                    </div>
-                  )}
-
-                  {selectedWine.varietals.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Grape className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedWine.varietals.join(", ")}</span>
-                    </div>
-                  )}
-
-                  {selectedWine.vineyard_name && (
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">Vineyard</p>
-                      <p className="text-sm font-medium">
-                        {selectedWine.vineyard_name}
-                      </p>
-                    </div>
-                  )}
-
-                  {mapView === "tastings" && selectedWine.tasted_date && (
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">Tasted On</p>
-                      <p className="text-sm font-medium">
-                        {selectedWine.tasted_date.toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">View:</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setMapView(mapView === "origins" ? "tastings" : "origins")
+            }
+            className="gap-2"
+          >
+            {mapView === "origins" ? (
+              <>
+                <MapPin className="h-4 w-4" />
+                Wine Origins
+              </>
+            ) : (
+              <>
+                <Wine className="h-4 w-4" />
+                Tasting Locations
+              </>
             )}
-
-            {/* Region/Location Highlights */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  {mapView === "origins" ? "Top Regions" : "Favorite Spots"}
-                </CardTitle>
-                <CardDescription>
-                  {mapView === "origins"
-                    ? "Most visited wine regions in your collection"
-                    : "Where you taste wines most often"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {allWines.length > 0 ? (
-                  <div className="space-y-2">
-                    {mapView === "origins"
-                      ? Object.entries(
-                          allWines.reduce(
-                            (acc: Record<string, number>, wine) => {
-                              const key = `${wine.region}, ${wine.country}`;
-                              acc[key] = (acc[key] || 0) + 1;
-                              return acc;
-                            },
-                            {},
-                          ),
-                        )
-                          .sort(([, a], [, b]) => b - a)
-                          .slice(0, 5)
-                          .map(([region, count]) => (
-                            <div
-                              key={region}
-                              className="flex items-center justify-between"
-                            >
-                              <span className="text-sm truncate">{region}</span>
-                              <Badge variant="outline" className="ml-2">
-                                {count}
-                              </Badge>
-                            </div>
-                          ))
-                      : Object.entries(
-                          allWines
-                            .filter((w) => w.tasted_location)
-                            .reduce((acc: Record<string, number>, wine) => {
-                              const key = wine.tasted_location!;
-                              acc[key] = (acc[key] || 0) + 1;
-                              return acc;
-                            }, {}),
-                        )
-                          .sort(([, a], [, b]) => b - a)
-                          .slice(0, 5)
-                          .map(([location, count]) => (
-                            <div
-                              key={location}
-                              className="flex items-center justify-between"
-                            >
-                              <span className="text-sm truncate">
-                                {location}
-                              </span>
-                              <Badge variant="outline" className="ml-2">
-                                {count}
-                              </Badge>
-                            </div>
-                          ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No {mapView === "origins" ? "regions" : "locations"} to
-                    display yet
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Top Varietals */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Grape className="h-5 w-5" />
-                  Top Varietals
-                </CardTitle>
-                <CardDescription>
-                  Most common grape varieties in your collection
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {allWines.length > 0 ? (
-                  <div className="space-y-2">
-                    {Object.entries(
-                      allWines.reduce((acc: Record<string, number>, wine) => {
-                        wine.varietals.forEach((varietal) => {
-                          acc[varietal] = (acc[varietal] || 0) + 1;
-                        });
-                        return acc;
-                      }, {}),
-                    )
-                      .sort(([, a], [, b]) => b - a)
-                      .slice(0, 5)
-                      .map(([varietal, count]) => (
-                        <div
-                          key={varietal}
-                          className="flex items-center justify-between"
-                        >
-                          <span className="text-sm truncate">{varietal}</span>
-                          <Badge variant="outline" className="ml-2">
-                            {count}
-                          </Badge>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Start scanning wines to see live data
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Wine Styles */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Wine className="h-5 w-5" />
-                  Wine Styles
-                </CardTitle>
-                <CardDescription>Distribution by wine type</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {allWines.length > 0 ? (
-                  <div className="space-y-2">
-                    {Object.entries(
-                      allWines.reduce((acc: Record<string, number>, wine) => {
-                        // Mock wine style - in production this would come from the database
-                        const style = wine.varietals.some((v) =>
-                          [
-                            "Chardonnay",
-                            "Sauvignon Blanc",
-                            "Riesling",
-                            "Pinot Grigio",
-                          ].includes(v),
-                        )
-                          ? "White"
-                          : wine.varietals.some((v) =>
-                                [
-                                  "Cabernet Sauvignon",
-                                  "Merlot",
-                                  "Pinot Noir",
-                                  "Syrah",
-                                ].includes(v),
-                              )
-                            ? "Red"
-                            : wine.varietals.some((v) =>
-                                  ["Rosé", "Provence"].includes(v),
-                                )
-                              ? "Rosé"
-                              : wine.name.toLowerCase().includes("champagne") ||
-                                  wine.name.toLowerCase().includes("prosecco")
-                                ? "Sparkling"
-                                : wine.name.toLowerCase().includes("port")
-                                  ? "Fortified"
-                                  : "Other";
-
-                        acc[style] = (acc[style] || 0) + 1;
-                        return acc;
-                      }, {}),
-                    )
-                      .sort(([, a], [, b]) => b - a)
-                      .map(([style, count]) => (
-                        <div
-                          key={style}
-                          className="flex items-center justify-between"
-                        >
-                          <span className="text-sm">{style}</span>
-                          <Badge
-                            variant="outline"
-                            className="ml-2"
-                            style={{
-                              borderColor:
-                                style === "Red"
-                                  ? "#8b0000"
-                                  : style === "White"
-                                    ? "#f4e4b1"
-                                    : style === "Rosé"
-                                      ? "#ffb6c1"
-                                      : style === "Sparkling"
-                                        ? "#ffd700"
-                                        : style === "Fortified"
-                                          ? "#4b0082"
-                                          : "#666",
-                              color:
-                                style === "Red"
-                                  ? "#8b0000"
-                                  : style === "White"
-                                    ? "#8b7500"
-                                    : style === "Rosé"
-                                      ? "#ff69b4"
-                                      : style === "Sparkling"
-                                        ? "#daa520"
-                                        : style === "Fortified"
-                                          ? "#4b0082"
-                                          : "#666",
-                            }}
-                          >
-                            {count}
-                          </Badge>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Start scanning wines to see live data
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Most Recent Additions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Recent Additions
-                </CardTitle>
-                <CardDescription>
-                  Latest wines added to your collection
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {allWines.length > 0 ? (
-                  <div className="space-y-3">
-                    {allWines
-                      .sort((a, b) => {
-                        // Sort by tasted date if available
-                        if (a.tasted_date && b.tasted_date) {
-                          return (
-                            b.tasted_date.getTime() - a.tasted_date.getTime()
-                          );
-                        }
-                        return 0;
-                      })
-                      .slice(0, 3)
-                      .map((wine) => (
-                        <div key={wine.id} className="flex flex-col space-y-1">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium truncate">
-                                {wine.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {wine.producer}
-                              </p>
-                            </div>
-                            {wine.year && (
-                              <Badge
-                                variant="secondary"
-                                className="ml-2 text-xs"
-                              >
-                                {wine.year}
-                              </Badge>
-                            )}
-                          </div>
-                          {wine.tasted_date && (
-                            <p className="text-xs text-muted-foreground">
-                              Added {wine.tasted_date.toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Start scanning wines to see live data
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            {mapView === "origins" ? (
+              <ToggleLeft className="h-4 w-4" />
+            ) : (
+              <ToggleRight className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </div>
+
+      {/* Stats Cards - Four across */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={index}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {stat.description}
+                    </p>
+                  </div>
+                  <Icon className={`h-8 w-8 ${stat.color} opacity-80`} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Map */}
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <Skeleton className="h-[600px] w-full" />
+          ) : hasWines ? (
+            <div className="h-[600px]">
+              <WineMap
+                wines={wines}
+                onWineSelect={setSelectedWine}
+                selectedWine={selectedWine}
+                onBoundsChange={handleBoundsChange}
+              />
+            </div>
+          ) : (
+            <div className="h-[600px] flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <Globe className="h-16 w-16 text-muted-foreground mx-auto" />
+                <div>
+                  <h3 className="text-xl font-semibold">No wines mapped yet</h3>
+                  <p className="text-muted-foreground mt-2">
+                    Start scanning wines to see their{" "}
+                    {mapView === "origins" ? "origins" : "tasting locations"} on
+                    the map
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Additions Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Additions</CardTitle>
+          <CardDescription>
+            Your latest wine discoveries and tastings
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Wine</TableHead>
+                <TableHead>Producer</TableHead>
+                <TableHead>Region</TableHead>
+                <TableHead>Vintage</TableHead>
+                <TableHead className="text-center">ABV</TableHead>
+                <TableHead className="text-center">Rating</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentWines.map((wine) => (
+                <TableRow
+                  key={wine.id}
+                  onClick={() => handleEditTasting(wine)}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                >
+                  <TableCell className="font-medium">
+                    {wine.wine_name}
+                  </TableCell>
+                  <TableCell>{wine.producer_name}</TableCell>
+                  <TableCell>
+                    {wine.region && wine.country ? (
+                      <span className="text-sm">
+                        {wine.region}, {wine.country}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {wine.vintage_year || (
+                      <span className="text-muted-foreground">NV</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {wine.abv ? (
+                      <Badge variant="outline">{wine.abv}%</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {wine.rating ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                        <span className="text-sm font-medium">
+                          {wine.rating}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {wine.location_name || (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(wine.tasted_at).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Edit Tasting Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Edit Tasting Notes - {selectedTasting?.producer_name}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTasting && (
+            <TastingNoteForm
+              tastingId={selectedTasting.id}
+              vintageId={selectedTasting.vintage_id}
+              initialRating={selectedTasting.rating || 0}
+              initialNotes={selectedTasting.notes || ""}
+              initialDetailedNotes={selectedTasting.detailed_notes || ""}
+              initialTastedAt={selectedTasting.tasted_at}
+              initialLocationName={selectedTasting.location_name || ""}
+              initialLocationAddress={selectedTasting.location_address || ""}
+              initialLocationCity={selectedTasting.location_city || ""}
+              initialLocationLat={selectedTasting.location_latitude}
+              initialLocationLng={selectedTasting.location_longitude}
+              onSave={handleSaveTasting}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
-
-// Mock function to get coordinates for regions
-// In production, this would come from the database
-function getMockCoordinates(
-  country: string,
-  region: string,
-): { lat: number; lng: number } {
-  const coordinates: Record<string, { lat: number; lng: number }> = {
-    "Bordeaux, France": { lat: 44.8378, lng: -0.5792 },
-    "Burgundy, France": { lat: 47.0525, lng: 4.3837 },
-    "Napa Valley, USA": { lat: 38.3047, lng: -122.2989 },
-    "Tuscany, Italy": { lat: 43.0709, lng: 11.2248 },
-    "Etna, Italy": { lat: 37.751, lng: 14.9934 }, // Mount Etna, Sicily
-    "Sicily, Italy": { lat: 37.6, lng: 14.0154 }, // Sicily center
-    "Rioja, Spain": { lat: 42.2871, lng: -2.5396 },
-    "Mendoza, Argentina": { lat: -32.8895, lng: -68.8458 },
-    "Barossa Valley, Australia": { lat: -34.5312, lng: 138.9883 },
-    "Marlborough, New Zealand": { lat: -41.5138, lng: 173.9545 },
-    "Douro Valley, Portugal": { lat: 41.1596, lng: -7.6219 },
-    "Stellenbosch, South Africa": { lat: -33.9321, lng: 18.8602 },
-  };
-
-  // Try to find exact match
-  const key = `${region}, ${country}`;
-  if (coordinates[key]) {
-    return coordinates[key];
-  }
-
-  // Fallback to country center
-  const countryCoords: Record<string, { lat: number; lng: number }> = {
-    France: { lat: 46.6034, lng: 1.8883 },
-    Italy: { lat: 42.5045, lng: 12.6463 },
-    Spain: { lat: 40.4637, lng: -3.7492 },
-    USA: { lat: 37.0902, lng: -95.7129 },
-    Argentina: { lat: -38.4161, lng: -63.6167 },
-    Australia: { lat: -25.2744, lng: 133.7751 },
-    "New Zealand": { lat: -40.9006, lng: 174.886 },
-    Portugal: { lat: 39.3999, lng: -8.2245 },
-    "South Africa": { lat: -30.5595, lng: 22.9375 },
-  };
-
-  return countryCoords[country] || { lat: 0, lng: 0 };
-}
-
-// Mock function to get tasting location coordinates
-// In production, this would use actual GPS coordinates
-function getMockTastingLocation(
-  location: string,
-): { lat: number; lng: number } | null {
-  const tastingLocations: Record<string, { lat: number; lng: number }> = {
-    "San Francisco": { lat: 37.7749, lng: -122.4194 },
-    "New York": { lat: 40.7128, lng: -74.006 },
-    London: { lat: 51.5074, lng: -0.1278 },
-    Paris: { lat: 48.8566, lng: 2.3522 },
-    Tokyo: { lat: 35.6762, lng: 139.6503 },
-    Sydney: { lat: -33.8688, lng: 151.2093 },
-    "Los Angeles": { lat: 34.0522, lng: -118.2437 },
-    Chicago: { lat: 41.8781, lng: -87.6298 },
-    Miami: { lat: 25.7617, lng: -80.1918 },
-    Seattle: { lat: 47.6062, lng: -122.3321 },
-  };
-
-  return tastingLocations[location] || null;
 }

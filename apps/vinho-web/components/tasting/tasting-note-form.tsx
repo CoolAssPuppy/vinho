@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Star, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -23,6 +24,7 @@ interface TastingNoteFormProps {
   initialRating?: number;
   initialNotes?: string;
   initialDetailedNotes?: string;
+  initialTastedAt?: string;
   initialLocationName?: string;
   initialLocationAddress?: string;
   initialLocationCity?: string;
@@ -39,6 +41,7 @@ export function TastingNoteForm({
   initialRating = 0,
   initialNotes = "",
   initialDetailedNotes = "",
+  initialTastedAt,
   initialLocationName = "",
   initialLocationAddress = "",
   initialLocationCity = "",
@@ -63,6 +66,9 @@ export function TastingNoteForm({
   );
   const [locationLng, setLocationLng] = useState<number | null>(
     initialLocationLng || null,
+  );
+  const [tastedAt, setTastedAt] = useState(
+    initialTastedAt || new Date().toISOString().split("T")[0],
   );
 
   const supabase = createBrowserClient<Database>(
@@ -110,7 +116,7 @@ export function TastingNoteForm({
       verdict: rating || null,
       notes: notes || null,
       detailed_notes: detailedNotes || null,
-      tasted_at: new Date().toISOString().split("T")[0],
+      tasted_at: tastedAt,
       location_name: locationName || null,
       location_address: locationAddress || null,
       location_city: locationCity || null,
@@ -118,27 +124,35 @@ export function TastingNoteForm({
       location_longitude: locationLng,
     };
 
+    let error = null;
+
     if (tastingId) {
       // Update existing tasting
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from("tastings")
         .update(tastingData)
         .eq("id", tastingId);
 
-      if (error) {
-        console.error("Error updating tasting:", error);
-      }
+      error = updateError;
     } else {
       // Create new tasting
-      const { error } = await supabase.from("tastings").insert(tastingData);
+      const { error: insertError } = await supabase
+        .from("tastings")
+        .insert(tastingData);
 
-      if (error) {
-        console.error("Error creating tasting:", error);
-      }
+      error = insertError;
     }
 
     setIsSaving(false);
-    if (onSave) onSave();
+
+    if (error) {
+      console.error("Error saving tasting:", error);
+      // You might want to show an error message to the user here
+      alert("Failed to save tasting. Please try again.");
+    } else {
+      // Only call onSave if there was no error
+      if (onSave) onSave();
+    }
   };
 
   if (isLoading) {
@@ -185,6 +199,15 @@ export function TastingNoteForm({
           <div className="space-y-2">
             <Label>Your Rating</Label>
             <StarRating />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tasted-at">Tasting Date</Label>
+            <Input
+              id="tasted-at"
+              type="date"
+              value={tastedAt}
+              onChange={(e) => setTastedAt(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -233,6 +256,15 @@ export function TastingNoteForm({
           <div className="space-y-2">
             <Label>Rating</Label>
             <StarRating />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tasted-at-sommelier">Tasting Date</Label>
+            <Input
+              id="tasted-at-sommelier"
+              type="date"
+              value={tastedAt}
+              onChange={(e) => setTastedAt(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -301,6 +333,15 @@ export function TastingNoteForm({
               <div className="space-y-2">
                 <Label>Overall Rating</Label>
                 <StarRating />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tasted-at-winemaker">Tasting Date</Label>
+                <Input
+                  id="tasted-at-winemaker"
+                  type="date"
+                  value={tastedAt}
+                  onChange={(e) => setTastedAt(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">

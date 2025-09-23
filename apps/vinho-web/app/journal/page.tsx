@@ -406,7 +406,7 @@ export default function JournalPage() {
     }
 
     const from = loadMore ? page * PAGE_SIZE : 0;
-    const to = from + PAGE_SIZE - 1;
+    const to = from + PAGE_SIZE; // Fetch one extra to check if there are more
 
     const { data, error } = await supabase
       .from("tastings")
@@ -437,6 +437,7 @@ export default function JournalPage() {
       )
       .eq("user_id", user.id)
       .order("tasted_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .range(from, to);
 
     if (error) {
@@ -769,6 +770,7 @@ export default function JournalPage() {
                 initialRating={selectedTasting.verdict || 0}
                 initialNotes={selectedTasting.notes || ""}
                 initialDetailedNotes={selectedTasting.detailed_notes || ""}
+                initialTastedAt={selectedTasting.tasted_at}
                 initialLocationName={selectedTasting.location_name || ""}
                 initialLocationAddress={selectedTasting.location_address || ""}
                 initialLocationCity={selectedTasting.location_city || ""}

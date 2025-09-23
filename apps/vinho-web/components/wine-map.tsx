@@ -1,20 +1,14 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import L from "leaflet";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Wine, MapPin, Calendar, Grape } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 // Fix Leaflet default marker icons in Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })
+  ._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: "/leaflet/marker-icon.png",
   iconRetinaUrl: "/leaflet/marker-icon-2x.png",
@@ -82,44 +76,56 @@ function MapViewController({
 
   // Fit bounds on initial load if wines exist
   useEffect(() => {
+    if (!map) return;
+
     if (initialFit && wines.length > 0) {
       const validWines = wines.filter((w) => w.latitude && w.longitude);
       if (validWines.length > 0) {
-        const bounds = L.latLngBounds(
-          validWines.map(
-            (w) => [w.latitude!, w.longitude!] as [number, number],
-          ),
-        );
-        map.fitBounds(bounds, { padding: [50, 50] });
+        try {
+          const bounds = L.latLngBounds(
+            validWines.map(
+              (w) => [w.latitude!, w.longitude!] as [number, number],
+            ),
+          );
+          map.fitBounds(bounds, { padding: [50, 50] });
+        } catch (error) {
+          console.error("Error fitting bounds:", error);
+        }
       }
     }
-  }, [initialFit, map]); // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFit]); // Intentionally omit map and wines to avoid re-runs
 
-  // Handle map events
-  useMapEvents({
-    moveend: () => {
-      if (onBoundsChange) {
+  // Handle map events with proper cleanup
+  useEffect(() => {
+    if (!map || !onBoundsChange) return;
+
+    const updateBounds = () => {
+      try {
         const bounds = map.getBounds();
-        onBoundsChange({
-          north: bounds.getNorth(),
-          south: bounds.getSouth(),
-          east: bounds.getEast(),
-          west: bounds.getWest(),
-        });
+        if (bounds) {
+          onBoundsChange({
+            north: bounds.getNorth(),
+            south: bounds.getSouth(),
+            east: bounds.getEast(),
+            west: bounds.getWest(),
+          });
+        }
+      } catch (error) {
+        console.error("Error updating bounds:", error);
       }
-    },
-    zoomend: () => {
-      if (onBoundsChange) {
-        const bounds = map.getBounds();
-        onBoundsChange({
-          north: bounds.getNorth(),
-          south: bounds.getSouth(),
-          east: bounds.getEast(),
-          west: bounds.getWest(),
-        });
-      }
-    },
-  });
+    };
+
+    // Add event listeners
+    map.on("moveend", updateBounds);
+    map.on("zoomend", updateBounds);
+
+    // Cleanup function
+    return () => {
+      map.off("moveend", updateBounds);
+      map.off("zoomend", updateBounds);
+    };
+  }, [map, onBoundsChange]);
 
   return null;
 }
@@ -137,7 +143,7 @@ export default function WineMap({
   const defaultZoom = 2;
 
   return (
-    <div className="h-[800px] w-full rounded-lg overflow-hidden">
+    <div className="h-full w-full rounded-lg overflow-hidden">
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}

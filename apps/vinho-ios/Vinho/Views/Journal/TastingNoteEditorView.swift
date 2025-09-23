@@ -13,6 +13,7 @@ struct TastingNoteEditorView: View {
     @State private var rating: Int
     @State private var notes: String
     @State private var detailedNotes: String
+    @State private var tastedAt: Date
     @State private var showingSaveConfirmation = false
     @State private var tastingStyle: TastingStyle = .casual
     @State private var locationText: String = ""
@@ -38,6 +39,7 @@ struct TastingNoteEditorView: View {
         self._rating = State(initialValue: existingTasting?.verdict ?? 0)
         self._notes = State(initialValue: existingTasting?.notes ?? "")
         self._detailedNotes = State(initialValue: existingTasting?.detailedNotes ?? "")
+        self._tastedAt = State(initialValue: existingTasting?.tastedAt ?? Date())
     }
 
     var body: some View {
@@ -55,6 +57,9 @@ struct TastingNoteEditorView: View {
                         case .winemaker:
                             winemakerAnalysisView
                         }
+
+                        // Date picker for all styles
+                        datePickerView
 
                         // Location field for all styles
                         locationFieldView
@@ -400,6 +405,28 @@ struct TastingNoteEditorView: View {
         }
     }
 
+    // MARK: - Date Picker
+    var datePickerView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "calendar")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.vinoAccent)
+                Text("Tasting Date")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.vinoText)
+                Spacer()
+            }
+
+            DatePicker("", selection: $tastedAt, displayedComponents: .date)
+                .datePickerStyle(.compact)
+                .accentColor(.vinoAccent)
+        }
+        .padding()
+        .background(Color.vinoCardBg)
+        .cornerRadius(12)
+    }
+
     // MARK: - Location Field
     var locationFieldView: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -527,7 +554,7 @@ class TastingNoteEditorViewModel: ObservableObject {
             verdict: rating,
             notes: notes,
             detailedNotes: detailedNotes,
-            tastedAt: Date()
+            tastedAt: tastedAt
         )
 
         return success

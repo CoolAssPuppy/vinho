@@ -63,12 +63,24 @@ struct Producer: Identifiable, Codable, Hashable {
     let name: String
     let website: String?
     let regionId: UUID?
+    let address: String?
+    let city: String?
+    let postalCode: String?
+    let latitude: Double?
+    let longitude: Double?
     let createdAt: Date
+    var region: Region?
 
     enum CodingKeys: String, CodingKey {
         case id, name, website
         case regionId = "region_id"
+        case address
+        case city
+        case postalCode = "postal_code"
+        case latitude
+        case longitude
         case createdAt = "created_at"
+        case region = "regions"
     }
 }
 
@@ -109,6 +121,11 @@ struct Tasting: Identifiable, Hashable {
     let createdAt: Date
     let updatedAt: Date
     let imageUrl: String?  // URL of the wine bottle image
+    let locationName: String?
+    let locationAddress: String?
+    let locationCity: String?
+    let locationLatitude: Double?
+    let locationLongitude: Double?
     var vintage: Vintage?
 
     enum CodingKeys: String, CodingKey {
@@ -122,6 +139,11 @@ struct Tasting: Identifiable, Hashable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case imageUrl = "image_url"
+        case locationName = "location_name"
+        case locationAddress = "location_address"
+        case locationCity = "location_city"
+        case locationLatitude = "location_latitude"
+        case locationLongitude = "location_longitude"
         case vintage = "vintages"
     }
 }
@@ -138,6 +160,11 @@ extension Tasting: Codable {
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         detailedNotes = try container.decodeIfPresent(String.self, forKey: .detailedNotes)
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        locationName = try container.decodeIfPresent(String.self, forKey: .locationName)
+        locationAddress = try container.decodeIfPresent(String.self, forKey: .locationAddress)
+        locationCity = try container.decodeIfPresent(String.self, forKey: .locationCity)
+        locationLatitude = try container.decodeIfPresent(Double.self, forKey: .locationLatitude)
+        locationLongitude = try container.decodeIfPresent(Double.self, forKey: .locationLongitude)
         vintage = try container.decodeIfPresent(Vintage.self, forKey: .vintage)
 
         // Handle date-only format for tastedAt
@@ -174,6 +201,11 @@ extension Tasting: Codable {
         try container.encodeIfPresent(notes, forKey: .notes)
         try container.encodeIfPresent(detailedNotes, forKey: .detailedNotes)
         try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
+        try container.encodeIfPresent(locationName, forKey: .locationName)
+        try container.encodeIfPresent(locationAddress, forKey: .locationAddress)
+        try container.encodeIfPresent(locationCity, forKey: .locationCity)
+        try container.encodeIfPresent(locationLatitude, forKey: .locationLatitude)
+        try container.encodeIfPresent(locationLongitude, forKey: .locationLongitude)
         try container.encodeIfPresent(vintage, forKey: .vintage)
         try container.encode(tastedAt, forKey: .tastedAt)
         try container.encode(createdAt, forKey: .createdAt)
@@ -328,4 +360,12 @@ struct ProcessedWineData: Codable, Hashable {
         case country
         case confidence
     }
+}
+
+// MARK: - ProfileStats Model
+struct ProfileStats: Codable {
+    let uniqueWines: Int
+    let totalTastings: Int
+    let favorites: Int
+    let uniqueRegions: Int
 }
