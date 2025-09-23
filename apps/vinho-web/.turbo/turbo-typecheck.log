@@ -3,3 +3,12 @@
 > vinho-web@0.1.0 typecheck /Users/prashant/Developer/vinho/apps/vinho-web
 > tsc --noEmit
 
+[96mlib/stats-service.ts[0m:[93m1[0m:[93m30[0m - [91merror[0m[90m TS2307: [0mCannot find module '@/utils/supabase/client' or its corresponding type declarations.
+
+[7m1[0m import { createClient } from "@/utils/supabase/client";
+[7m [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+Found 1 error in lib/stats-service.ts[90m:1[0m
+
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 2.[39m
