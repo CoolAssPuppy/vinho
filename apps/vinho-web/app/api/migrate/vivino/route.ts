@@ -15,6 +15,7 @@ import {
   downloadVivinoImage,
   ensureWineImagesBucket,
 } from "@/app/lib/image-storage";
+import { getMigrationStartedEmail } from "@/lib/emails/templates";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes for large imports
@@ -414,6 +415,49 @@ export async function POST(request: NextRequest) {
         console.error(`Error processing producer ${producerName}:`, error);
         stats.errors.push(`Producer processing error: ${error}`);
         stats.failed += wines.length;
+      }
+    }
+
+    // Send migration started email if we have imported wines
+    if (stats.imported > 0) {
+      try {
+        // Get user's email
+        const { data: userData } = await supabase.auth.getUser();
+
+        if (userData?.user?.email) {
+          const emailHtml = getMigrationStartedEmail({
+            wineCount: stats.imported + stats.failed,
+            journalUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://vinho.app"}/journal`,
+          });
+
+          // Send email via Resend API directly
+          const resendResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            },
+            body: JSON.stringify({
+              from:
+                process.env.RESEND_FROM_EMAIL || "Vinho <noreply@vinho.app>",
+              to: userData.user.email,
+              subject: "🍷 Your Vivino Import Has Started!",
+              html: emailHtml,
+            }),
+          });
+
+          if (!resendResponse.ok) {
+            console.error(
+              "Failed to send migration started email:",
+              await resendResponse.text(),
+            );
+          } else {
+            console.log("Migration started email sent successfully");
+          }
+        }
+      } catch (error) {
+        console.error("Error sending migration started email:", error);
+        // Don't fail the migration if email fails
       }
     }
 
