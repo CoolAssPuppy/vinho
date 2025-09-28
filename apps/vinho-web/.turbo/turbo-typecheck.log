@@ -3,3 +3,86 @@
 > vinho-web@0.1.0 typecheck /Users/prashant/Developer/vinho/apps/vinho-web
 > tsc --noEmit
 
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m51[0m:[93m11[0m - [91merror[0m[90m TS2345: [0mArgument of type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is not assignable to parameter of type 'readonly string[]'.
+  Type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is missing the following properties from type 'readonly string[]': length, concat, join, slice, and 25 more.
+
+[7m 51[0m           supabase
+[7m   [0m [91m          ~~~~~~~~[0m
+[7m 52[0m             .from("producers")
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m...[0m 
+[7m 71[0m                 ),
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~[0m
+[7m 72[0m             ),
+[7m   [0m [91m~~~~~~~~~~~~~[0m
+
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m56[0m:[93m15[0m - [91merror[0m[90m TS2345: [0mArgument of type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is not assignable to parameter of type 'readonly string[]'.
+  Type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is missing the following properties from type 'readonly string[]': length, concat, join, slice, and 25 more.
+
+[7m 56[0m               supabase
+[7m   [0m [91m              ~~~~~~~~[0m
+[7m 57[0m                 .from("wines")
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m...[0m 
+[7m 70[0m                     ),
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m 71[0m                 ),
+[7m   [0m [91m~~~~~~~~~~~~~~~~~[0m
+
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m61[0m:[93m19[0m - [91merror[0m[90m TS2345: [0mArgument of type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is not assignable to parameter of type 'readonly string[]'.
+  Type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is missing the following properties from type 'readonly string[]': length, concat, join, slice, and 25 more.
+
+[7m 61[0m                   supabase
+[7m   [0m [91m                  ~~~~~~~~[0m
+[7m 62[0m                     .from("vintages")
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m...[0m 
+[7m 69[0m                         .eq("user_id", user.id),
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m 70[0m                     ),
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m66[0m:[93m23[0m - [91merror[0m[90m TS2345: [0mArgument of type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is not assignable to parameter of type 'readonly string[]'.
+  Type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is missing the following properties from type 'readonly string[]': length, concat, join, slice, and 25 more.
+
+[7m66[0m                       supabase
+[7m  [0m [91m                      ~~~~~~~~[0m
+[7m67[0m                         .from("tastings")
+[7m  [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m68[0m                         .select("vintage_id")
+[7m  [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m69[0m                         .eq("user_id", user.id),
+[7m  [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m79[0m:[93m19[0m - [91merror[0m[90m TS2345: [0mArgument of type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is not assignable to parameter of type 'readonly string[]'.
+  Type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is missing the following properties from type 'readonly string[]': length, concat, join, slice, and 25 more.
+
+[7m79[0m         .in("id", supabase.from("producers").select("region_id")),
+[7m  [0m [91m                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m88[0m:[93m11[0m - [91merror[0m[90m TS2345: [0mArgument of type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is not assignable to parameter of type 'readonly string[]'.
+  Type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { photos: { Row: { created_at: string | null; id: string; path: string; tasting_id: string | null; thumbnail_path: string | null; user_id: string | null; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... 9 more ...; wines_added: { .....' is missing the following properties from type 'readonly string[]': length, concat, join, slice, and 25 more.
+
+[7m88[0m           supabase.from("tastings").select("vintage_id").eq("user_id", user.id),
+[7m  [0m [91m          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m94[0m:[93m21[0m - [91merror[0m[90m TS2769: [0mNo overload matches this call.
+  Overload 1 of 2, '(relation: "photos" | "tastings" | "producers" | "regions" | "profiles" | "scans" | "vintages" | "spatial_ref_sys" | "wines" | "wine_recommendations_cache" | "wines_added"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"grape_varietals"' is not assignable to parameter of type '"photos" | "tastings" | "producers" | "regions" | "profiles" | "scans" | "vintages" | "spatial_ref_sys" | "wines" | "wine_recommendations_cache" | "wines_added"'.
+  Overload 2 of 2, '(relation: "geography_columns" | "geometry_columns" | "user_profile_stats" | "user_profile_stats_materialized" | "user_wine_stats" | "user_wine_stats_materialized"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type '"grape_varietals"' is not assignable to parameter of type '"geography_columns" | "geometry_columns" | "user_profile_stats" | "user_profile_stats_materialized" | "user_wine_stats" | "user_wine_stats_materialized"'.
+
+[7m94[0m       supabase.from("grape_varietals").select("name").limit(1).single(),
+[7m  [0m [91m                    ~~~~~~~~~~~~~~~~~[0m
+
+
+[96mapp/api/wine-migration-complete/route.ts[0m:[93m116[0m:[93m33[0m - [91merror[0m[90m TS2339: [0mProperty 'name' does not exist on type 'SelectQueryError<"column 'name' does not exist on 'photos'."> | SelectQueryError<"column 'name' does not exist on 'tastings'."> | ... 8 more ... | SelectQueryError<...>'.
+  Property 'name' does not exist on type 'SelectQueryError<"column 'name' does not exist on 'photos'.">'.
+
+[7m116[0m       topVarietal: topVarietal?.name || "Various",
+[7m   [0m [91m                                ~~~~[0m
+
+
+Found 8 errors in the same file, starting at: app/api/wine-migration-complete/route.ts[90m:51[0m
+
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 2.[39m

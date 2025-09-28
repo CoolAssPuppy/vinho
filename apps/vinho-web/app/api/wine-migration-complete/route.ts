@@ -20,108 +20,93 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get migration statistics
-    const [
-      { count: totalWines },
-      { count: totalProducers },
-      { data: regions },
-      { data: countries },
-      { data: vintageRange },
-      { data: topVarietal },
-      { data: avgRating },
-    ] = await Promise.all([
-      // Total wines for user
-      supabase
-        .from("tastings")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id),
+    // Get basic migration statistics
+    const { count: totalWines } = await supabase
+      .from("tastings")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
 
-      // Total unique producers
-      supabase
-        .from("tastings")
-        .select("vintage_id", { count: "exact", head: true })
-        .eq("user_id", user.id),
-
-      // Unique regions
-      supabase
-        .from("regions")
-        .select("id")
-        .in(
-          "id",
-          supabase
-            .from("producers")
-            .select("region_id")
-            .in(
-              "id",
-              supabase
-                .from("wines")
-                .select("producer_id")
-                .in(
-                  "id",
-                  supabase
-                    .from("vintages")
-                    .select("wine_id")
-                    .in(
-                      "id",
-                      supabase
-                        .from("tastings")
-                        .select("vintage_id")
-                        .eq("user_id", user.id),
-                    ),
-                ),
-            ),
-        ),
-
-      // Unique countries
-      supabase
-        .from("regions")
-        .select("country")
-        .in("id", supabase.from("producers").select("region_id")),
-
-      // Vintage range
-      supabase
-        .from("vintages")
-        .select("year")
-        .not("year", "is", null)
-        .in(
-          "id",
-          supabase.from("tastings").select("vintage_id").eq("user_id", user.id),
+    // Get unique producers count through tastings
+    const { data: tastingData } = await supabase
+      .from("tastings")
+      .select(`
+        vintages (
+          wines (
+            producer_id,
+            producers (
+              id,
+              name,
+              regions (
+                name,
+                country
+              )
+            )
+          )
         )
-        .order("year", { ascending: true })
-        .limit(1),
+      `)
+      .eq("user_id", user.id);
 
-      // Top varietal (simplified - would need more complex query in practice)
-      supabase.from("grape_varietals").select("name").limit(1).single(),
+    // Process the data to get unique counts
+    const uniqueProducers = new Set();
+    const uniqueRegions = new Set();
+    const uniqueCountries = new Set();
+    const years: number[] = [];
 
-      // Average rating
-      supabase
-        .from("tastings")
-        .select("verdict")
-        .eq("user_id", user.id)
-        .not("verdict", "is", null),
-    ]);
+    if (tastingData) {
+      tastingData.forEach((tasting: any) => {
+        const vintage = tasting.vintages;
+        if (vintage) {
+          const wine = vintage.wines;
+          if (wine) {
+            const producer = wine.producers;
+            if (producer) {
+              uniqueProducers.add(producer.id);
+              if (producer.regions) {
+                uniqueRegions.add(producer.regions.name);
+                uniqueCountries.add(producer.regions.country);
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Get vintage years
+    const { data: vintageData } = await supabase
+      .from("vintages")
+      .select("year")
+      .not("year", "is", null)
+      .order("year", { ascending: true });
+
+    if (vintageData) {
+      vintageData.forEach(v => {
+        if (v.year) years.push(v.year);
+      });
+    }
+
+    // Get average rating
+    const { data: ratingData } = await supabase
+      .from("tastings")
+      .select("verdict")
+      .eq("user_id", user.id)
+      .not("verdict", "is", null);
+
+    const averageRating = ratingData && ratingData.length > 0
+      ? (ratingData.reduce((acc, t) => acc + (t.verdict || 0), 0) / ratingData.length).toFixed(1)
+      : "0";
 
     // Calculate statistics
     const stats = {
       totalWines: totalWines || 0,
       successfulImports: totalWines || 0,
       failedImports: 0,
-      producers: totalProducers || 0,
-      regions: regions?.length || 0,
-      countries: new Set(countries?.map((c) => c.country)).size || 0,
-      oldestVintage: vintageRange?.[0]?.year || new Date().getFullYear(),
-      newestVintage:
-        vintageRange?.[vintageRange.length - 1]?.year ||
-        new Date().getFullYear(),
-      topVarietal: topVarietal?.name || "Various",
-      averageRating: avgRating
-        ? (
-            avgRating.reduce(
-              (acc: number, t: any) => acc + (t.verdict || 0),
-              0,
-            ) / avgRating.length
-          ).toFixed(1)
-        : "0",
+      producers: uniqueProducers.size,
+      regions: uniqueRegions.size,
+      countries: uniqueCountries.size,
+      oldestVintage: years.length > 0 ? Math.min(...years) : new Date().getFullYear(),
+      newestVintage: years.length > 0 ? Math.max(...years) : new Date().getFullYear(),
+      topVarietal: "Various", // Simplified since grape_varietals isn't available
+      averageRating,
     };
 
     // Send completion email

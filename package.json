@@ -7,7 +7,6 @@
     "build": "if command -v doppler >/dev/null 2>&1; then doppler run -- next build; else next build; fi",
     "start": "if command -v doppler >/dev/null 2>&1; then doppler run -- next start; else next start; fi",
     "lint": "if command -v doppler >/dev/null 2>&1; then doppler run -- next lint --fix; else next lint --fix; fi",
-    "prepare": "husky",
     "doctor": "node scripts/doctor.mjs",
     "supa:push": "supabase db push",
     "supa:types": "supabase gen types typescript --project-id aghiopwrzzvamssgcwpv > packages/db-types/src/database.types.ts",
