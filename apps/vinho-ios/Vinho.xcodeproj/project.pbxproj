@@ -13,7 +13,6 @@
 		2B153EC92E7CA8643DAB1D7C /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 973411BA5C1ADCC5C1AD5777 /* Lottie */; };
 		3299AD7BD31BB010C3C95D33 /* VinoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F35B623A39A4E69CF7377EBF /* VinoApp.swift */; };
 		349D67EA1FFD622BAE858A9B /* DataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B148593675AB8A0C77F55433 /* DataService.swift */; };
-		349D67EA1FFD622BAE858A9C /* StatsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B148593675AB8A0C77F55434 /* StatsService.swift */; };
 		38138BE828B613092B1F1921 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D4E98265B16E5F972A19092 /* FeedView.swift */; };
 		3DA6839B39CE325E23CA89F5 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */; };
 		3FAE5321AD98A735DA17C531 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 606B033C31499FD7E913B4BA /* SplashScreen.swift */; };
@@ -31,6 +30,7 @@
 		8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */; };
 		941BDD7A62A6BB225FA38720 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8380926523C07A9EB6D6FF80 /* AboutView.swift */; };
 		9E4345E9AC2409591D402624 /* LegalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26EA17E6CF360D78D73F9084 /* LegalViews.swift */; };
+		A77BA238986CD22951701155 /* DopplerSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = 74DCD174C09D3D93E28BEB64 /* DopplerSecrets.plist */; };
 		A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACE8A61FC77F5216858D38 /* ThemeManager.swift */; };
 		AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */; };
 		B5E389EE06A1018722836AE9 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E81AE2E53674E7F6EDA972 /* PreviewContainer.swift */; };
@@ -41,7 +41,10 @@
 		C82DB8F44EC2F17E16B1AC74 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6781C9995199363EC644A617 /* HapticManager.swift */; };
 		D3BB06606878BCD99DE22F0A /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */; };
 		D5BABE4E94AA4B281632F7A8 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADC32950C12BBEE23AA069C /* ProfileView.swift */; };
+		D9C0E5E85EC5B7FF45530FFB /* StatsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED0979C5BF1EB4DE9122B7C /* StatsService.swift */; };
 		E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7623913BA99093EBB4AB0B6 /* AuthManager.swift */; };
+		E9DB772961E1A4E1690205FC /* SecretsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */; };
+		F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */ = {isa = PBXBuildFile; fileRef = E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */; };
 		F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */; };
 /* End PBXBuildFile section */
 
@@ -64,6 +67,8 @@
 		60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteDetailView.swift; sourceTree = "<group>"; };
 		6781C9995199363EC644A617 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
 		6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
+		74DCD174C09D3D93E28BEB64 /* DopplerSecrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = DopplerSecrets.plist; sourceTree = "<group>"; };
+		79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretsManager.swift; sourceTree = "<group>"; };
 		7A27E917BF1FA98E3754F275 /* ProfileSubViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSubViews.swift; sourceTree = "<group>"; };
 		8380926523C07A9EB6D6FF80 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDetailView.swift; sourceTree = "<group>"; };
@@ -73,13 +78,14 @@
 		9AA9F21C724462525631A2AA /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		AADC32950C12BBEE23AA069C /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		B148593675AB8A0C77F55433 /* DataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataService.swift; sourceTree = "<group>"; };
-		B148593675AB8A0C77F55434 /* StatsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsService.swift; sourceTree = "<group>"; };
 		B5CA3B36B6C96D776DE7016D /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
 		CD0F362198C0FA80A60FE635 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CED0979C5BF1EB4DE9122B7C /* StatsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsService.swift; sourceTree = "<group>"; };
 		D22C09944462C17A161DFE8D /* TastingNoteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteEditorView.swift; sourceTree = "<group>"; };
 		D67CE2111EFCEAA5471D5E3D /* PersonalInformationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalInformationView.swift; sourceTree = "<group>"; };
 		D76EC39A8B54340E597E5A1C /* WineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineDetailView.swift; sourceTree = "<group>"; };
 		DBF7B97A07201B9F3C04DC8A /* HelpCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpCenterView.swift; sourceTree = "<group>"; };
+		E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.xcconfig.template; sourceTree = "<group>"; };
 		E7623913BA99093EBB4AB0B6 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		F35B623A39A4E69CF7377EBF /* VinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VinoApp.swift; sourceTree = "<group>"; };
@@ -139,7 +145,7 @@
 			isa = PBXGroup;
 			children = (
 				B148593675AB8A0C77F55433 /* DataService.swift */,
-				B148593675AB8A0C77F55434 /* StatsService.swift */,
+				CED0979C5BF1EB4DE9122B7C /* StatsService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -160,6 +166,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		7421FD5949937ADE8EEF00A4 /* Secrets */ = {
+			isa = PBXGroup;
+			children = (
+				79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */,
+			);
+			path = Secrets;
+			sourceTree = "<group>";
+		};
 		8D6BB442B44D9608441191A9 /* Components */ = {
 			isa = PBXGroup;
 			children = (
@@ -173,11 +187,12 @@
 			children = (
 				0ED3A4C8D422066807A4A7F2 /* Config.local.xcconfig */,
 				9AA9F21C724462525631A2AA /* Config.xcconfig */,
+				E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */,
+				74DCD174C09D3D93E28BEB64 /* DopplerSecrets.plist */,
 				CD0F362198C0FA80A60FE635 /* Info.plist */,
 				F35B623A39A4E69CF7377EBF /* VinoApp.swift */,
 				8D6BB442B44D9608441191A9 /* Components */,
 				BF881BDB0C1A2B0FF8DA1E4A /* Core */,
-				C4506100761ED2A4C5EB22DD /* Models */,
 				28764EFF8175993EFCD92C1D /* Preview Content */,
 				68EE471BB9007F8E8CCF494D /* Resources */,
 				CD720B1E4D3BB01A4AD2ED46 /* Views */,
@@ -238,6 +253,7 @@
 				40F571B649F9C0F6E4A27E53 /* API */,
 				C7894F26F0FABE73121B465E /* Managers */,
 				A1F676E615635572AA87E7EC /* Models */,
+				7421FD5949937ADE8EEF00A4 /* Secrets */,
 				4BB0F5EF6CB13C137AB3BFA0 /* Services */,
 				BD848B4CFE5890F012000C91 /* Theme */,
 			);
@@ -250,13 +266,6 @@
 				02C9057D8AF0972213CD07D5 /* MapView.swift */,
 			);
 			path = Map;
-			sourceTree = "<group>";
-		};
-		C4506100761ED2A4C5EB22DD /* Models */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Models;
 			sourceTree = "<group>";
 		};
 		C7894F26F0FABE73121B465E /* Managers */ = {
@@ -320,6 +329,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B117300505FB246F9F801FC /* Build configuration list for PBXNativeTarget "Vinho" */;
 			buildPhases = (
+				3AAE727562DD3C23787EC827 /* Fetch Doppler Secrets */,
 				CDDC79EFD3F0CBEA40D51048 /* Sources */,
 				F3F6A7306BE67C89B67304CA /* Resources */,
 				97F183B7C13E60F1AFF8EC9D /* Frameworks */,
@@ -346,6 +356,12 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					0914A90513A89CD02CACB156 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
+				};
 			};
 			buildConfigurationList = DE5EE164ABFF77322EFFC317 /* Build configuration list for PBXProject "Vinho" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -376,10 +392,34 @@
 			buildActionMask = 2147483647;
 			files = (
 				07BC8BA25C9BC65AA850EB6E /* Assets.xcassets in Resources */,
+				F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */,
+				A77BA238986CD22951701155 /* DopplerSecrets.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		3AAE727562DD3C23787EC827 /* Fetch Doppler Secrets */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Fetch Doppler Secrets";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -f \"$SRCROOT/Scripts/fetch-doppler-secrets.sh\" ]; then\n  bash \"$SRCROOT/Scripts/fetch-doppler-secrets.sh\"\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		CDDC79EFD3F0CBEA40D51048 /* Sources */ = {
@@ -393,7 +433,6 @@
 				4C352AF74C76A0B106E22357 /* ContactUsView.swift in Sources */,
 				4558B4AAD211568905B60DBD /* ContentView.swift in Sources */,
 				349D67EA1FFD622BAE858A9B /* DataService.swift in Sources */,
-				349D67EA1FFD622BAE858A9C /* StatsService.swift in Sources */,
 				F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */,
 				38138BE828B613092B1F1921 /* FeedView.swift in Sources */,
 				C82DB8F44EC2F17E16B1AC74 /* HapticManager.swift in Sources */,
@@ -408,7 +447,9 @@
 				1A65D1C1D26BAD6445D7639E /* ProfileSubViews.swift in Sources */,
 				D5BABE4E94AA4B281632F7A8 /* ProfileView.swift in Sources */,
 				143A27A98DEE7FDC4140DFA0 /* ScannerView.swift in Sources */,
+				E9DB772961E1A4E1690205FC /* SecretsManager.swift in Sources */,
 				3FAE5321AD98A735DA17C531 /* SplashScreen.swift in Sources */,
+				D9C0E5E85EC5B7FF45530FFB /* StatsService.swift in Sources */,
 				477CD43304B4A9062FDA7911 /* SuggestionsView.swift in Sources */,
 				AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */,
 				8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */,
@@ -457,6 +498,9 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
@@ -531,6 +575,9 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
@@ -572,22 +619,15 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 955GSY56UT;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 955GSY56UT;
 				INFOPLIST_FILE = Vinho/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Vinho needs camera access to scan wine labels";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Vinho uses your location to show nearby wine regions";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Vinho needs photo library access to upload wine images";
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.strategicnerds.vinho;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Vinho Development Profile";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -600,22 +640,15 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 955GSY56UT;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 955GSY56UT;
 				INFOPLIST_FILE = Vinho/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Vinho needs camera access to scan wine labels";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Vinho uses your location to show nearby wine regions";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Vinho needs photo library access to upload wine images";
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.strategicnerds.vinho;
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Vinho Development Profile";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

@@ -277,7 +277,8 @@ struct ScanResultView: View {
     @Environment(\.dismiss) private var dismiss
 
     // Processing state
-    @State private var isUploading = true
+    @State private var isUploading = false  // Changed to false so form is interactive immediately
+    @State private var isProcessingImage = true  // Separate state for background upload
     @State private var winesAddedId: String?
     @State private var errorMessage: String?
     @State private var showingError = false
@@ -350,32 +351,37 @@ struct ScanResultView: View {
                 VStack(spacing: 24) {
                     wineImageView
 
-                    if isUploading {
-                        uploadingView
-                    } else {
-                        VStack(spacing: 20) {
-                            // Success message
-                            HStack(spacing: 12) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.green)
+                    // Show status message
+                    HStack(spacing: 12) {
+                        if isProcessingImage {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.vinoAccent)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.green)
+                        }
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Wine uploaded successfully!")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(.vinoText)
-                                    Text("AI is analyzing the label. Add your tasting notes below.")
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.vinoTextSecondary)
-                                }
-                                Spacer()
-                            }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.green.opacity(0.1))
-                            )
-                            .padding(.horizontal)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(isProcessingImage ? "Uploading wine photo..." : "Wine uploaded successfully!")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.vinoText)
+                            Text(isProcessingImage ? "You can start adding your notes while we process the image." : "AI is analyzing the label. Add your tasting notes below.")
+                                .font(.system(size: 13))
+                                .foregroundColor(.vinoTextSecondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.green.opacity(0.1))
+                    )
+                    .padding(.horizontal)
+
+                    // Tasting form is always visible now
+                    VStack(spacing: 20) {
 
                             // No tasting style selector - using user's profile preference
 
@@ -471,7 +477,6 @@ struct ScanResultView: View {
                             }
                         }
                         .padding(.bottom, 20)
-                    }
                 }
             }
             .navigationTitle("Add Wine")
@@ -569,7 +574,8 @@ struct ScanResultView: View {
         // Compress image with lower quality for faster upload
         guard let imageData = image.jpegData(compressionQuality: 0.5) else {
             errorMessage = "Failed to process image"
-            isUploading = false
+            isProcessingImage = false
+            showingError = true
             return
         }
 
@@ -632,14 +638,14 @@ struct ScanResultView: View {
 
             // Show success immediately
             await MainActor.run {
-                isUploading = false
+                isProcessingImage = false
                 hapticManager.success()
             }
 
         } catch {
             await MainActor.run {
                 errorMessage = "Failed to upload wine: \(error.localizedDescription)"
-                isUploading = false
+                isProcessingImage = false
                 showingError = true
                 hapticManager.error()
             }

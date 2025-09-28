@@ -7,8 +7,13 @@ class SupabaseManager {
     let client: SupabaseClient
 
     private init() {
-        let supabaseURL = URL(string: "https://aghiopwrzzvamssgcwpv.supabase.co")!
-        let supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnaGlvcHdyenp2YW1zc2djd3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDQ2OTAsImV4cCI6MjA3Mzk4MDY5MH0.QgiwIydcXOkZ0OWE35RPVGJ8uzBy6GzLByLbVtpTeNY"
+        // Using Doppler for secure secret management
+        let secrets = SecretsManager.shared
+
+        guard let supabaseURL = secrets.url(for: "NEXT_PUBLIC_SUPABASE_URL"),
+              let supabaseKey = secrets.string(for: "NEXT_PUBLIC_SUPABASE_ANON_KEY") else {
+            fatalError("Missing Supabase configuration in Doppler. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in your Doppler config")
+        }
 
         client = SupabaseClient(
             supabaseURL: supabaseURL,

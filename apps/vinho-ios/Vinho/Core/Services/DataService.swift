@@ -469,7 +469,19 @@ class DataService: ObservableObject {
 
     // MARK: - Enhanced Tasting Methods
 
-    func saveTasting(id: UUID? = nil, vintageId: UUID, verdict: Int?, notes: String?, detailedNotes: String?, tastedAt: Date) async -> Bool {
+    func saveTasting(
+        id: UUID? = nil,
+        vintageId: UUID,
+        verdict: Int?,
+        notes: String?,
+        detailedNotes: String?,
+        tastedAt: Date,
+        locationName: String? = nil,
+        locationAddress: String? = nil,
+        locationCity: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil
+    ) async -> Bool {
         guard let userId = try? await client.auth.session.user.id else { return false }
 
         let tasting = Tasting(
@@ -483,11 +495,11 @@ class DataService: ObservableObject {
             createdAt: Date(),
             updatedAt: Date(),
             imageUrl: nil,
-            locationName: nil,
-            locationAddress: nil,
-            locationCity: nil,
-            locationLatitude: nil,
-            locationLongitude: nil,
+            locationName: locationName,
+            locationAddress: locationAddress,
+            locationCity: locationCity,
+            locationLatitude: locationLatitude,
+            locationLongitude: locationLongitude,
             vintage: nil
         )
 

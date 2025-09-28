@@ -7,9 +7,11 @@ struct MapView: View {
     @State private var mapView: MapViewType = .origins
     @State private var selectedWine: WineMapLocation?
     @ObservedObject private var statsService = StatsService.shared
-    @State private var mapRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 40.0, longitude: -20.0),
-        span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
+    @State private var mapCameraPosition = MapCameraPosition.region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 40.0, longitude: -20.0),
+            span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
+        )
     )
 
     enum MapViewType {
@@ -48,8 +50,8 @@ struct MapView: View {
 
             // Map
             ZStack {
-                Map(position: .constant(MapCameraPosition.region(mapRegion))) {
-                    ForEach(viewModel.locations) { location in
+                Map(position: $mapCameraPosition) {
+                    ForEach(viewModel.locations, id: \.id) { location in
                         Annotation(location.name, coordinate: location.coordinate) {
                             WineMapPin(location: location, isSelected: selectedWine?.id == location.id)
                                 .onTapGesture {
@@ -61,6 +63,7 @@ struct MapView: View {
                         }
                     }
                 }
+                .mapStyle(.standard(elevation: .realistic))
                 .preferredColorScheme(.dark)
                 .ignoresSafeArea(edges: .bottom)
 
@@ -78,11 +81,22 @@ struct MapView: View {
         }
         .background(Color.vinoDark)
         .onAppear {
-            Task {
-                await viewModel.loadWines(for: mapView)
-                // Fetch stats using unified StatsService
-                _ = await statsService.fetchUserStats()
+            // Only load data if we don't have it already
+            if viewModel.locations.isEmpty {
+                Task {
+                    await viewModel.loadWines(for: mapView)
+                }
             }
+            // Stats are loaded separately and cached
+            if statsService.currentStats == nil {
+                Task {
+                    _ = await statsService.fetchUserStats()
+                }
+            }
+        }
+        .onChange(of: mapView) { _, newValue in
+            // Just switch to cached data, don't fetch again
+            viewModel.switchToView(newValue)
         }
     }
 
@@ -94,9 +108,6 @@ struct MapView: View {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         mapView = type
                         selectedWine = nil
-                    }
-                    Task {
-                        await viewModel.loadWines(for: type)
                     }
                 } label: {
                     HStack(spacing: 6) {
@@ -324,12 +335,38 @@ class MapViewModel: ObservableObject {
     @Published var isLoading = false
 
     private let dataService = DataService.shared
+    private var cachedOrigins: [WineMapLocation] = []
+    private var cachedTastings: [WineMapLocation] = []
+    private var lastFetchTime: Date?
+
+    func switchToView(_ mapView: MapView.MapViewType) {
+        // Just switch to cached data instantly
+        locations = mapView == .origins ? cachedOrigins : cachedTastings
+
+        // If cache is empty, load data
+        if locations.isEmpty {
+            Task {
+                await loadWines(for: mapView)
+            }
+        }
+    }
 
     func loadWines(for mapView: MapView.MapViewType) async {
+        // Use cache if available (remove time limit for better performance)
+        if mapView == .origins && !cachedOrigins.isEmpty {
+            locations = cachedOrigins
+            return
+        } else if mapView == .tastings && !cachedTastings.isEmpty {
+            locations = cachedTastings
+            return
+        }
+
         isLoading = true
 
-        // Fetch tastings from DataService
-        await dataService.fetchUserTastings()
+        // Only fetch if we don't have data already
+        if dataService.tastings.isEmpty {
+            await dataService.fetchUserTastings()
+        }
 
         // Transform tastings into map locations based on view type
         if mapView == .origins {
@@ -353,6 +390,7 @@ class MapViewModel: ObservableObject {
                     tastedDate: tasting.tastedAt
                 )
             }
+            cachedOrigins = locations
         } else {
             // For tasting locations, show where wines were tasted (only those with tasting coordinates)
             locations = dataService.tastings.compactMap { tasting -> WineMapLocation? in
@@ -374,8 +412,10 @@ class MapViewModel: ObservableObject {
                     tastedDate: tasting.tastedAt
                 )
             }
+            cachedTastings = locations
         }
 
+        lastFetchTime = Date()
         isLoading = false
     }
 

@@ -17,7 +17,7 @@ struct TastingNoteEditorView: View {
     @State private var showingSaveConfirmation = false
     @State private var tastingStyle: TastingStyle = .casual
     @State private var locationText: String = ""
-    @State private var locationCity: String = ""
+    @State private var selectedLocation: TastingLocation?
 
     enum TastingStyle: String {
         case casual = "casual"
@@ -446,8 +446,11 @@ struct TastingNoteEditorView: View {
                     .foregroundColor(.vinoTextTertiary)
             }
 
-            TextField("Restaurant, bar, home, vineyard...", text: $locationText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+            PlaceAutocompleteField(
+                text: $locationText,
+                selectedPlace: $selectedLocation,
+                placeholder: "Restaurant, bar, home, vineyard..."
+            )
         }
         .padding(20)
         .background(
@@ -515,7 +518,8 @@ struct TastingNoteEditorView: View {
             rating: rating > 0 ? rating : nil,
             notes: tastingNotes,
             detailedNotes: technicalNotes,
-            tastedAt: tastedAt
+            tastedAt: tastedAt,
+            location: selectedLocation
         )
 
         if success {
@@ -544,7 +548,8 @@ class TastingNoteEditorViewModel: ObservableObject {
         rating: Int?,
         notes: String?,
         detailedNotes: String?,
-        tastedAt: Date
+        tastedAt: Date,
+        location: TastingLocation? = nil
     ) async -> Bool {
         isSaving = true
         defer { isSaving = false }
@@ -556,7 +561,12 @@ class TastingNoteEditorViewModel: ObservableObject {
             verdict: rating,
             notes: notes,
             detailedNotes: detailedNotes,
-            tastedAt: tastedAt
+            tastedAt: tastedAt,
+            locationName: location?.name,
+            locationAddress: location?.address,
+            locationCity: location?.city,
+            locationLatitude: location?.latitude,
+            locationLongitude: location?.longitude
         )
 
         return success

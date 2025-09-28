@@ -94,8 +94,13 @@ struct JournalView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: .vinoGold))
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .padding()
-                        } else if filteredNotes.isEmpty && !viewModel.isLoading {
+                        } else if filteredNotes.isEmpty && !viewModel.isLoading && viewModel.notes.isEmpty {
+                            // Only show empty state if no data at all and not loading
                             emptyState
+                        } else if filteredNotes.isEmpty && !viewModel.notes.isEmpty {
+                            // Show "no results" when filters/search returns nothing but data exists
+                            NoResultsView(searchText: searchText, selectedTimeFilter: selectedTimeFilter)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
                             journalList
                         }
@@ -297,8 +302,8 @@ struct JournalView: View {
     }
     
     var filteredNotes: [TastingNoteWithWine] {
-        // Use search results if searching, otherwise use normal notes
-        let notesToFilter = !searchText.isEmpty && !viewModel.searchResults.isEmpty ? viewModel.searchResults : viewModel.notes
+        // Only use search results if actively searching (searchText is not empty)
+        let notesToFilter = !searchText.isEmpty ? viewModel.searchResults : viewModel.notes
 
         return notesToFilter.filter { note in
             // Apply time filter
@@ -547,7 +552,7 @@ struct TimeFilterChip: View {
 
 struct FlavorTag: View {
     let text: String
-    
+
     var body: some View {
         Text(text)
             .font(.system(size: 10, weight: .medium))
@@ -558,6 +563,34 @@ struct FlavorTag: View {
                 Capsule()
                     .fill(Color.vinoAccent.opacity(0.15))
             )
+    }
+}
+
+struct NoResultsView: View {
+    let searchText: String
+    let selectedTimeFilter: TimeFilter
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundColor(.vinoTextTertiary)
+
+            Text("No Results Found")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.vinoText)
+
+            if !searchText.isEmpty {
+                Text("No tastings match \"\(searchText)\"")
+                    .font(.system(size: 14))
+                    .foregroundColor(.vinoTextSecondary)
+            } else if selectedTimeFilter != .all {
+                Text("No tastings for \(selectedTimeFilter.title.lowercased())")
+                    .font(.system(size: 14))
+                    .foregroundColor(.vinoTextSecondary)
+            }
+        }
+        .padding()
     }
 }
 
@@ -614,7 +647,6 @@ class JournalViewModel: ObservableObject {
     func loadNotes() async {
         isLoading = true
         currentPage = 0
-        allNotes.removeAll()
 
         let tastings = await dataService.fetchUserTastingsPaginated(page: 0, pageSize: pageSize)
         hasMorePages = tastings.count == pageSize
@@ -623,6 +655,8 @@ class JournalViewModel: ObservableObject {
 
         // Convert tastings to TastingNoteWithWine format
         let newNotes = convertTastings(tastings)
+
+        // Only update if we got data or if this is the initial load
         allNotes = newNotes
         notes = allNotes
         print("Converted to \(notes.count) TastingNoteWithWine objects")
@@ -709,10 +743,28 @@ class JournalViewModel: ObservableObject {
     }
 
     func refreshNotes() async {
-        // Clear search when refreshing
-        searchResults.removeAll()
-        // Reload notes from the beginning
-        await loadNotes()
+        // Clear all existing data to force complete refresh
+        await MainActor.run {
+            notes.removeAll()
+            allNotes.removeAll()
+            searchResults.removeAll()
+            currentPage = 0
+            hasMorePages = true
+        }
+
+        // Force a fresh fetch from the database
+        await dataService.fetchUserTastings()
+
+        // Reload the first page of notes
+        let firstPageTastings = await dataService.fetchUserTastingsPaginated(page: 0, pageSize: pageSize)
+        hasMorePages = firstPageTastings.count == pageSize
+
+        // Convert and update UI
+        let newNotes = convertTastings(firstPageTastings)
+        await MainActor.run {
+            allNotes = newNotes
+            notes = allNotes
+        }
     }
 }
 
