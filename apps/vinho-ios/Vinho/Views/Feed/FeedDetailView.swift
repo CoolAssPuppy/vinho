@@ -152,13 +152,13 @@ struct FeedDetailView: View {
     var wineDetails: some View {
         VStack(alignment: .leading, spacing: 20) {
             SectionHeader(title: "Wine Details")
-            
+
             VStack(spacing: 16) {
-                DetailRow(icon: "building.2", label: "Producer", value: "Château Margaux")
-                DetailRow(icon: "location", label: "Region", value: "Bordeaux, France")
-                DetailRow(icon: "calendar", label: "Vintage", value: "2019")
-                DetailRow(icon: "leaf", label: "Varietals", value: "Cabernet Sauvignon, Merlot")
-                DetailRow(icon: "percent", label: "Alcohol", value: "13.5% ABV")
+                DetailRow(icon: "building.2", label: "Producer", value: "Producer not available")
+                DetailRow(icon: "location", label: "Region", value: "Region not available")
+                DetailRow(icon: "calendar", label: "Vintage", value: "Vintage not available")
+                DetailRow(icon: "leaf", label: "Varietals", value: "Varietals not available")
+                DetailRow(icon: "percent", label: "Alcohol", value: "ABV not available")
             }
             .padding(16)
             .background(
@@ -171,12 +171,12 @@ struct FeedDetailView: View {
     var tastingNotes: some View {
         VStack(alignment: .leading, spacing: 20) {
             SectionHeader(title: "Tasting Notes")
-            
+
             VStack(alignment: .leading, spacing: 12) {
-                TastingRow(aspect: "Color", notes: "Deep ruby with purple highlights")
-                TastingRow(aspect: "Nose", notes: "Blackcurrant, violet, cedar, graphite")
-                TastingRow(aspect: "Palate", notes: "Full-bodied with silky tannins, dark fruits, and spice")
-                TastingRow(aspect: "Finish", notes: "Long and persistent with mineral notes")
+                TastingRow(aspect: "Color", notes: "Not yet evaluated")
+                TastingRow(aspect: "Nose", notes: "Not yet evaluated")
+                TastingRow(aspect: "Palate", notes: "Not yet evaluated")
+                TastingRow(aspect: "Finish", notes: "Not yet evaluated")
             }
             .padding(16)
             .background(

@@ -81,7 +81,7 @@ struct MapView: View {
             Task {
                 await viewModel.loadWines(for: mapView)
                 // Fetch stats using unified StatsService
-                await statsService.fetchUserStats()
+                _ = await statsService.fetchUserStats()
             }
         }
     }

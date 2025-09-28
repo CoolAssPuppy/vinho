@@ -1,6 +1,36 @@
 import SwiftUI
 import AVFoundation
 import PhotosUI
+import Supabase
+import Storage
+import Functions
+
+// MARK: - Toast View
+struct ToastView: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.system(size: 20))
+
+            Text(message)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white)
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.black.opacity(0.9))
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 50) // Account for safe area
+    }
+}
 
 struct ScannerView: View {
     @EnvironmentObject var hapticManager: HapticManager
@@ -235,6 +265,11 @@ struct ScanResultView: View {
     @State private var vintage = ""
     @State private var region = ""
     @State private var isProcessing = true
+    @State private var errorMessage: String?
+    @State private var showingError = false
+    @State private var scanId: String?
+    @State private var showToast = false
+    @State private var toastMessage = ""
 
     var body: some View {
         NavigationStack {
@@ -258,6 +293,11 @@ struct ScanResultView: View {
                             Text("Analyzing wine label...")
                                 .font(.system(size: 16))
                                 .foregroundColor(.secondary)
+
+                            Text("Our AI sommeliers are examining your wine")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary.opacity(0.7))
+                                .multilineTextAlignment(.center)
                         }
                         .frame(height: 200)
                         .frame(maxWidth: .infinity)
@@ -301,6 +341,16 @@ struct ScanResultView: View {
                                         .textFieldStyle(.roundedBorder)
                                 }
                             }
+
+                            if errorMessage != nil {
+                                Text("Note: AI processing is in progress. You can check your journal for updates.")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.orange.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
                         }
                         .padding(.horizontal)
                     }
@@ -318,26 +368,144 @@ struct ScanResultView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         hapticManager.success()
-                        // Save wine
+                        Task {
+                            await saveWineToJournal()
+                        }
                         dismiss()
                     }
                     .fontWeight(.semibold)
-                    .disabled(isProcessing || wineName.isEmpty || producer.isEmpty)
+                    .disabled(isProcessing)
+                }
+            }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage ?? "An error occurred")
+            }
+            .overlay(alignment: .top) {
+                if showToast {
+                    ToastView(message: toastMessage)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                withAnimation {
+                                    showToast = false
+                                }
+                            }
+                        }
                 }
             }
         }
         .onAppear {
-            // Simulate AI processing
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                // Mock data - in production this would come from AI
-                producer = "Château Margaux"
-                wineName = "Margaux"
-                vintage = "2019"
-                region = "Bordeaux, France"
-                isProcessing = false
-                hapticManager.success()
+            Task {
+                await uploadAndProcessWineImage()
             }
         }
+    }
+
+    private func uploadAndProcessWineImage() async {
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            errorMessage = "Failed to process image"
+            isProcessing = false
+            return
+        }
+
+        do {
+            // Get current user
+            let session = try await SupabaseManager.shared.client.auth.session
+            let user = session.user
+
+            // Upload image to storage
+            // Use lowercased UUID string to match auth.uid() format
+            let userIdString = user.id.uuidString.lowercased()
+            let fileName = "\(userIdString)/\(Date().timeIntervalSince1970).jpg"
+            let imageDataForUpload = imageData // Use original data, not re-encoded
+
+            do {
+                try await SupabaseManager.shared.client.storage
+                    .from("scans")
+                    .upload(
+                        fileName,
+                        data: imageDataForUpload,
+                        options: .init(contentType: "image/jpeg")
+                    )
+            } catch {
+                throw NSError(domain: "ScannerView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Storage upload failed: \(error.localizedDescription)"])
+            }
+
+            // Get public URL
+            let publicUrl = try SupabaseManager.shared.client.storage
+                .from("scans")
+                .getPublicURL(path: fileName)
+
+            // Create scan record
+            let scanId = UUID()
+            let scanData = [
+                "id": scanId.uuidString,
+                "user_id": userIdString,
+                "image_path": fileName,
+                "scan_image_url": publicUrl.absoluteString
+            ]
+
+            do {
+                try await SupabaseManager.shared.client
+                    .from("scans")
+                    .insert(scanData)
+                    .execute()
+            } catch {
+                throw NSError(domain: "ScannerView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Scans table insert failed: \(error.localizedDescription)"])
+            }
+
+            self.scanId = scanId.uuidString
+
+            // Add to processing queue
+            let queueData = [
+                "user_id": userIdString,
+                "image_url": publicUrl.absoluteString,
+                "scan_id": scanId.uuidString,
+                "status": "pending"
+            ]
+
+            do {
+                try await SupabaseManager.shared.client
+                    .from("wines_added")
+                    .insert(queueData)
+                    .execute()
+            } catch {
+                throw NSError(domain: "ScannerView", code: 3, userInfo: [NSLocalizedDescriptionKey: "wines_added table insert failed: \(error.localizedDescription)"])
+            }
+
+            // Trigger edge function to process immediately
+            struct EmptyBody: Encodable {}
+            _ = try? await SupabaseManager.shared.client.functions
+                .invoke("process-wine-queue", options: FunctionInvokeOptions(body: EmptyBody()))
+
+            // Show success toast and dismiss scanner
+            await MainActor.run {
+                isProcessing = false
+                toastMessage = "Wine uploaded! Processing in background..."
+                showToast = true
+                hapticManager.success()
+
+                // Dismiss the scanner after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    dismiss()
+                }
+            }
+
+        } catch {
+            await MainActor.run {
+                errorMessage = "Failed to upload wine: \(error.localizedDescription)"
+                isProcessing = false
+                showingError = true
+                hapticManager.error()
+            }
+        }
+    }
+
+    private func saveWineToJournal() async {
+        // The wine is already being processed in the background
+        // This just dismisses the view
     }
 }
 
