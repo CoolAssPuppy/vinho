@@ -98,10 +98,6 @@ struct JournalView: View {
                             emptyState
                         } else {
                             journalList
-                                .refreshable {
-                                    await viewModel.refreshNotes()
-                                    await loadPendingWines()
-                                }
                         }
                     }
                 } else {
@@ -261,6 +257,7 @@ struct JournalView: View {
         .refreshable {
             hapticManager.mediumImpact()
             await viewModel.refreshNotes()
+            await loadPendingWines()
         }
     }
     

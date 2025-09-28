@@ -1,5 +1,5 @@
 import SwiftUI
-import AVFoundation
+@preconcurrency import AVFoundation
 import PhotosUI
 import Supabase
 import Storage
@@ -255,104 +255,222 @@ struct CameraView: UIViewRepresentable {
     func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
+// Helper struct for decoding user profile
+struct UserTastingProfile: Decodable {
+    let tasting_note_style: String?
+}
+
+// Helper struct for encoding pending tasting notes
+struct PendingTastingNotes: Encodable {
+    let rating: Int
+    let notes: String
+    let detailed_notes: String?
+    let location_name: String?
+    let location_city: String?
+}
+
 // MARK: - Scan Result View
 struct ScanResultView: View {
     let image: UIImage
     @EnvironmentObject var hapticManager: HapticManager
+    @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
-    @State private var wineName = ""
-    @State private var producer = ""
-    @State private var vintage = ""
-    @State private var region = ""
-    @State private var isProcessing = true
+
+    // Processing state
+    @State private var isUploading = true
+    @State private var winesAddedId: String?
     @State private var errorMessage: String?
     @State private var showingError = false
-    @State private var scanId: String?
-    @State private var showToast = false
-    @State private var toastMessage = ""
+
+    // Tasting entry
+    @State private var tastingStyle: TastingStyle = .casual
+    @State private var rating: Int = 0
+    @State private var notes = ""
+    @State private var detailedNotes = ""
+    @State private var locationName = ""
+    @State private var locationCity = ""
+
+    enum TastingStyle: String, CaseIterable {
+        case casual = "casual"
+        case sommelier = "sommelier"
+        case winemaker = "winemaker"
+
+        var title: String {
+            switch self {
+            case .casual: return "Casual"
+            case .sommelier: return "Sommelier"
+            case .winemaker: return "Winemaker"
+            }
+        }
+
+        var description: String {
+            switch self {
+            case .casual: return "Quick notes and rating"
+            case .sommelier: return "Service and pairing notes"
+            case .winemaker: return "Technical production details"
+            }
+        }
+
+        var prompt: String {
+            switch self {
+            case .casual: return "How was this wine?"
+            case .sommelier: return "Describe the wine's profile and food pairings"
+            case .winemaker: return "Note the technical aspects and winemaking details"
+            }
+        }
+    }
+
+    private var wineImageView: some View {
+        Image(uiImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(maxHeight: 200)
+            .cornerRadius(16)
+            .padding(.horizontal)
+            .padding(.top)
+    }
+
+    private var uploadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+                .tint(.vinoAccent)
+
+            Text("Uploading wine...")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.vinoText)
+        }
+        .frame(height: 100)
+        .frame(maxWidth: .infinity)
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Wine Image
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxHeight: 250)
-                        .cornerRadius(16)
-                        .padding(.top)
+                VStack(spacing: 24) {
+                    wineImageView
 
-                    if isProcessing {
-                        // Processing View
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .scaleEffect(1.2)
-                                .tint(.vinoPrimary)
-
-                            Text("Analyzing wine label...")
-                                .font(.system(size: 16))
-                                .foregroundColor(.secondary)
-
-                            Text("Our AI sommeliers are examining your wine")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary.opacity(0.7))
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(height: 200)
-                        .frame(maxWidth: .infinity)
+                    if isUploading {
+                        uploadingView
                     } else {
-                        // Wine Details Form
-                        VStack(alignment: .leading, spacing: 20) {
-                            Text("Wine Details")
-                                .font(.system(size: 20, weight: .semibold))
+                        VStack(spacing: 20) {
+                            // Success message
+                            HStack(spacing: 12) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.green)
 
-                            Group {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Producer")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    TextField("Enter producer name", text: $producer)
-                                        .textFieldStyle(.roundedBorder)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Wine uploaded successfully!")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(.vinoText)
+                                    Text("AI is analyzing the label. Add your tasting notes below.")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.vinoTextSecondary)
                                 }
+                                Spacer()
+                            }
+                            .padding(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.green.opacity(0.1))
+                            )
+                            .padding(.horizontal)
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Wine Name")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    TextField("Enter wine name", text: $wineName)
-                                        .textFieldStyle(.roundedBorder)
+                            // No tasting style selector - using user's profile preference
+
+                            // Rating
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Rating")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.vinoTextSecondary)
+                                    .padding(.horizontal)
+
+                                HStack(spacing: 12) {
+                                    ForEach(1...5, id: \.self) { star in
+                                        Button {
+                                            rating = star
+                                            hapticManager.lightImpact()
+                                        } label: {
+                                            Image(systemName: star <= rating ? "star.fill" : "star")
+                                                .font(.system(size: 28))
+                                                .foregroundColor(star <= rating ? .vinoGold : .vinoBorder)
+                                        }
+                                    }
                                 }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                            }
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Vintage")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    TextField("Enter year", text: $vintage)
-                                        .textFieldStyle(.roundedBorder)
-                                        .keyboardType(.numberPad)
-                                }
+                            // Notes based on style
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text(tastingStyle.prompt)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.vinoTextSecondary)
+                                    .padding(.horizontal)
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Region")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    TextField("Enter region", text: $region)
-                                        .textFieldStyle(.roundedBorder)
+                                TextField("Add your notes...", text: $notes, axis: .vertical)
+                                    .textFieldStyle(.plain)
+                                    .padding(16)
+                                    .lineLimit(4...8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.vinoDarkSecondary)
+                                    )
+                                    .padding(.horizontal)
+
+                                if tastingStyle == .winemaker {
+                                    Text("Technical Details")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.vinoTextSecondary)
+                                        .padding(.horizontal)
+                                        .padding(.top, 8)
+
+                                    TextField("Winemaking techniques, oak treatment, fermentation...", text: $detailedNotes, axis: .vertical)
+                                        .textFieldStyle(.plain)
+                                        .padding(16)
+                                        .lineLimit(4...8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.vinoDarkSecondary)
+                                        )
+                                        .padding(.horizontal)
                                 }
                             }
 
-                            if errorMessage != nil {
-                                Text("Note: AI processing is in progress. You can check your journal for updates.")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.orange)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(Color.orange.opacity(0.1))
-                                    .cornerRadius(8)
+                            // Location
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Image(systemName: "mappin.circle")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.vinoAccent)
+                                    Text("Where are you tasting?")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.vinoTextSecondary)
+                                }
+                                .padding(.horizontal)
+
+                                VStack(spacing: 12) {
+                                    TextField("Location name (restaurant, bar, home...)", text: $locationName)
+                                        .textFieldStyle(.plain)
+                                        .padding(16)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.vinoDarkSecondary)
+                                        )
+
+                                    TextField("City (optional)", text: $locationCity)
+                                        .textFieldStyle(.plain)
+                                        .padding(16)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.vinoDarkSecondary)
+                                        )
+                                }
+                                .padding(.horizontal)
                             }
                         }
-                        .padding(.horizontal)
+                        .padding(.bottom, 20)
                     }
                 }
             }
@@ -369,12 +487,11 @@ struct ScanResultView: View {
                     Button("Save") {
                         hapticManager.success()
                         Task {
-                            await saveWineToJournal()
+                            await saveTastingNotes()
                         }
-                        dismiss()
                     }
                     .fontWeight(.semibold)
-                    .disabled(isProcessing)
+                    .disabled(isUploading)
                 }
             }
             .alert("Error", isPresented: $showingError) {
@@ -382,31 +499,77 @@ struct ScanResultView: View {
             } message: {
                 Text(errorMessage ?? "An error occurred")
             }
-            .overlay(alignment: .top) {
-                if showToast {
-                    ToastView(message: toastMessage)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                withAnimation {
-                                    showToast = false
-                                }
-                            }
-                        }
-                }
-            }
         }
         .onAppear {
             Task {
+                // Load user's tasting style preference from profile
+                await loadUserProfile()
                 await uploadAndProcessWineImage()
             }
         }
     }
 
+    private func loadUserProfile() async {
+        do {
+            let session = try await SupabaseManager.shared.client.auth.session
+            let userId = session.user.id.uuidString.lowercased()
+
+            let response = try await SupabaseManager.shared.client
+                .from("user_profiles")
+                .select("tasting_note_style")
+                .eq("user_id", value: userId)
+                .single()
+                .execute()
+
+            let data = response.data
+            if let jsonData = try? JSONSerialization.data(withJSONObject: data),
+               let profile = try? JSONDecoder().decode(UserTastingProfile.self, from: jsonData),
+               let style = TastingStyle(rawValue: profile.tasting_note_style ?? "casual") {
+                tastingStyle = style
+            }
+        } catch {
+            print("Failed to load user profile: \(error)")
+            tastingStyle = .casual // Default to casual
+        }
+    }
+
+    private func saveTastingNotes() async {
+        // Save the tasting notes - they'll be associated with the wine once processing completes
+        guard let winesAddedId = winesAddedId else {
+            dismiss()
+            return
+        }
+
+        // Store the tasting data to the wines_added table to be picked up by edge function
+        let pendingNotes = PendingTastingNotes(
+            rating: rating,
+            notes: notes,
+            detailed_notes: detailedNotes.isEmpty ? nil : detailedNotes,
+            location_name: locationName.isEmpty ? nil : locationName,
+            location_city: locationCity.isEmpty ? nil : locationCity
+        )
+
+        // Update wines_added with pending tasting notes
+        do {
+            try await SupabaseManager.shared.client
+                .from("wines_added")
+                .update(["pending_tasting_notes": pendingNotes])
+                .eq("id", value: winesAddedId)
+                .execute()
+
+            print("Saved pending tasting notes to wines_added: \(winesAddedId)")
+        } catch {
+            print("Failed to save pending tasting notes: \(error)")
+        }
+
+        dismiss()
+    }
+
     private func uploadAndProcessWineImage() async {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+        // Compress image with lower quality for faster upload
+        guard let imageData = image.jpegData(compressionQuality: 0.5) else {
             errorMessage = "Failed to process image"
-            isProcessing = false
+            isUploading = false
             return
         }
 
@@ -414,99 +577,75 @@ struct ScanResultView: View {
             // Get current user
             let session = try await SupabaseManager.shared.client.auth.session
             let user = session.user
-
-            // Upload image to storage
-            // Use lowercased UUID string to match auth.uid() format
             let userIdString = user.id.uuidString.lowercased()
             let fileName = "\(userIdString)/\(Date().timeIntervalSince1970).jpg"
-            let imageDataForUpload = imageData // Use original data, not re-encoded
 
-            do {
-                try await SupabaseManager.shared.client.storage
-                    .from("scans")
-                    .upload(
-                        fileName,
-                        data: imageDataForUpload,
-                        options: .init(contentType: "image/jpeg")
-                    )
-            } catch {
-                throw NSError(domain: "ScannerView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Storage upload failed: \(error.localizedDescription)"])
-            }
-
-            // Get public URL
+            // Create IDs upfront
+            let scanId = UUID()
+            let queueId = UUID()
             let publicUrl = try SupabaseManager.shared.client.storage
                 .from("scans")
                 .getPublicURL(path: fileName)
 
-            // Create scan record
-            let scanId = UUID()
-            let scanData = [
-                "id": scanId.uuidString,
-                "user_id": userIdString,
-                "image_path": fileName,
-                "scan_image_url": publicUrl.absoluteString
-            ]
+            // Store the wines_added ID immediately for tasting notes
+            self.winesAddedId = queueId.uuidString
 
-            do {
-                try await SupabaseManager.shared.client
-                    .from("scans")
-                    .insert(scanData)
-                    .execute()
-            } catch {
-                throw NSError(domain: "ScannerView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Scans table insert failed: \(error.localizedDescription)"])
+            // Run database operations concurrently
+            async let uploadTask = SupabaseManager.shared.client.storage
+                .from("scans")
+                .upload(
+                    fileName,
+                    data: imageData,
+                    options: .init(contentType: "image/jpeg")
+                )
+
+            async let scanTask = SupabaseManager.shared.client
+                .from("scans")
+                .insert([
+                    "id": scanId.uuidString,
+                    "user_id": userIdString,
+                    "image_path": fileName,
+                    "scan_image_url": publicUrl.absoluteString
+                ])
+                .execute()
+
+            async let queueTask = SupabaseManager.shared.client
+                .from("wines_added")
+                .insert([
+                    "id": queueId.uuidString,
+                    "user_id": userIdString,
+                    "image_url": publicUrl.absoluteString,
+                    "scan_id": scanId.uuidString,
+                    "status": "pending"
+                ])
+                .execute()
+
+            // Wait for all operations to complete
+            let _ = try await (uploadTask, scanTask, queueTask)
+
+            // Trigger edge function in background (don't wait)
+            Task {
+                struct EmptyBody: Encodable {}
+                _ = try? await SupabaseManager.shared.client.functions
+                    .invoke("process-wine-queue", options: FunctionInvokeOptions(body: EmptyBody()))
             }
 
-            self.scanId = scanId.uuidString
-
-            // Add to processing queue
-            let queueData = [
-                "user_id": userIdString,
-                "image_url": publicUrl.absoluteString,
-                "scan_id": scanId.uuidString,
-                "status": "pending"
-            ]
-
-            do {
-                try await SupabaseManager.shared.client
-                    .from("wines_added")
-                    .insert(queueData)
-                    .execute()
-            } catch {
-                throw NSError(domain: "ScannerView", code: 3, userInfo: [NSLocalizedDescriptionKey: "wines_added table insert failed: \(error.localizedDescription)"])
-            }
-
-            // Trigger edge function to process immediately
-            struct EmptyBody: Encodable {}
-            _ = try? await SupabaseManager.shared.client.functions
-                .invoke("process-wine-queue", options: FunctionInvokeOptions(body: EmptyBody()))
-
-            // Show success toast and dismiss scanner
+            // Show success immediately
             await MainActor.run {
-                isProcessing = false
-                toastMessage = "Wine uploaded! Processing in background..."
-                showToast = true
+                isUploading = false
                 hapticManager.success()
-
-                // Dismiss the scanner after a short delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    dismiss()
-                }
             }
 
         } catch {
             await MainActor.run {
                 errorMessage = "Failed to upload wine: \(error.localizedDescription)"
-                isProcessing = false
+                isUploading = false
                 showingError = true
                 hapticManager.error()
             }
         }
     }
 
-    private func saveWineToJournal() async {
-        // The wine is already being processed in the background
-        // This just dismisses the view
-    }
 }
 
 // MARK: - View Model
@@ -519,39 +658,52 @@ class ScannerViewModel: NSObject, ObservableObject {
     private var captureCompletion: ((UIImage) -> Void)?
 
     func setupCamera(in view: UIView) {
-        let session = AVCaptureSession()
-        session.sessionPreset = .photo
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let session = AVCaptureSession()
+            session.sessionPreset = .photo
 
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let input = try? AVCaptureDeviceInput(device: device) else { return }
+            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+                  let input = try? AVCaptureDeviceInput(device: device) else { return }
 
-        if session.canAddInput(input) {
-            session.addInput(input)
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
+
+            let output = AVCapturePhotoOutput()
+            if session.canAddOutput(output) {
+                session.addOutput(output)
+            }
+
+            DispatchQueue.main.async {
+                let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+                previewLayer.frame = view.bounds
+                previewLayer.videoGravity = .resizeAspectFill
+                view.layer.addSublayer(previewLayer)
+
+                self?.captureSession = session
+                self?.photoOutput = output
+                self?.previewLayer = previewLayer
+
+                // Start the session on background thread
+                DispatchQueue.global(qos: .userInitiated).async {
+                    session.startRunning()
+                }
+            }
         }
-
-        let output = AVCapturePhotoOutput()
-        if session.canAddOutput(output) {
-            session.addOutput(output)
-        }
-
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.frame = view.bounds
-        previewLayer.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(previewLayer)
-
-        self.captureSession = session
-        self.photoOutput = output
-        self.previewLayer = previewLayer
     }
 
     func startSession() {
-        Task {
-            captureSession?.startRunning()
+        guard let session = captureSession else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
         }
     }
 
     func stopSession() {
-        captureSession?.stopRunning()
+        guard let session = captureSession else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.stopRunning()
+        }
     }
 
     func toggleFlash(_ on: Bool) {
