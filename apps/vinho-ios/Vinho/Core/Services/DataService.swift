@@ -80,13 +80,40 @@ class DataService: ObservableObject {
                 .execute()
                 .value
 
-            print("Successfully fetched \(response.count) tastings")
             self.tastings = response
         } catch {
-            print("Error fetching tastings: \(error)")
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
         }
         isLoading = false
+    }
+
+    // Fetch limited tastings for map view
+    func fetchTastingsForMap(limit: Int = 100) async -> [Tasting] {
+        guard let userId = try? await client.auth.session.user.id else { return [] }
+
+        do {
+            let response: [Tasting] = try await client
+                .from("tastings")
+                .select("""
+                    *,
+                    vintages!vintage_id(
+                        *,
+                        wines!wine_id(
+                            *,
+                            producers!producer_id(*)
+                        )
+                    )
+                """)
+                .eq("user_id", value: userId.uuidString)
+                .order("tasted_at", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+
+            return response
+        } catch {
+            return []
+        }
     }
 
     // Paginated fetching for tastings
@@ -116,10 +143,8 @@ class DataService: ObservableObject {
                 .execute()
                 .value
 
-            print("Successfully fetched \(response.count) tastings for page \(page)")
             return response
         } catch {
-            print("Error fetching paginated tastings: \(error)")
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
             return []
         }

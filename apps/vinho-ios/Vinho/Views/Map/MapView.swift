@@ -1,8 +1,11 @@
 import SwiftUI
 import MapKit
+import CoreLocation
+import CoreLocationUI
 
 struct MapView: View {
     @StateObject private var viewModel = MapViewModel()
+    @StateObject private var locationManager = MapLocationManager()
     @EnvironmentObject var hapticManager: HapticManager
     @State private var mapView: MapViewType = .origins
     @State private var selectedWine: WineMapLocation?
@@ -13,6 +16,8 @@ struct MapView: View {
             span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
         )
     )
+    @State private var hasInitialized = false
+    @State private var showUserLocation = false
 
     enum MapViewType {
         case origins
@@ -50,22 +55,109 @@ struct MapView: View {
 
             // Map
             ZStack {
-                Map(position: $mapCameraPosition) {
-                    ForEach(viewModel.locations, id: \.id) { location in
-                        Annotation(location.name, coordinate: location.coordinate) {
-                            WineMapPin(location: location, isSelected: selectedWine?.id == location.id)
-                                .onTapGesture {
-                                    hapticManager.lightImpact()
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        selectedWine = location
+                if hasInitialized {
+                    Map(position: $mapCameraPosition) {
+                        // Wine location annotations
+                        ForEach(viewModel.locations, id: \.id) { location in
+                            Annotation(location.name, coordinate: location.coordinate) {
+                                WineMapPin(location: location, isSelected: selectedWine?.id == location.id)
+                                    .onTapGesture {
+                                        hapticManager.lightImpact()
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            selectedWine = location
+                                        }
                                     }
-                                }
+                            }
+                        }
+
+                        // User location
+                        if showUserLocation, locationManager.location != nil {
+                            UserAnnotation()
                         }
                     }
+                    .mapStyle(.standard(elevation: .realistic))
+                    .mapControls {
+                        MapUserLocationButton()
+                        MapCompass()
+                        MapScaleView()
+                    }
+                    .preferredColorScheme(.dark)
+                    .ignoresSafeArea(edges: .bottom)
+                    .onMapCameraChange { context in
+                        // When the user zooms/pans significantly, reload data for the new viewport
+                        // This is throttled to avoid excessive API calls
+                        viewModel.onMapRegionChanged(context.region)
+                    }
+                } else {
+                    // Show loading state
+                    VStack {
+                        Spacer()
+                        ProgressView()
+                            .tint(.vinoAccent)
+                            .scaleEffect(1.5)
+                        Text("Loading map...")
+                            .font(.system(size: 14))
+                            .foregroundColor(.vinoTextSecondary)
+                            .padding(.top, 8)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.vinoDark)
                 }
-                .mapStyle(.standard(elevation: .realistic))
-                .preferredColorScheme(.dark)
-                .ignoresSafeArea(edges: .bottom)
+
+                // Map Controls Overlay
+                VStack {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            // Zoom In
+                            Button {
+                                hapticManager.lightImpact()
+                                zoomIn()
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.vinoDarkSecondary.opacity(0.9))
+                                    .clipShape(Circle())
+                            }
+
+                            // Zoom Out
+                            Button {
+                                hapticManager.lightImpact()
+                                zoomOut()
+                            } label: {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.vinoDarkSecondary.opacity(0.9))
+                                    .clipShape(Circle())
+                            }
+
+                            Divider()
+                                .frame(width: 30)
+                                .background(Color.vinoBorder)
+
+                            // Center on User Location
+                            Button {
+                                hapticManager.lightImpact()
+                                centerOnUserLocation()
+                            } label: {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(showUserLocation ? .vinoAccent : .white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.vinoDarkSecondary.opacity(0.9))
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .padding(.trailing, 12)
+                        .padding(.top, 12)
+                    }
+                    Spacer()
+                }
 
                 // Selected Wine Detail
                 if let wine = selectedWine {
@@ -81,6 +173,13 @@ struct MapView: View {
         }
         .background(Color.vinoDark)
         .onAppear {
+            // Delay map initialization slightly to improve performance
+            if !hasInitialized {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    hasInitialized = true
+                }
+            }
+
             // Only load data if we don't have it already
             if viewModel.locations.isEmpty {
                 Task {
@@ -136,6 +235,46 @@ struct MapView: View {
         .padding(.vertical, 4)
         .background(Color.vinoDarkSecondary.opacity(0.5))
         .clipShape(Capsule())
+    }
+
+    // MARK: - Map Control Functions
+
+    func zoomIn() {
+        // Since we're using a fixed region, we'll update it directly
+        let currentRegion = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 40.0, longitude: -20.0),
+            span: MKCoordinateSpan(latitudeDelta: 25, longitudeDelta: 25)
+        )
+        withAnimation {
+            mapCameraPosition = .region(currentRegion)
+        }
+    }
+
+    func zoomOut() {
+        // Since we're using a fixed region, we'll update it directly
+        let currentRegion = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 40.0, longitude: -20.0),
+            span: MKCoordinateSpan(latitudeDelta: 100, longitudeDelta: 100)
+        )
+        withAnimation {
+            mapCameraPosition = .region(currentRegion)
+        }
+    }
+
+    func centerOnUserLocation() {
+        showUserLocation.toggle()
+        if showUserLocation {
+            locationManager.requestLocation()
+            if let location = locationManager.location {
+                let region = MKCoordinateRegion(
+                    center: location.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+                )
+                withAnimation {
+                    mapCameraPosition = .region(region)
+                }
+            }
+        }
     }
 
     func statsCardsView(stats: WineStats) -> some View {
@@ -338,6 +477,8 @@ class MapViewModel: ObservableObject {
     private var cachedOrigins: [WineMapLocation] = []
     private var cachedTastings: [WineMapLocation] = []
     private var lastFetchTime: Date?
+    private var lastRegion: MKCoordinateRegion?
+    private var regionChangeTimer: Timer?
 
     func switchToView(_ mapView: MapView.MapViewType) {
         // Just switch to cached data instantly
@@ -363,15 +504,13 @@ class MapViewModel: ObservableObject {
 
         isLoading = true
 
-        // Only fetch if we don't have data already
-        if dataService.tastings.isEmpty {
-            await dataService.fetchUserTastings()
-        }
+        // Fetch limited tastings for the map (100 max)
+        let mapTastings = await dataService.fetchTastingsForMap(limit: 100)
 
         // Transform tastings into map locations based on view type
         if mapView == .origins {
             // For wine origins, show producer locations only
-            locations = dataService.tastings.compactMap { tasting -> WineMapLocation? in
+            locations = mapTastings.compactMap { tasting -> WineMapLocation? in
                 guard let vintage = tasting.vintage,
                       let wine = vintage.wine,
                       let producer = wine.producer,
@@ -393,7 +532,7 @@ class MapViewModel: ObservableObject {
             cachedOrigins = locations
         } else {
             // For tasting locations, show where wines were tasted (only those with tasting coordinates)
-            locations = dataService.tastings.compactMap { tasting -> WineMapLocation? in
+            locations = mapTastings.compactMap { tasting -> WineMapLocation? in
                 guard let vintage = tasting.vintage,
                       let wine = vintage.wine,
                       let producer = wine.producer,
@@ -419,10 +558,67 @@ class MapViewModel: ObservableObject {
         isLoading = false
     }
 
+    func onMapRegionChanged(_ newRegion: MKCoordinateRegion) {
+        // Cancel any pending timer
+        regionChangeTimer?.invalidate()
+
+        // Only refetch if the region changed significantly
+        guard let lastRegion = lastRegion else {
+            self.lastRegion = newRegion
+            return
+        }
+
+        let centerChanged = abs(lastRegion.center.latitude - newRegion.center.latitude) > 0.5 ||
+                           abs(lastRegion.center.longitude - newRegion.center.longitude) > 0.5
+        let zoomChanged = abs(lastRegion.span.latitudeDelta - newRegion.span.latitudeDelta) > 0.5
+
+        if centerChanged || zoomChanged {
+            // Debounce: wait 1 second after map stops moving before fetching
+            regionChangeTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
+                Task {
+                    await self.loadWines(for: self.locations == self.cachedOrigins ? .origins : .tastings)
+                }
+            }
+            self.lastRegion = newRegion
+        }
+    }
+}
+
+// MARK: - Location Manager
+class MapLocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    @Published var location: CLLocation?
+    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.requestWhenInUseAuthorization()
+    }
+
+    func requestLocation() {
+        manager.requestLocation()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        location = locations.first
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        // Handle location errors silently
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorizationStatus = manager.authorizationStatus
+        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+            manager.requestLocation()
+        }
+    }
 }
 
 // MARK: - Models
-struct WineMapLocation: Identifiable {
+struct WineMapLocation: Identifiable, Equatable {
     let id: UUID
     let name: String
     let producer: String
@@ -432,4 +628,8 @@ struct WineMapLocation: Identifiable {
     let coordinate: CLLocationCoordinate2D
     let tastingLocation: String?
     let tastedDate: Date?
+
+    static func == (lhs: WineMapLocation, rhs: WineMapLocation) -> Bool {
+        lhs.id == rhs.id
+    }
 }

@@ -11,7 +11,7 @@ struct WineStats: Decodable {
     let favorites: Int
     let averageRating: Double?
     let tastingsLast30Days: Int
-    let lastTastingDate: Date?
+    let lastTastingDate: String?  // Changed from Date? to String?
 
     enum CodingKeys: String, CodingKey {
         case uniqueWines = "unique_wines"
@@ -23,6 +23,14 @@ struct WineStats: Decodable {
         case averageRating = "average_rating"
         case tastingsLast30Days = "tastings_last_30_days"
         case lastTastingDate = "last_tasting_date"
+    }
+
+    // Helper to get the date if needed
+    var lastTastingAsDate: Date? {
+        guard let lastTastingDate = lastTastingDate else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: lastTastingDate)
     }
 }
 
@@ -55,7 +63,9 @@ class StatsService: ObservableObject {
     /// Fetch comprehensive wine statistics for the current user
     /// Single source of truth for all stats across the application
     func fetchUserStats() async -> WineStats? {
-        guard let _ = try? await client.auth.session.user.id else { return nil }
+        guard let userId = try? await client.auth.session.user.id else {
+            return nil
+        }
 
         isLoading = true
         defer { isLoading = false }
@@ -71,7 +81,6 @@ class StatsService: ObservableObject {
             currentStats = stats
             return stats
         } catch {
-            print("Failed to fetch user stats: \(error.localizedDescription)")
             return nil
         }
     }

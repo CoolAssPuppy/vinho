@@ -281,6 +281,7 @@ struct ScanResultView: View {
     @State private var showingError = false
     @State private var showingTastingEditor = false
     @State private var pendingVintageId: UUID?
+    @State private var pendingTasting: Tasting?
 
 
     var body: some View {
@@ -363,9 +364,9 @@ struct ScanResultView: View {
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $showingTastingEditor) {
-            // Use the proper TastingNoteEditorView
+            // Use the proper TastingNoteEditorView with the existing tasting
             if let vintageId = pendingVintageId {
-                TastingNoteEditorView(vintageId: vintageId)
+                TastingNoteEditorView(vintageId: vintageId, existingTasting: pendingTasting)
                     .environmentObject(hapticManager)
                     .environmentObject(authManager)
                     .interactiveDismissDisabled()
@@ -397,19 +398,28 @@ struct ScanResultView: View {
 
         for _ in 0..<30 { // Poll for up to 30 seconds
             do {
-                let response = try await SupabaseManager.shared.client
+                struct QueueStatus: Decodable {
+                    let status: String
+                    let processed_data: ProcessedWineData?
+
+                    struct ProcessedWineData: Decodable {
+                        let producer: String?
+                        let wine_name: String?
+                        let year: Int?
+                        let confidence: Double?
+                    }
+                }
+
+                let queueItem: QueueStatus = try await SupabaseManager.shared.client
                     .from("wines_added_queue")
                     .select("status, processed_data")
                     .eq("id", value: winesAddedId)
                     .single()
                     .execute()
+                    .value
 
-                if let data = response.data as? [String: Any],
-                   let status = data["status"] as? String,
-                   status == "completed",
-                   let processedData = data["processed_data"] as? [String: Any] {
+                if queueItem.status == "completed" {
                     // Successfully processed - we can now get the vintage_id
-                    // For now, we'll create a placeholder since the edge function handles this
                     print("Wine processing completed")
                     isProcessingImage = false
 
@@ -430,27 +440,25 @@ struct ScanResultView: View {
     }
 
     private func getVintageId() async {
-        // Get the most recent tasting for this user to find the vintage_id
+        // Get the most recent tasting for this user to find the vintage_id and tasting
         do {
             let session = try await SupabaseManager.shared.client.auth.session
             let userId = session.user.id.uuidString.lowercased()
 
-            let response = try await SupabaseManager.shared.client
+            let tasting: Tasting = try await SupabaseManager.shared.client
                 .from("tastings")
-                .select("vintage_id")
+                .select("*")
                 .eq("user_id", value: userId)
                 .order("created_at", ascending: false)
                 .limit(1)
                 .single()
                 .execute()
+                .value
 
-            if let data = response.data as? [String: Any],
-               let vintageIdString = data["vintage_id"] as? String,
-               let vintageId = UUID(uuidString: vintageIdString) {
-                pendingVintageId = vintageId
-            }
+            pendingVintageId = tasting.vintageId
+            pendingTasting = tasting
         } catch {
-            print("Error getting vintage_id: \(error)")
+            // Error handled silently
         }
     }
 
