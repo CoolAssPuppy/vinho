@@ -282,6 +282,7 @@ struct ScanResultView: View {
     @State private var showingTastingEditor = false
     @State private var pendingVintageId: UUID?
     @State private var pendingTasting: Tasting?
+    @State private var isLoadingEditor = false
 
 
     var body: some View {
@@ -332,12 +333,26 @@ struct ScanResultView: View {
                 // Add Notes button
                 Button {
                     hapticManager.lightImpact()
-                    showingTastingEditor = true
+                    Task {
+                        isLoadingEditor = true
+                        // Make sure we have the vintage ID before showing the editor
+                        if pendingVintageId == nil {
+                            await getVintageId()
+                        }
+                        isLoadingEditor = false
+                        showingTastingEditor = true
+                    }
                 } label: {
                     HStack {
-                        Image(systemName: "note.text.badge.plus")
-                            .font(.system(size: 20))
-                        Text("Add Tasting Notes")
+                        if isLoadingEditor {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "note.text.badge.plus")
+                                .font(.system(size: 20))
+                        }
+                        Text(isLoadingEditor ? "Loading..." : "Add Tasting Notes")
                             .font(.system(size: 17, weight: .semibold))
                     }
                     .foregroundColor(.white)
@@ -345,10 +360,11 @@ struct ScanResultView: View {
                     .frame(height: 56)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.vinoAccent)
+                            .fill(isLoadingEditor ? Color.vinoAccent.opacity(0.7) : Color.vinoAccent)
                     )
                 }
                 .padding(.horizontal)
+                .disabled(isLoadingEditor)
 
                 // Skip button
                 Button {
@@ -374,11 +390,6 @@ struct ScanResultView: View {
                         // Dismiss the entire scan flow when done
                         dismiss()
                     }
-            } else {
-                // Fallback: create a placeholder view while waiting
-                ProgressView("Preparing editor...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.vinoDark)
             }
         }
         .alert("Error", isPresented: $showingError) {

@@ -509,6 +509,8 @@ class DataService: ObservableObject {
     ) async -> Bool {
         guard let userId = try? await client.auth.session.user.id else { return false }
 
+        print("DataService.saveTasting - Location: \(locationName ?? "nil"), City: \(locationCity ?? "nil"), Lat: \(locationLatitude ?? 0)")
+
         let tasting = Tasting(
             id: id ?? UUID(),
             userId: userId,
@@ -529,12 +531,38 @@ class DataService: ObservableObject {
         )
 
         do {
-            if id != nil {
-                // Update existing
+            if let existingId = id {
+                // Update existing - create a struct with only the fields we want to update
+                struct TastingUpdate: Encodable {
+                    let verdict: Int?
+                    let notes: String?
+                    let detailed_notes: String?
+                    let tasted_at: Date
+                    let updated_at: Date
+                    let location_name: String?
+                    let location_address: String?
+                    let location_city: String?
+                    let location_latitude: Double?
+                    let location_longitude: Double?
+                }
+
+                let updateData = TastingUpdate(
+                    verdict: verdict,
+                    notes: notes,
+                    detailed_notes: detailedNotes,
+                    tasted_at: tastedAt,
+                    updated_at: Date(),
+                    location_name: locationName,
+                    location_address: locationAddress,
+                    location_city: locationCity,
+                    location_latitude: locationLatitude,
+                    location_longitude: locationLongitude
+                )
+
                 try await client
                     .from("tastings")
-                    .update(tasting)
-                    .eq("id", value: tasting.id.uuidString)
+                    .update(updateData)
+                    .eq("id", value: existingId.uuidString)
                     .execute()
             } else {
                 // Create new

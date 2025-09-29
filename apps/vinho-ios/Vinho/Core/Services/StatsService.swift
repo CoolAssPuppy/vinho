@@ -63,7 +63,8 @@ class StatsService: ObservableObject {
     /// Fetch comprehensive wine statistics for the current user
     /// Single source of truth for all stats across the application
     func fetchUserStats() async -> WineStats? {
-        guard let userId = try? await client.auth.session.user.id else {
+        // Verify user is authenticated
+        guard let _ = try? await client.auth.session.user.id else {
             return nil
         }
 

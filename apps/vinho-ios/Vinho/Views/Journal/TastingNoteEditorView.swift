@@ -40,6 +40,20 @@ struct TastingNoteEditorView: View {
         self._notes = State(initialValue: existingTasting?.notes ?? "")
         self._detailedNotes = State(initialValue: existingTasting?.detailedNotes ?? "")
         self._tastedAt = State(initialValue: existingTasting?.tastedAt ?? Date())
+
+        // Initialize location fields if existing tasting has location data
+        if let existing = existingTasting {
+            if let locationName = existing.locationName {
+                self._locationText = State(initialValue: locationName)
+                self._selectedLocation = State(initialValue: TastingLocation(
+                    name: locationName,
+                    address: existing.locationAddress ?? "",
+                    city: existing.locationCity,
+                    latitude: existing.locationLatitude,
+                    longitude: existing.locationLongitude
+                ))
+            }
+        }
     }
 
     var body: some View {
@@ -484,11 +498,8 @@ struct TastingNoteEditorView: View {
 
     // MARK: - Functions
     func loadUserProfile() async {
-        guard let userId = authManager.currentUser?.id else { return }
-
-        await viewModel.loadUserProfile(userId: userId)
-
-        if let style = viewModel.userProfile?.tastingNoteStyle {
+        // Use cached profile from AuthManager instead of fetching from database
+        if let style = authManager.userProfile?.tastingNoteStyle {
             switch style {
             case "casual":
                 tastingStyle = .casual
@@ -512,6 +523,13 @@ struct TastingNoteEditorView: View {
         let tastingNotes = tastingStyle == .casual ? nil : (notes.isEmpty ? nil : notes)
         let technicalNotes = tastingStyle == .winemaker ? (detailedNotes.isEmpty ? nil : detailedNotes) : nil
 
+        print("Saving tasting - ID: \(existingTasting?.id.uuidString ?? "new"), Rating: \(rating), Notes: \(tastingNotes ?? "none")")
+        if let loc = selectedLocation {
+            print("Location: \(loc.name), Address: \(loc.address), City: \(loc.city ?? "nil"), Lat: \(loc.latitude ?? 0), Lng: \(loc.longitude ?? 0)")
+        } else {
+            print("No location selected")
+        }
+
         let success = await viewModel.saveTasting(
             id: existingTasting?.id,
             vintageId: vintageId,
@@ -523,7 +541,10 @@ struct TastingNoteEditorView: View {
         )
 
         if success {
+            print("Tasting saved successfully")
             showingSaveConfirmation = true
+        } else {
+            print("Failed to save tasting")
         }
     }
 }
@@ -531,16 +552,9 @@ struct TastingNoteEditorView: View {
 // MARK: - View Model
 @MainActor
 class TastingNoteEditorViewModel: ObservableObject {
-    @Published var userProfile: UserProfile?
     @Published var isSaving = false
 
     private let dataService = DataService.shared
-
-    func loadUserProfile(userId: UUID) async {
-        // Load user profile from Supabase
-        await dataService.fetchUserProfile(for: userId)
-        userProfile = dataService.userProfile
-    }
 
     func saveTasting(
         id: UUID?,
