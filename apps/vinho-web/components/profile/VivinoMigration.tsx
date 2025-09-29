@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { createClient } from "@/lib/supabase";
 import {
   Upload,
   FileUp,
@@ -15,38 +16,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-
-interface MigrationResult {
-  success: boolean;
-  imported: number;
-  failed: number;
-  errors: string[];
-  details?: {
-    producers: number;
-    wines: number;
-    vintages: number;
-    tastings: number;
-  };
-}
-
-interface QueueStatus {
-  pending: number;
-  working: number;
-  completed: number;
-  failed: number;
-  total: number;
-  isProcessing: boolean;
-  recentlyCompleted: Array<{
-    wine_name: string;
-    producer_name: string;
-    completed_at: string;
-  }>;
-  errors: Array<{
-    wine_name: string;
-    producer_name: string;
-    error_message: string;
-  }>;
-}
+import type { MigrationResult, QueueStatus } from "@/lib/types/shared";
 
 export function VivinoMigration() {
   const [isUploading, setIsUploading] = useState(false);
@@ -57,8 +27,9 @@ export function VivinoMigration() {
   const [progress, setProgress] = useState<string>("");
   const [fixResult, setFixResult] = useState<{
     success: boolean;
-    enriched: number;
-    skipped: number;
+    enriched?: number;
+    skipped?: number;
+    queued?: number;
     message: string;
     errors?: string[];
   } | null>(null);
@@ -207,6 +178,7 @@ export function VivinoMigration() {
     setFixResult(null);
 
     try {
+      const supabase = createClient();
       // Call the edge function to enrich wines
       const { data, error } = await supabase.functions.invoke("enrich-wines", {
         body: { action: "enrich" },
@@ -415,7 +387,7 @@ export function VivinoMigration() {
                     : "Migration Completed with Errors"}
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Successfully imported {result.imported} wines from your Vivino
+                  Successfully imported {result.imported || 0} wines from your Vivino
                   collection
                 </p>
               </div>
@@ -443,7 +415,7 @@ export function VivinoMigration() {
             </div>
           )}
 
-          {result.failed > 0 && (
+          {result.failed && result.failed > 0 && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
               <div className="flex items-start space-x-2">
                 <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5" />
@@ -452,13 +424,13 @@ export function VivinoMigration() {
                     Some wines could not be imported
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {result.failed} wines failed to import. This is usually due
+                    {result.failed || 0} wines failed to import. This is usually due
                     to missing or invalid data.
                   </p>
-                  {result.errors.length > 0 && (
+                  {result.errors && result.errors.length > 0 && (
                     <div className="mt-3 space-y-1">
                       <p className="text-sm font-medium">Errors:</p>
-                      {result.errors.slice(0, 5).map((error, i) => (
+                      {result.errors?.slice(0, 5).map((error, i) => (
                         <p key={i} className="text-xs text-muted-foreground">
                           • {error}
                         </p>
@@ -657,12 +629,12 @@ export function VivinoMigration() {
                     <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                     <div>
                       <p className="font-medium">
-                        {fixResult.queued > 0
+                        {fixResult.queued && fixResult.queued > 0
                           ? "Wines Queued for Enhancement"
                           : "No Enhancement Needed"}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {fixResult.queued > 0
+                        {fixResult.queued && fixResult.queued > 0
                           ? `${fixResult.queued} wines queued for processing`
                           : fixResult.message}
                       </p>

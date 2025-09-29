@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { Upload, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
 
 interface AvatarUploadProps {
   userId: string;
@@ -80,8 +80,8 @@ export function AvatarUpload({
 
       onAvatarUpdate(publicUrl);
       toast.success("Avatar updated successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to upload avatar");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to upload avatar");
       console.error("Error uploading avatar:", error);
     } finally {
       setUploading(false);
@@ -115,8 +115,8 @@ export function AvatarUpload({
 
       onAvatarUpdate(null);
       toast.success("Avatar removed successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to remove avatar");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove avatar");
       console.error("Error removing avatar:", error);
     } finally {
       setRemoving(false);

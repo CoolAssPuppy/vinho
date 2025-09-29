@@ -12,23 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ProfileStatsCards } from "./ProfileStatsCards";
-
-interface ProfileData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  description: string;
-}
-
-interface ProfileStats {
-  wines: number;
-  notes: number;
-  regions: number;
-  favorites: number;
-}
+import type { ProfileFormData, ProfileStats } from "@/lib/types/shared";
 
 interface PersonalInfoTabProps {
-  profile: ProfileData;
+  profile: ProfileFormData;
   stats: ProfileStats;
   onProfileUpdate: (
     firstName: string,

@@ -1,12 +1,6 @@
 import { Wine, BookOpen, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-
-interface ProfileStats {
-  wines: number;
-  notes: number;
-  regions: number;
-  favorites: number;
-}
+import type { ProfileStats } from "@/lib/types/shared";
 
 interface ProfileStatsCardsProps {
   stats: ProfileStats;

@@ -16,7 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlaceAutocomplete } from "@/components/ui/place-autocomplete";
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
 
 interface TastingNoteFormProps {
   tastingId?: string;

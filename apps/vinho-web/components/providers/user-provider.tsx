@@ -9,7 +9,7 @@ import {
 } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
 
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 

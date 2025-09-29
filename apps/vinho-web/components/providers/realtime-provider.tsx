@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
 
 interface RealtimeContextType {
   // Add any realtime methods we might need

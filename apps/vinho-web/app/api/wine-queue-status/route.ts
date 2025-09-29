@@ -1,26 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
+import type { QueueStatus } from "@/lib/types/shared";
 
 export const runtime = "nodejs";
-
-interface QueueStatus {
-  pending: number;
-  working: number;
-  completed: number;
-  failed: number;
-  total: number;
-  isProcessing: boolean;
-  recentlyCompleted: Array<{
-    wine_name: string;
-    producer_name: string;
-    completed_at: string;
-  }>;
-  errors: Array<{
-    wine_name: string;
-    producer_name: string;
-    error_message: string;
-  }>;
-}
 
 export async function GET(request: NextRequest) {
   try {

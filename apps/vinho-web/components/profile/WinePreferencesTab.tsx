@@ -279,14 +279,7 @@ const WINE_STYLES = [
   "Concrete",
 ];
 
-interface WinePreferences {
-  wine_types: string[];
-  favorite_regions: string[];
-  favorite_varietals: string[];
-  favorite_styles: string[];
-  price_range: { low: number; high: number };
-  tasting_note_style: string;
-}
+import type { WinePreferences } from "@/lib/types/shared";
 
 interface WinePreferencesTabProps {
   onPreferencesChange?: (preferences: WinePreferences) => void;

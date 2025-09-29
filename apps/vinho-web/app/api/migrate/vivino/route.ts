@@ -16,22 +16,10 @@ import {
   ensureWineImagesBucket,
 } from "@/app/lib/image-storage";
 import { getMigrationStartedEmail } from "@/lib/emails/templates";
+import type { MigrationResult } from "@/lib/types/shared";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes for large imports
-
-interface MigrationResult {
-  success: boolean;
-  imported: number;
-  failed: number;
-  errors: string[];
-  details?: {
-    producers: number;
-    wines: number;
-    vintages: number;
-    tastings: number;
-  };
-}
 
 export async function POST(request: NextRequest) {
   try {

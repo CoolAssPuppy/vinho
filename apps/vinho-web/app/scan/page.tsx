@@ -15,16 +15,8 @@ import {
 import { scanWineLabel } from "@/lib/actions/scan";
 import { toast } from "sonner";
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@/types/database";
-
-type ScanStatus = "idle" | "uploading" | "processing" | "completed" | "error";
-
-interface ScanResult {
-  scanId: string;
-  queueItemId?: string;
-  wineData?: unknown;
-  error?: string;
-}
+import type { Database } from "@/lib/database.types";
+import type { ScanStatus, ScanResult } from "@/lib/types/shared";
 
 export default function ScanPage() {
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");

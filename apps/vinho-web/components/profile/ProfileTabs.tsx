@@ -6,23 +6,10 @@ import { WinePreferencesTab } from "./WinePreferencesTab";
 import { HelpCenterTab } from "./HelpCenterTab";
 import { AboutTab } from "./AboutTab";
 import { VivinoMigration } from "@/components/profile/VivinoMigration";
-
-interface ProfileData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  description: string;
-}
-
-interface ProfileStats {
-  wines: number;
-  notes: number;
-  regions: number;
-  favorites: number;
-}
+import type { ProfileFormData, ProfileStats } from "@/lib/types/shared";
 
 interface ProfileTabsProps {
-  profile: ProfileData;
+  profile: ProfileFormData;
   stats: ProfileStats;
   onProfileUpdate: (
     firstName: string,

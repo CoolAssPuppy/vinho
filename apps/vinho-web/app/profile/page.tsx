@@ -3,32 +3,20 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { Camera } from "lucide-react";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
+import type { UserProfile, ProfileStats } from "@/lib/types/shared";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
-
-interface UserProfile {
-  full_name: string | null;
-  description: string | null;
-  avatar_url: string | null;
-}
-
-interface Stats {
-  wines: number;
-  notes: number;
-  regions: number;
-  favorites: number;
-}
 
 export default function ProfilePage() {
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [profile, setProfile] = useState<UserProfile>({
     full_name: "Wine Enthusiast",
     description: null,
     avatar_url: null,
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [stats, setStats] = useState<Stats>({
+  const [stats, setStats] = useState<ProfileStats>({
     wines: 0,
     notes: 0,
     regions: 0,
@@ -97,12 +85,12 @@ export default function ProfilePage() {
               avatar_url: string | null;
               description: string | null;
             } | null;
-            error: any;
+            error: unknown;
           };
 
           if (!mounted) return;
 
-          if (profileError && profileError.code !== "PGRST116") {
+          if (profileError && (profileError as any).code !== "PGRST116") {
             console.error("Error fetching profile:", profileError);
           }
 

@@ -12,28 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { format } from "date-fns";
-
-interface Tasting {
-  id: string;
-  verdict: number | null;
-  notes: string | null;
-  detailed_notes: string | null;
-  tasted_at: string;
-  location_name?: string | null;
-  location_city?: string | null;
-  image_url?: string | null;
-  vintage: {
-    id: string;
-    year: number | null;
-    wine: {
-      name: string;
-      producer: {
-        name: string;
-        city?: string | null;
-      };
-    };
-  };
-}
+import type { Tasting } from "@/lib/types/shared";
 
 interface TastingCardProps {
   tasting: Tasting;

@@ -18,36 +18,13 @@ import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogContentNoX } from "@/components/ui/dialog-no-x";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
 import { TastingNoteForm } from "@/components/tasting/tasting-note-form";
 import { TastingCard } from "@/components/journal/tasting-card";
 import { SearchBar } from "@/components/journal/SearchBar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-
-type Tasting = {
-  id: string;
-  verdict: number | null;
-  notes: string | null;
-  detailed_notes: string | null;
-  tasted_at: string;
-  location_name?: string | null;
-  location_address?: string | null;
-  location_city?: string | null;
-  location_latitude?: number | null;
-  location_longitude?: number | null;
-  vintage: {
-    id: string;
-    year: number | null;
-    wine: {
-      name: string;
-      producer: {
-        name: string;
-        city?: string | null;
-      };
-    };
-  };
-};
+import type { Tasting } from "@/lib/types/shared";
 
 type WineRecommendation = {
   restaurant_name: string;
@@ -440,8 +417,28 @@ export default function JournalPage() {
       console.error("Error fetching tastings:", error);
     } else if (data) {
       // Transform the nested data structure
+      interface RawTastingData {
+        id: string;
+        verdict: number | null;
+        notes: string | null;
+        detailed_notes: string | null;
+        tasted_at: string | null;
+        location_name: string | null;
+        location_city: string | null;
+        image_url: string | null;
+        vintage: {
+          id: string;
+          year: number | null;
+          wine: {
+            name: string;
+            producer: {
+              name: string;
+            } | null;
+          } | null;
+        } | null;
+      }
       const transformedData = data
-        .map((item: any) => ({
+        .map((item: RawTastingData) => ({
           id: item.id,
           verdict: item.verdict,
           notes: item.notes,
@@ -648,7 +645,16 @@ export default function JournalPage() {
               onResults={(results) => {
                 setIsSearching(true);
                 // Map search results to Tasting format
-                const mappedResults = results.map((r: any) => ({
+                interface SearchResult {
+                  tasting_id: string;
+                  verdict: number | null;
+                  notes: string | null;
+                  location_name: string | null;
+                  vintage_year: number | null;
+                  wine_name: string | null;
+                  producer_name: string | null;
+                }
+                const mappedResults = results.map((r: SearchResult) => ({
                   id: r.tasting_id,
                   verdict: r.verdict,
                   notes: r.notes,

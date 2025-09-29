@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const years: number[] = [];
 
     if (tastingData) {
-      tastingData.forEach((tasting: any) => {
+      tastingData.forEach((tasting) => {
         const vintage = tasting.vintages;
         if (vintage) {
           const wine = vintage.wines;
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL || "Vinho <noreply@vinho.app>",
         to: user.email,
-        subject: "🎉 Your Wine Collection is Ready!",
+        subject: "🎉 Your Tasting Journal is Ready!",
         html: emailHtml,
       }),
     });
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Migration completion email sent",
+      message: "Tasting journal completion email sent",
       stats,
     });
   } catch (error) {

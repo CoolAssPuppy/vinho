@@ -26,7 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@supabase/ssr";
 import { useDebounce } from "@/hooks/use-debounce";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
+import type { WineLocation, RecentWine, WineStats } from "@/lib/types/shared";
 import {
   Table,
   TableBody,
@@ -48,44 +49,6 @@ const WineMap = dynamic(() => import("@/components/map/WineMap"), {
   ),
 });
 
-interface WineLocation {
-  id: string;
-  name: string;
-  producer: string;
-  producer_address?: string | null;
-  producer_city?: string | null;
-  producer_website?: string | null;
-  region: string;
-  country: string;
-  year: number | null;
-  varietals: string[];
-  latitude: number | null;
-  longitude: number | null;
-  vineyard_name: string | null;
-  tasted_location?: string | null;
-  tasted_date?: Date;
-}
-
-interface RecentWine {
-  id: string;
-  wine_name: string;
-  producer_name: string;
-  region: string;
-  country: string;
-  vintage_year: number | null;
-  vintage_id: string;
-  abv: number | null;
-  rating: number | null;
-  tasted_at: string;
-  location_name: string | null;
-  location_address: string | null;
-  location_city: string | null;
-  location_latitude: number | null;
-  location_longitude: number | null;
-  notes: string | null;
-  detailed_notes: string | null;
-}
-
 type MapView = "origins" | "tastings";
 
 interface MapBounds {
@@ -93,23 +56,6 @@ interface MapBounds {
   south: number;
   east: number;
   west: number;
-}
-
-interface WineStats {
-  total_tastings: number;
-  unique_wines: number;
-  unique_producers: number;
-  unique_regions: number;
-  unique_countries: number;
-  white_wines: number;
-  red_wines: number;
-  rose_wines: number;
-  sparkling_wines: number;
-  fortified_wines: number;
-  unique_tasting_locations: number;
-  tastings_last_30_days: number;
-  average_rating: number;
-  favorites: number;
 }
 
 export default function MapPage() {
@@ -200,8 +146,35 @@ export default function MapPage() {
         .limit(10);
 
       if (recentData) {
+        interface TastingData {
+          id: string;
+          verdict?: number | null;
+          tasted_at?: string | null;
+          location_name?: string | null;
+          location_address?: string | null;
+          location_city?: string | null;
+          location_latitude?: number | null;
+          location_longitude?: number | null;
+          notes?: string | null;
+          detailed_notes?: string | null;
+          vintage?: {
+            id: string;
+            year?: number | null;
+            abv?: number | null;
+            wine?: {
+              name?: string;
+              producer?: {
+                name?: string;
+                region?: {
+                  name?: string;
+                  country?: string;
+                };
+              };
+            };
+          } | null;
+        }
         const formattedRecent: RecentWine[] = recentData.map(
-          (tasting: any) => ({
+          (tasting) => ({
             id: tasting.id,
             wine_name: tasting.vintage?.wine?.name || "Unknown Wine",
             producer_name:
@@ -212,7 +185,7 @@ export default function MapPage() {
             vintage_id: tasting.vintage?.id,
             abv: tasting.vintage?.abv,
             rating: tasting.verdict,
-            tasted_at: tasting.tasted_at,
+            tasted_at: tasting.tasted_at || null,
             location_name: tasting.location_name,
             location_address: tasting.location_address,
             location_city: tasting.location_city,
@@ -295,9 +268,9 @@ export default function MapPage() {
         const locations: WineLocation[] = [];
 
         for (const tasting of tastings) {
-          const typedTasting = tasting as any;
+          const typedTasting = tasting;
           if (typedTasting.vintage?.wine?.producer) {
-            const producer = typedTasting.vintage.wine.producer as any;
+            const producer = typedTasting.vintage.wine.producer;
             const region = producer.region?.name || "";
             const country = producer.region?.country || "";
 
@@ -613,7 +586,7 @@ export default function MapPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {new Date(wine.tasted_at).toLocaleDateString()}
+                    {wine.tasted_at ? new Date(wine.tasted_at).toLocaleDateString() : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))}
@@ -633,11 +606,11 @@ export default function MapPage() {
           {selectedTasting && (
             <TastingNoteForm
               tastingId={selectedTasting.id}
-              vintageId={selectedTasting.vintage_id}
+              vintageId={selectedTasting.vintage_id || ''}
               initialRating={selectedTasting.rating || 0}
               initialNotes={selectedTasting.notes || ""}
               initialDetailedNotes={selectedTasting.detailed_notes || ""}
-              initialTastedAt={selectedTasting.tasted_at}
+              initialTastedAt={selectedTasting.tasted_at || undefined}
               initialLocationName={selectedTasting.location_name || ""}
               initialLocationAddress={selectedTasting.location_address || ""}
               initialLocationCity={selectedTasting.location_city || ""}

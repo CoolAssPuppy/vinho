@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     // First try text search (faster and doesn't cost API calls)
-    const { data: textResults, error: textError } = await (supabase as any).rpc(
+    const { data: textResults, error: textError } = await supabase.rpc(
       "search_tastings_text",
       {
         query,
@@ -47,13 +47,14 @@ export async function GET(request: NextRequest) {
     try {
       const embedding = await generateEmbedding(query);
 
-      const { data: vectorResults, error: vectorError } = await (
-        supabase as any
-      ).rpc("search_tastings_vector", {
-        query_embedding: embedding,
-        match_count: limit,
-        user_id_filter: user.id,
-      });
+      const { data: vectorResults, error: vectorError } = await supabase.rpc(
+        "search_tastings_vector",
+        {
+          query_embedding: embedding as unknown as string, // PostgreSQL vector type
+          match_count: limit,
+          user_id_filter: user.id,
+        },
+      );
 
       if (vectorError) {
         console.error("Vector search error:", vectorError);
@@ -61,8 +62,12 @@ export async function GET(request: NextRequest) {
       }
 
       // Filter results by similarity threshold
+      interface VectorResult {
+        similarity: number;
+        [key: string]: unknown;
+      }
       const filteredResults =
-        vectorResults?.filter((r: any) => r.similarity > 0.7) || [];
+        vectorResults?.filter((r: VectorResult) => r.similarity > 0.7) || [];
 
       return NextResponse.json({
         results: filteredResults,
