@@ -48,10 +48,10 @@ describe("Wine Processing Pipeline", () => {
     await supabaseAdmin.auth.admin.deleteUser(testUserId);
   });
 
-  describe("wines_added table", () => {
+  describe("wines_added_queue table", () => {
     test("should create a wine queue entry", async () => {
       const { data, error } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .insert({
           user_id: testUserId,
           image_url: "https://example.com/test-wine.jpg",
@@ -71,7 +71,7 @@ describe("Wine Processing Pipeline", () => {
       const idempotencyKey = "test-key-" + Date.now();
 
       // First insert should succeed
-      const { error: error1 } = await supabaseAdmin.from("wines_added").insert({
+      const { error: error1 } = await supabaseAdmin.from("wines_added_queue").insert({
         user_id: testUserId,
         image_url: "https://example.com/wine1.jpg",
         idempotency_key: idempotencyKey,
@@ -81,7 +81,7 @@ describe("Wine Processing Pipeline", () => {
       expect(error1).toBeNull();
 
       // Second insert with same key should fail
-      const { error: error2 } = await supabaseAdmin.from("wines_added").insert({
+      const { error: error2 } = await supabaseAdmin.from("wines_added_queue").insert({
         user_id: testUserId,
         image_url: "https://example.com/wine2.jpg",
         idempotency_key: idempotencyKey,
@@ -93,13 +93,13 @@ describe("Wine Processing Pipeline", () => {
     });
   });
 
-  describe("claim_wines_added_jobs function", () => {
+  describe("claim_wines_added_queue_jobs function", () => {
     test("should atomically claim pending jobs", async () => {
       // Create test jobs
       const jobs = [];
       for (let i = 0; i < 3; i++) {
         const { data } = await supabaseAdmin
-          .from("wines_added")
+          .from("wines_added_queue")
           .insert({
             user_id: testUserId,
             image_url: `https://example.com/claim-test-${i}.jpg`,
@@ -112,7 +112,7 @@ describe("Wine Processing Pipeline", () => {
 
       // Claim 2 jobs
       const { data: claimedJobs, error } = await supabaseAdmin.rpc(
-        "claim_wines_added_jobs",
+        "claim_wines_added_queue_jobs",
         { p_limit: 2 },
       );
 
@@ -123,7 +123,7 @@ describe("Wine Processing Pipeline", () => {
 
       // Verify remaining job is still pending
       const { data: remainingJobs } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .select("*")
         .eq("status", "pending")
         .eq("user_id", testUserId);
@@ -134,7 +134,7 @@ describe("Wine Processing Pipeline", () => {
     test("should handle concurrent claims correctly", async () => {
       // Create a single job
       const { data: job } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .insert({
           user_id: testUserId,
           image_url: "https://example.com/concurrent-test.jpg",
@@ -145,8 +145,8 @@ describe("Wine Processing Pipeline", () => {
 
       // Try to claim the same job concurrently
       const [result1, result2] = await Promise.all([
-        supabaseAdmin.rpc("claim_wines_added_jobs", { p_limit: 1 }),
-        supabaseAdmin.rpc("claim_wines_added_jobs", { p_limit: 1 }),
+        supabaseAdmin.rpc("claim_wines_added_queue_jobs", { p_limit: 1 }),
+        supabaseAdmin.rpc("claim_wines_added_queue_jobs", { p_limit: 1 }),
       ]);
 
       // Only one should succeed
@@ -303,7 +303,7 @@ describe("Wine Processing Pipeline", () => {
     test("should increment retry count on failure", async () => {
       // Create a job
       const { data: job } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .insert({
           user_id: testUserId,
           image_url: "https://example.com/retry-test.jpg",
@@ -315,7 +315,7 @@ describe("Wine Processing Pipeline", () => {
 
       // Simulate failure by updating retry count
       const { data: updated } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .update({
           retry_count: 3,
           status: "pending",
@@ -329,7 +329,7 @@ describe("Wine Processing Pipeline", () => {
 
       // Next failure should mark as failed
       const { data: failed } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .update({
           retry_count: 4,
           status: "failed",
@@ -348,7 +348,7 @@ describe("Wine Processing Pipeline", () => {
     test("should process queue successfully", async () => {
       // Create a test job with mock data
       const { data: job } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .insert({
           user_id: testUserId,
           image_url:
@@ -389,7 +389,7 @@ describe("Wine Processing Pipeline", () => {
         .single();
 
       const { data: queueItem } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .insert({
           user_id: testUserId,
           image_url: "https://example.com/cleanup-test.jpg",
@@ -406,12 +406,12 @@ describe("Wine Processing Pipeline", () => {
       );
 
       expect(cleanupResult.success).toBe(true);
-      expect(cleanupResult.stats.wines_added_deleted).toBeGreaterThanOrEqual(1);
+      expect(cleanupResult.stats.wines_added_queue_deleted).toBeGreaterThanOrEqual(1);
       expect(cleanupResult.stats.scans_deleted).toBeGreaterThanOrEqual(1);
 
       // Verify data is deleted
       const { data: remainingQueue } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .select("*")
         .eq("id", queueItem.id)
         .single();
@@ -421,7 +421,7 @@ describe("Wine Processing Pipeline", () => {
 
     test("should clean up all data when delete_all is true", async () => {
       // Create test data
-      await supabaseAdmin.from("wines_added").insert({
+      await supabaseAdmin.from("wines_added_queue").insert({
         user_id: testUserId,
         image_url: "https://example.com/delete-all-test.jpg",
         status: "pending",
@@ -436,9 +436,9 @@ describe("Wine Processing Pipeline", () => {
       expect(cleanupResult.success).toBe(true);
       expect(cleanupResult.message).toContain("All wine processing data");
 
-      // Verify all wines_added are deleted
+      // Verify all wines_added_queue are deleted
       const { count } = await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .select("*", { count: "exact", head: true });
 
       expect(count).toBe(0);

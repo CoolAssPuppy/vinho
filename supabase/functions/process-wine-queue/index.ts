@@ -1,6 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
+import { AI_PROMPTS, getPrompt } from "../../shared/ai-prompts-library.ts";
+import {
+  enrichWineWithAI,
+  storeGrapeVarietals,
+  updateWineWithEnrichment,
+  type WineData,
+  type WineEnrichmentData
+} from "../../shared/wine-enrichment.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -93,46 +101,8 @@ async function enrichWineData(
     return data;
   }
 
-  const enrichPrompt = `You are a wine expert with extensive knowledge of global wine regions and producers.
-
-Given this wine information:
-- Producer: ${data.producer}
-- Wine: ${data.wine_name}
-- Year: ${data.year || "unknown"}
-- Region: ${data.region || "unknown"}
-- Country: ${data.country || "unknown"}
-- Current varietals: ${data.varietals.length > 0 ? data.varietals.join(", ") : "none identified"}
-- Website: ${data.producer_website || "unknown"}
-- Address: ${data.producer_address || "unknown"}
-
-Based on your knowledge of this producer and wine, provide any KNOWN missing information:
-
-1. If the year is missing but this is a known vintage wine (not NV), what years are most common?
-2. What grape varieties is this wine TYPICALLY made from?
-3. What is the specific region/appellation if not provided?
-4. What country is this from if not specified?
-5. What is the producer's website if you know it?
-6. CRITICAL: What is the producer's ACTUAL WINERY ADDRESS in ${data.region || data.country || "their production region"}?
-   - This must be the address where the wine is PRODUCED, not a sales office
-   - The address should be IN or NEAR ${data.region || "the wine region"}
-   - Include street address, city, postal code if known
-   - Example: If the wine is from Etna DOC, the address should be in Mount Etna area, Sicily (e.g., Passopisciaro, Randazzo, etc.)
-   - Example: If the wine is from Bordeaux, the address should be in the specific Bordeaux appellation
-   - If the producer "${data.producer}" has multiple locations, provide the one for THIS wine
-7. What are the GPS coordinates (latitude/longitude) of the WINERY/VINEYARD location?
-   - These should match the production address, not a corporate office
-   - If exact coordinates unknown, use the town/village center where the winery is located
-   - For "${data.producer}" in ${data.region || "the region"}, what are the correct coordinates?
-
-IMPORTANT:
-- Only provide information you are CONFIDENT about based on the producer and wine name
-- For varietals, only list grapes that are CONSISTENTLY used in this wine
-- The producer address MUST be in the wine region (${data.region || data.country || "where the wine is made"}), not elsewhere
-- If unsure of exact address but know the town/village, provide that with approximate coordinates
-- Search for "${data.producer}" specifically in "${data.region || data.country}" to find the correct location
-- Return the same JSON format with filled data where confident
-
-Return JSON with all the same fields, updating only where you have high confidence.`;
+  const prompts = getPrompt('WINE_DATA_ENRICHMENT', data);
+  const enrichPrompt = prompts.user;
 
   try {
     const response = await openai.chat.completions.create({
@@ -140,8 +110,7 @@ Return JSON with all the same fields, updating only where you have high confiden
       messages: [
         {
           role: "system",
-          content:
-            "You are a wine expert. Return only valid JSON matching the schema.",
+          content: prompts.system,
         },
         { role: "user", content: enrichPrompt },
       ],
@@ -211,45 +180,9 @@ async function extractWithOpenAI(
 ): Promise<ExtractedWineData> {
   const model = useGpt4 ? "gpt-4o" : "gpt-4o-mini";
 
-  const systemPrompt =
-    "You are a master sommelier with expertise in reading wine labels. Extract ONLY information that is VISIBLE on the label. Output JSON that matches the schema. Use null for missing data, never invent or assume information.";
-
-  const userPrompt = `Carefully examine this wine label and extract the following information.
-${ocrText ? `\nOCR Text detected: "${ocrText}"` : ""}
-
-CRITICAL EXTRACTION PRIORITIES:
-1. Producer/Winery name - Look for the largest or most prominent text
-2. Wine name/Cuvée - The specific wine designation or proprietary name
-3. Vintage year - Usually a 4-digit number (1990-2025), often near the wine name
-4. Grape varieties - May be listed as percentages or single varietal
-5. Region/Appellation - Geographic origin (e.g., "Napa Valley", "Bordeaux", "Etna")
-6. Alcohol content - Usually shown as "% ALC/VOL" or "% ABV"
-7. Country - May be explicit or inferred from region
-8. Producer address - Look for street address, city, postal code on back label
-9. Producer website - Often shown as www.something.com or just domain.com
-
-IMPORTANT NOTES:
-- For vintage: Look carefully for any 4-digit year. If no year is visible, return null (do NOT assume NV)
-- For varietals: Look for grape names like "Pinot Noir", "Chardonnay", "Nerello Mascalese", etc.
-- Natural wines often have minimal text - extract what you can see
-- Some wines use proprietary names instead of varietals - that's okay
-- Look carefully for producer contact info on both front and back labels
-
-Return a JSON object with these fields:
-- producer: The winery/producer name (required)
-- wine_name: The specific wine name/cuvée (required)
-- year: The vintage year as integer, or null if not visible
-- country: Country of origin or null
-- region: Wine region/appellation or null
-- varietals: Array of grape variety names (empty array if not visible)
-- abv_percent: Alcohol by volume as number (e.g., 13.5) or null
-- confidence: Your confidence level from 0-1 based on label clarity (required)
-- producer_website: Website URL if visible or null
-- producer_address: Street address if visible or null
-- producer_city: City name if visible or null
-- producer_postal_code: Postal/zip code if visible or null
-- latitude: null (will be enriched later)
-- longitude: null (will be enriched later)`;
+  const prompts = getPrompt('WINE_LABEL_EXTRACTION', ocrText);
+  const systemPrompt = prompts.system;
+  const userPrompt = prompts.user;
 
   const response = await openai.chat.completions.create({
     model,
@@ -621,7 +554,7 @@ async function markCompleted(
   processedData: ExtractedWineData,
 ): Promise<void> {
   await supabase
-    .from("wines_added")
+    .from("wines_added_queue")
     .update({
       status: "completed",
       processed_data: processedData,
@@ -636,7 +569,7 @@ async function handleFailure(job: WineQueueItem, error: Error): Promise<void> {
   const status = newRetryCount > 3 ? "failed" : "pending";
 
   await supabase
-    .from("wines_added")
+    .from("wines_added_queue")
     .update({
       status,
       retry_count: newRetryCount,
@@ -655,7 +588,7 @@ async function processJob(
     if (!job.idempotency_key) {
       const key = await computeIdempotencyKey(job.image_url, job.ocr_text);
       await supabase
-        .from("wines_added")
+        .from("wines_added_queue")
         .update({ idempotency_key: key })
         .eq("id", job.id);
       job.idempotency_key = key;
@@ -664,7 +597,7 @@ async function processJob(
     // Check for duplicate completed job
     if (job.idempotency_key) {
       const { data: duplicate } = await supabase
-        .from("wines_added")
+        .from("wines_added_queue")
         .select("processed_data")
         .eq("idempotency_key", job.idempotency_key)
         .eq("status", "completed")
@@ -763,6 +696,30 @@ async function processJob(
       console.log(`Created tasting for vintage ${vintageId}`);
     }
 
+    // Queue wine for enrichment
+    const { error: enrichmentQueueError } = await supabase
+      .from("wines_enrichment_queue")
+      .insert({
+        vintage_id: vintageId,
+        wine_id: wineId,
+        user_id: job.user_id,
+        producer_name: result.producer,
+        wine_name: result.wine_name,
+        year: result.year,
+        region: result.region,
+        country: result.country,
+        existing_varietals: result.varietals || [],
+        priority: 1, // Higher priority for new scans
+      })
+      .select();
+
+    if (enrichmentQueueError && !enrichmentQueueError.message.includes("duplicate")) {
+      console.error(`Failed to queue enrichment for vintage ${vintageId}:`, enrichmentQueueError);
+      // Don't fail the job if enrichment queueing fails
+    } else if (!enrichmentQueueError) {
+      console.log(`Queued enrichment for vintage ${vintageId}`);
+    }
+
     // Mark job as completed
     await markCompleted(job.id, result);
 
@@ -791,7 +748,7 @@ Deno.serve(async (req: Request) => {
 
     // Claim jobs atomically
     const { data: jobs, error: claimError } = await supabase.rpc(
-      "claim_wines_added_jobs",
+      "claim_wines_added_queue_jobs",
       { p_limit: limit },
     );
 

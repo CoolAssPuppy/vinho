@@ -70,7 +70,7 @@ async function processWineQueueItem(
 
     // Update the queue item as processed
     await supabaseClient
-      .from("wines_added")
+      .from("wines_added_queue")
       .update({
         status: "completed",
         processed_data: parsed,
@@ -84,7 +84,7 @@ async function processWineQueueItem(
     const newRetryCount = item.retry_count + 1;
     if (newRetryCount >= 3) {
       await supabaseClient
-        .from("wines_added")
+        .from("wines_added_queue")
         .update({
           status: "failed",
           retry_count: newRetryCount,
@@ -94,7 +94,7 @@ async function processWineQueueItem(
         .eq("id", item.id);
     } else {
       await supabaseClient
-        .from("wines_added")
+        .from("wines_added_queue")
         .update({
           status: "pending",
           retry_count: newRetryCount,
@@ -164,7 +164,7 @@ describe("Process Wine Queue Logic", () => {
       ],
     });
 
-    expect(mockSupabaseClient.from).toHaveBeenCalledWith("wines_added");
+    expect(mockSupabaseClient.from).toHaveBeenCalledWith("wines_added_queue");
     expect(mockSupabaseClient.mockUpdate).toHaveBeenCalledWith({
       status: "completed",
       processed_data: {

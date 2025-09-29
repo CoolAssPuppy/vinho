@@ -7,7 +7,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 interface CleanupStats {
-  wines_added_deleted: number;
+  wines_added_queue_deleted: number;
   scans_deleted: number;
   tastings_deleted: number;
   photos_deleted: number;
@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const stats: CleanupStats = {
-      wines_added_deleted: 0,
+      wines_added_queue_deleted: 0,
       scans_deleted: 0,
       tastings_deleted: 0,
       photos_deleted: 0,
@@ -57,15 +57,15 @@ Deno.serve(async (req: Request) => {
 
     // Start transaction-like cleanup from most dependent to least dependent tables
 
-    // 1. Delete wines_added queue entries
-    const winesAddedQuery = supabase.from("wines_added").select("id");
+    // 1. Delete wines_added_queue queue entries
+    const winesAddedQuery = supabase.from("wines_added_queue").select("id");
     if (userId) winesAddedQuery.eq("user_id", userId);
 
     const { data: winesAddedToDelete } = await winesAddedQuery;
 
     if (winesAddedToDelete && winesAddedToDelete.length > 0) {
       const { error } = await supabase
-        .from("wines_added")
+        .from("wines_added_queue")
         .delete()
         .in(
           "id",
@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
         );
 
       if (!error) {
-        stats.wines_added_deleted = winesAddedToDelete.length;
+        stats.wines_added_queue_deleted = winesAddedToDelete.length;
       }
     }
 

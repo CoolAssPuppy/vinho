@@ -605,7 +605,7 @@ extension JournalView {
 
         do {
             let response = try await supabase
-                .from("wines_added")
+                .from("wines_added_queue")
                 .select("id, status")
                 .eq("user_id", value: userId.uuidString)
                 .in("status", values: ["pending", "working"])

@@ -255,11 +255,6 @@ struct CameraView: UIViewRepresentable {
     func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
-// Helper struct for decoding user profile
-struct UserTastingProfile: Decodable {
-    let tasting_note_style: String?
-}
-
 // Helper struct for encoding pending tasting notes
 struct PendingTastingNotes: Encodable {
     let rating: Int
@@ -267,6 +262,9 @@ struct PendingTastingNotes: Encodable {
     let detailed_notes: String?
     let location_name: String?
     let location_city: String?
+    let location_address: String?
+    let location_latitude: Double?
+    let location_longitude: Double?
 }
 
 // MARK: - Scan Result View
@@ -277,297 +275,183 @@ struct ScanResultView: View {
     @Environment(\.dismiss) private var dismiss
 
     // Processing state
-    @State private var isUploading = false  // Changed to false so form is interactive immediately
-    @State private var isProcessingImage = true  // Separate state for background upload
+    @State private var isProcessingImage = true
     @State private var winesAddedId: String?
     @State private var errorMessage: String?
     @State private var showingError = false
+    @State private var showingTastingEditor = false
+    @State private var pendingVintageId: UUID?
 
-    // Tasting entry
-    @State private var tastingStyle: TastingStyle = .casual
-    @State private var rating: Int = 0
-    @State private var notes = ""
-    @State private var detailedNotes = ""
-    @State private var locationName = ""
-    @State private var locationCity = ""
-
-    enum TastingStyle: String, CaseIterable {
-        case casual = "casual"
-        case sommelier = "sommelier"
-        case winemaker = "winemaker"
-
-        var title: String {
-            switch self {
-            case .casual: return "Casual"
-            case .sommelier: return "Sommelier"
-            case .winemaker: return "Winemaker"
-            }
-        }
-
-        var description: String {
-            switch self {
-            case .casual: return "Quick notes and rating"
-            case .sommelier: return "Service and pairing notes"
-            case .winemaker: return "Technical production details"
-            }
-        }
-
-        var prompt: String {
-            switch self {
-            case .casual: return "How was this wine?"
-            case .sommelier: return "Describe the wine's profile and food pairings"
-            case .winemaker: return "Note the technical aspects and winemaking details"
-            }
-        }
-    }
-
-    private var wineImageView: some View {
-        Image(uiImage: image)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(maxHeight: 200)
-            .cornerRadius(16)
-            .padding(.horizontal)
-            .padding(.top)
-    }
-
-    private var uploadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.2)
-                .tint(.vinoAccent)
-
-            Text("Uploading wine...")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.vinoText)
-        }
-        .frame(height: 100)
-        .frame(maxWidth: .infinity)
-    }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    wineImageView
+        ZStack {
+            Color.vinoDark.ignoresSafeArea()
 
-                    // Show status message
-                    HStack(spacing: 12) {
-                        if isProcessingImage {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .tint(.vinoAccent)
-                        } else {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.green)
-                        }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(isProcessingImage ? "Uploading wine photo..." : "Wine uploaded successfully!")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.vinoText)
-                            Text(isProcessingImage ? "You can start adding your notes while we process the image." : "AI is analyzing the label. Add your tasting notes below.")
-                                .font(.system(size: 13))
-                                .foregroundColor(.vinoTextSecondary)
-                        }
-                        Spacer()
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.green.opacity(0.1))
-                    )
+            VStack(spacing: 20) {
+                // Wine image at the top
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxHeight: 250)
+                    .cornerRadius(16)
                     .padding(.horizontal)
+                    .padding(.top, 40)
 
-                    // Tasting form is always visible now
-                    VStack(spacing: 20) {
-
-                            // No tasting style selector - using user's profile preference
-
-                            // Rating
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Rating")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.vinoTextSecondary)
-                                    .padding(.horizontal)
-
-                                HStack(spacing: 12) {
-                                    ForEach(1...5, id: \.self) { star in
-                                        Button {
-                                            rating = star
-                                            hapticManager.lightImpact()
-                                        } label: {
-                                            Image(systemName: star <= rating ? "star.fill" : "star")
-                                                .font(.system(size: 28))
-                                                .foregroundColor(star <= rating ? .vinoGold : .vinoBorder)
-                                        }
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                            }
-
-                            // Notes based on style
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(tastingStyle.prompt)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.vinoTextSecondary)
-                                    .padding(.horizontal)
-
-                                TextField("Add your notes...", text: $notes, axis: .vertical)
-                                    .textFieldStyle(.plain)
-                                    .padding(16)
-                                    .lineLimit(4...8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.vinoDarkSecondary)
-                                    )
-                                    .padding(.horizontal)
-
-                                if tastingStyle == .winemaker {
-                                    Text("Technical Details")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.vinoTextSecondary)
-                                        .padding(.horizontal)
-                                        .padding(.top, 8)
-
-                                    TextField("Winemaking techniques, oak treatment, fermentation...", text: $detailedNotes, axis: .vertical)
-                                        .textFieldStyle(.plain)
-                                        .padding(16)
-                                        .lineLimit(4...8)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.vinoDarkSecondary)
-                                        )
-                                        .padding(.horizontal)
-                                }
-                            }
-
-                            // Location
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Image(systemName: "mappin.circle")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.vinoAccent)
-                                    Text("Where are you tasting?")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.vinoTextSecondary)
-                                }
-                                .padding(.horizontal)
-
-                                VStack(spacing: 12) {
-                                    TextField("Location name (restaurant, bar, home...)", text: $locationName)
-                                        .textFieldStyle(.plain)
-                                        .padding(16)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.vinoDarkSecondary)
-                                        )
-
-                                    TextField("City (optional)", text: $locationCity)
-                                        .textFieldStyle(.plain)
-                                        .padding(16)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.vinoDarkSecondary)
-                                        )
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                        .padding(.bottom, 20)
-                }
-            }
-            .navigationTitle("Add Wine")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                // Processing status
+                HStack(spacing: 12) {
+                    if isProcessingImage {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .tint(.vinoAccent)
+                    } else {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.green)
                     }
-                }
 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        hapticManager.success()
-                        Task {
-                            await saveTastingNotes()
-                        }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(isProcessingImage ? "Processing wine label..." : "Wine ready for tasting notes!")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.vinoText)
+                        Text("Our AI sommelier is identifying this wine")
+                            .font(.system(size: 13))
+                            .foregroundColor(.vinoTextSecondary)
                     }
-                    .fontWeight(.semibold)
-                    .disabled(isUploading)
+                    Spacer()
                 }
-            }
-            .alert("Error", isPresented: $showingError) {
-                Button("OK") { }
-            } message: {
-                Text(errorMessage ?? "An error occurred")
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.green.opacity(0.1))
+                )
+                .padding(.horizontal)
+
+                Spacer()
+
+                // Add Notes button
+                Button {
+                    hapticManager.lightImpact()
+                    showingTastingEditor = true
+                } label: {
+                    HStack {
+                        Image(systemName: "note.text.badge.plus")
+                            .font(.system(size: 20))
+                        Text("Add Tasting Notes")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.vinoAccent)
+                    )
+                }
+                .padding(.horizontal)
+
+                // Skip button
+                Button {
+                    hapticManager.lightImpact()
+                    dismiss()
+                } label: {
+                    Text("Skip for Now")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.vinoTextSecondary)
+                }
+                .padding(.bottom, 40)
             }
         }
-        .onAppear {
-            Task {
-                // Load user's tasting style preference from profile
-                await loadUserProfile()
-                await uploadAndProcessWineImage()
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showingTastingEditor) {
+            // Use the proper TastingNoteEditorView
+            if let vintageId = pendingVintageId {
+                TastingNoteEditorView(vintageId: vintageId)
+                    .environmentObject(hapticManager)
+                    .environmentObject(authManager)
+                    .interactiveDismissDisabled()
+                    .onDisappear {
+                        // Dismiss the entire scan flow when done
+                        dismiss()
+                    }
+            } else {
+                // Fallback: create a placeholder view while waiting
+                ProgressView("Preparing editor...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.vinoDark)
             }
+        }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage ?? "An error occurred")
+        }
+        .task {
+            await uploadAndProcessWineImage()
         }
     }
 
-    private func loadUserProfile() async {
+
+    private func checkProcessingStatus() async {
+        // Poll for the vintage_id once processing completes
+        guard let winesAddedId = winesAddedId else { return }
+
+        for _ in 0..<30 { // Poll for up to 30 seconds
+            do {
+                let response = try await SupabaseManager.shared.client
+                    .from("wines_added_queue")
+                    .select("status, processed_data")
+                    .eq("id", value: winesAddedId)
+                    .single()
+                    .execute()
+
+                if let data = response.data as? [String: Any],
+                   let status = data["status"] as? String,
+                   status == "completed",
+                   let processedData = data["processed_data"] as? [String: Any] {
+                    // Successfully processed - we can now get the vintage_id
+                    // For now, we'll create a placeholder since the edge function handles this
+                    print("Wine processing completed")
+                    isProcessingImage = false
+
+                    // The vintage_id would be available after the edge function creates it
+                    // For now we'll use a placeholder approach
+                    await getVintageId()
+                    return
+                }
+            } catch {
+                print("Error checking status: \(error)")
+            }
+
+            try? await Task.sleep(for: .seconds(1))
+        }
+
+        // If we get here, processing took too long
+        isProcessingImage = false
+    }
+
+    private func getVintageId() async {
+        // Get the most recent tasting for this user to find the vintage_id
         do {
             let session = try await SupabaseManager.shared.client.auth.session
             let userId = session.user.id.uuidString.lowercased()
 
             let response = try await SupabaseManager.shared.client
-                .from("user_profiles")
-                .select("tasting_note_style")
+                .from("tastings")
+                .select("vintage_id")
                 .eq("user_id", value: userId)
+                .order("created_at", ascending: false)
+                .limit(1)
                 .single()
                 .execute()
 
-            let data = response.data
-            if let jsonData = try? JSONSerialization.data(withJSONObject: data),
-               let profile = try? JSONDecoder().decode(UserTastingProfile.self, from: jsonData),
-               let style = TastingStyle(rawValue: profile.tasting_note_style ?? "casual") {
-                tastingStyle = style
+            if let data = response.data as? [String: Any],
+               let vintageIdString = data["vintage_id"] as? String,
+               let vintageId = UUID(uuidString: vintageIdString) {
+                pendingVintageId = vintageId
             }
         } catch {
-            print("Failed to load user profile: \(error)")
-            tastingStyle = .casual // Default to casual
+            print("Error getting vintage_id: \(error)")
         }
-    }
-
-    private func saveTastingNotes() async {
-        // Save the tasting notes - they'll be associated with the wine once processing completes
-        guard let winesAddedId = winesAddedId else {
-            dismiss()
-            return
-        }
-
-        // Store the tasting data to the wines_added table to be picked up by edge function
-        let pendingNotes = PendingTastingNotes(
-            rating: rating,
-            notes: notes,
-            detailed_notes: detailedNotes.isEmpty ? nil : detailedNotes,
-            location_name: locationName.isEmpty ? nil : locationName,
-            location_city: locationCity.isEmpty ? nil : locationCity
-        )
-
-        // Update wines_added with pending tasting notes
-        do {
-            try await SupabaseManager.shared.client
-                .from("wines_added")
-                .update(["pending_tasting_notes": pendingNotes])
-                .eq("id", value: winesAddedId)
-                .execute()
-
-            print("Saved pending tasting notes to wines_added: \(winesAddedId)")
-        } catch {
-            print("Failed to save pending tasting notes: \(error)")
-        }
-
-        dismiss()
     }
 
     private func uploadAndProcessWineImage() async {
@@ -593,11 +477,11 @@ struct ScanResultView: View {
                 .from("scans")
                 .getPublicURL(path: fileName)
 
-            // Store the wines_added ID immediately for tasting notes
+            // Store the wines_added_queue ID immediately for tasting notes
             self.winesAddedId = queueId.uuidString
 
-            // Run database operations concurrently
-            async let uploadTask = SupabaseManager.shared.client.storage
+            // First, upload the image to storage
+            try await SupabaseManager.shared.client.storage
                 .from("scans")
                 .upload(
                     fileName,
@@ -605,7 +489,8 @@ struct ScanResultView: View {
                     options: .init(contentType: "image/jpeg")
                 )
 
-            async let scanTask = SupabaseManager.shared.client
+            // Second, insert into scans table
+            try await SupabaseManager.shared.client
                 .from("scans")
                 .insert([
                     "id": scanId.uuidString,
@@ -615,8 +500,9 @@ struct ScanResultView: View {
                 ])
                 .execute()
 
-            async let queueTask = SupabaseManager.shared.client
-                .from("wines_added")
+            // Finally, insert into wines_added_queue table (after scan_id exists)
+            try await SupabaseManager.shared.client
+                .from("wines_added_queue")
                 .insert([
                     "id": queueId.uuidString,
                     "user_id": userIdString,
@@ -626,9 +512,6 @@ struct ScanResultView: View {
                 ])
                 .execute()
 
-            // Wait for all operations to complete
-            let _ = try await (uploadTask, scanTask, queueTask)
-
             // Trigger edge function in background (don't wait)
             Task {
                 struct EmptyBody: Encodable {}
@@ -636,9 +519,11 @@ struct ScanResultView: View {
                     .invoke("process-wine-queue", options: FunctionInvokeOptions(body: EmptyBody()))
             }
 
-            // Show success immediately
+            // Start checking for processing completion
             await MainActor.run {
-                isProcessingImage = false
+                Task {
+                    await checkProcessingStatus()
+                }
                 hapticManager.success()
             }
 

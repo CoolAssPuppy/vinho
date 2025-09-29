@@ -447,7 +447,7 @@ export type Database = {
           },
         ];
       };
-      wines_added: {
+      wines_added_queue: {
         Row: {
           created_at: string | null;
           error_message: string | null;
@@ -492,7 +492,7 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "wines_added_scan_id_fkey";
+            foreignKeyName: "wines_added_queue_scan_id_fkey";
             columns: ["scan_id"];
             isOneToOne: false;
             referencedRelation: "scans";
@@ -823,7 +823,7 @@ export type Database = {
         Args: { data: string };
         Returns: string;
       };
-      claim_wines_added_jobs: {
+      claim_wines_added_queue_jobs: {
         Args: { p_limit: number };
         Returns: {
           created_at: string | null;

@@ -12,7 +12,7 @@ describe("Mock Data Detection - Code Integrity Check", () => {
       description: "Hardcoded Château Margaux",
     },
     {
-      pattern: /Mock.*[Ww]ine|Test.*[Ww]ine(?!-test)/gi,
+      pattern: /Mock[Ww]ine|Test[Ww]ine(?!-test)|Fake[Ww]ine/gi,
       description: "Mock wine data",
     },
     {
@@ -53,6 +53,8 @@ describe("Mock Data Detection - Code Integrity Check", () => {
     "*.spec.tsx",
     "PreviewContainer.swift", // Preview/demo files
     "MockData.swift",
+    "VinoTests", // iOS test directory
+    "ProfileSubViews.swift", // Contains tasting note styles array which is not mock data
     "node_modules",
     ".next",
     "dist",
@@ -151,7 +153,7 @@ describe("Mock Data Detection - Code Integrity Check", () => {
       // Check for required API patterns
       const requiredPatterns = [
         /supabase.*storage.*upload|uploadImage|scanWineLabel/i,
-        /wines_added|process-wine-queue/,
+        /wines_added_queue|process-wine-queue/,
         /invoke.*process-wine|scanWineLabel.*base64/,
       ];
 

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     // Get queue status counts
     const { data: statusCounts, error: countError } = await supabase
-      .from("wines_added")
+      .from("wines_added_queue")
       .select("status")
       .eq("user_id", user.id);
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     // Get recently completed wines (last 5)
     const { data: recentlyCompleted } = await supabase
-      .from("wines_added")
+      .from("wines_added_queue")
       .select(
         `
         processed_data,
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     // Get recent errors (last 3)
     const { data: recentErrors } = await supabase
-      .from("wines_added")
+      .from("wines_added_queue")
       .select(
         `
         processed_data,

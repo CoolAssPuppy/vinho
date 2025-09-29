@@ -96,7 +96,7 @@ describe("Wine Scan API Integration", () => {
 
     // Verify scan record creation
     expect(mockSupabaseClient.from).toHaveBeenCalledWith("scans");
-    expect(mockSupabaseClient.from).toHaveBeenCalledWith("wines_added");
+    expect(mockSupabaseClient.from).toHaveBeenCalledWith("wines_added_queue");
 
     // Verify edge function invocation
     expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledWith(
@@ -169,12 +169,12 @@ describe("Wine Scan API Integration", () => {
     await scanWineLabel(testImageBase64);
 
     const dbCalls = mockSupabaseClient.from.mock.calls;
-    const winesAddedCall = dbCalls.find((call) => call[0] === "wines_added");
+    const winesAddedCall = dbCalls.find((call) => call[0] === "wines_added_queue");
 
     expect(winesAddedCall).toBeDefined();
 
     // Verify the insert was called with correct structure
-    const insertMock = mockSupabaseClient.from("wines_added").insert;
+    const insertMock = mockSupabaseClient.from("wines_added_queue").insert;
     expect(insertMock).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: "test-user-id",

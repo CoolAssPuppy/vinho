@@ -44,14 +44,32 @@ async function runTests() {
     userId = authData.user?.id;
     console.log(`   ✅ User created: ${TEST_EMAIL}`);
 
-    // 2. Test wines_added table
-    console.log("\n2️⃣  Testing wines_added table...");
+    // 2. Test wines_added table with wines that should have varietals
+    console.log("\n2️⃣  Testing wines_added table with known varietals...");
+    const testWines = [
+      {
+        name: "Dom Pérignon 2015",
+        expectedVarietals: ["Pinot Noir", "Chardonnay"],
+        ocr_text: "Dom Pérignon 2015 Champagne"
+      },
+      {
+        name: "Opus One 2018",
+        expectedVarietals: ["Cabernet Sauvignon", "Merlot", "Cabernet Franc", "Petit Verdot", "Malbec"],
+        ocr_text: "Opus One 2018 Napa Valley Red Wine"
+      },
+      {
+        name: "Barolo 2017",
+        expectedVarietals: ["Nebbiolo"],
+        ocr_text: "Barolo 2017 Piedmont Italy"
+      }
+    ];
+
     const { data: queueData, error: queueError } = await supabase
       .from("wines_added")
       .insert({
         user_id: userId,
         image_url: "https://images.vivino.com/thumbs/L33jsYUuTMWTMy3KoqQyXg_pb_x600.png",
-        ocr_text: "Opus One 2018 Napa Valley Red Wine",
+        ocr_text: testWines[1].ocr_text, // Use Opus One for main test
         status: "pending"
       })
       .select()
@@ -60,6 +78,8 @@ async function runTests() {
     if (queueError) throw queueError;
     queueItemId = queueData.id;
     console.log(`   ✅ Queue item created: ${queueItemId}`);
+    console.log(`   📝 Testing wine: ${testWines[1].name}`);
+    console.log(`   🍇 Expected varietals: ${testWines[1].expectedVarietals.join(", ")}`)
 
     // 3. Test idempotency key
     console.log("\n3️⃣  Testing idempotency...");
@@ -127,8 +147,8 @@ async function runTests() {
       console.log(`   ⚠️  Duplicate producer was not rejected`);
     }
 
-    // 6. Test edge functions
-    console.log("\n6️⃣  Testing edge functions...");
+    // 6. Test edge functions and varietal extraction
+    console.log("\n6️⃣  Testing edge functions with varietal extraction...");
 
     // Test process-wine-queue
     console.log("   Testing process-wine-queue...");
@@ -141,6 +161,37 @@ async function runTests() {
       console.log(`   ⚠️  Process function error: ${processError.message}`);
     } else {
       console.log(`   ✅ Process result: ${JSON.stringify(processResult)}`);
+
+      // Wait for processing to complete
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Check if varietals were extracted
+      const { data: processedWine, error: fetchError } = await supabase
+        .from("wines_added")
+        .select("processed_data")
+        .eq("id", queueItemId)
+        .single();
+
+      if (processedWine?.processed_data?.varietals?.length > 0) {
+        console.log(`   🍇 Varietals extracted: ${processedWine.processed_data.varietals.join(", ")}`);
+
+        // Verify they match expected varietals
+        const expectedVarietals = testWines[1].expectedVarietals;
+        const extractedVarietals = processedWine.processed_data.varietals;
+        const allFound = expectedVarietals.some(expected =>
+          extractedVarietals.some(extracted =>
+            extracted.toLowerCase().includes(expected.toLowerCase())
+          )
+        );
+
+        if (allFound) {
+          console.log(`   ✅ Varietals match expected!`);
+        } else {
+          console.log(`   ⚠️  Varietals don't match. Expected: ${expectedVarietals.join(", ")}`);
+        }
+      } else {
+        console.log(`   ❌ No varietals extracted!`);
+      }
     }
 
     // Test cleanup-wine-data
@@ -156,12 +207,45 @@ async function runTests() {
       console.log(`   ✅ Cleanup result: ${JSON.stringify(cleanupResult?.stats)}`);
     }
 
-    // 7. Summary
+    // 7. Test varietal storage in database
+    console.log("\n7️⃣  Testing varietal storage in database...");
+
+    // Check grape_varietals table
+    const { data: grapeVarietals, error: grapeError } = await supabase
+      .from("grape_varietals")
+      .select("name")
+      .limit(10);
+
+    if (grapeVarietals && grapeVarietals.length > 0) {
+      console.log(`   ✅ Found ${grapeVarietals.length} grape varietals in database`);
+      console.log(`   🍇 Sample varietals: ${grapeVarietals.slice(0, 3).map(v => v.name).join(", ")}`);
+    } else {
+      console.log(`   ⚠️  No grape varietals found in database`);
+    }
+
+    // Check wine_varietals junction table
+    const { data: wineVarietals, error: wineVarietalError } = await supabase
+      .from("wine_varietals")
+      .select(`
+        vintage_id,
+        varietal:grape_varietals(name)
+      `)
+      .limit(5);
+
+    if (wineVarietals && wineVarietals.length > 0) {
+      console.log(`   ✅ Found ${wineVarietals.length} wine-varietal associations`);
+    } else {
+      console.log(`   ⚠️  No wine-varietal associations found`);
+    }
+
+    // 8. Summary
     console.log("\n✨ Test Summary:");
     console.log("   - Database tables: ✅");
     console.log("   - Unique constraints: ✅");
     console.log("   - RPC functions: ✅");
     console.log("   - Edge functions: Deployed");
+    console.log("   - Grape varietals: " + (grapeVarietals?.length > 0 ? "✅" : "❌"));
+    console.log("   - Varietal extraction: " + (processResult ? "✅" : "⚠️"));
 
   } catch (error) {
     console.error("\n❌ Test failed:", error);

@@ -73,7 +73,7 @@ describe("Wine Scanning - REAL End-to-End Test", () => {
     if (supabaseAdmin && testUserId) {
       await supabaseAdmin.from("tastings").delete().eq("user_id", testUserId);
       await supabaseAdmin
-        .from("wines_added")
+        .from("wines_added_queue")
         .delete()
         .eq("user_id", testUserId);
       await supabaseAdmin.from("scans").delete().eq("user_id", testUserId);
@@ -123,7 +123,7 @@ describe("Wine Scanning - REAL End-to-End Test", () => {
 
     // Step 4: Add to processing queue
     const { data: queueData, error: queueError } = await supabaseClient
-      .from("wines_added")
+      .from("wines_added_queue")
       .insert({
         user_id: testUserId,
         image_url: publicUrl,
@@ -162,7 +162,7 @@ describe("Wine Scanning - REAL End-to-End Test", () => {
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
 
       const { data: checkData } = await supabaseClient
-        .from("wines_added")
+        .from("wines_added_queue")
         .select("status, processed_data")
         .eq("id", queueData.id)
         .single();

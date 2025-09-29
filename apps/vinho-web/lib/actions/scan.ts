@@ -47,7 +47,7 @@ export async function scanWineLabel(imageBase64: string) {
 
   // Add to processing queue
   const { data: queueItem, error: queueError } = await supabase
-    .from("wines_added")
+    .from("wines_added_queue")
     .insert({
       user_id: user.id,
       image_url: publicUrl,

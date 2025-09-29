@@ -387,8 +387,8 @@ export async function POST(request: NextRequest) {
             if (localImageUrl || wineData.metadata.vivinoImageUrl) {
               const idempotencyKey = generateIdempotencyKey(wineData, user.id);
 
-              // Add to wines_added for processing
-              await supabase.from("wines_added").insert({
+              // Add to wines_added_queue for processing
+              await supabase.from("wines_added_queue").insert({
                 user_id: user.id,
                 image_url: localImageUrl || wineData.metadata.vivinoImageUrl,
                 status: "pending",

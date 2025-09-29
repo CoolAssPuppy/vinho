@@ -57,7 +57,7 @@ export function VivinoMigration() {
   const [progress, setProgress] = useState<string>("");
   const [fixResult, setFixResult] = useState<{
     success: boolean;
-    queued: number;
+    enriched: number;
     skipped: number;
     message: string;
     errors?: string[];
@@ -207,29 +207,27 @@ export function VivinoMigration() {
     setFixResult(null);
 
     try {
-      const response = await fetch("/api/fix-database", {
-        method: "POST",
+      // Call the edge function to enrich wines
+      const { data, error } = await supabase.functions.invoke("enrich-wines", {
+        body: { action: "enrich" },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to queue wines for enhancement");
+      if (error) {
+        throw error;
       }
 
       setFixResult(data);
 
-      if (data.success && data.queued > 0) {
-        toast.success("Wines queued for enhancement!", {
-          description: `${data.queued} wines are being processed with AI. You can leave this page.`,
+      if (data.success && data.enriched > 0) {
+        toast.success("Wines enhanced successfully!", {
+          description: `${data.enriched} wines have been enriched with AI-powered data.`,
         });
-        setIsPolling(true);
-      } else if (data.success && data.queued === 0) {
+      } else if (data.success && data.enriched === 0) {
         toast.info("Database is already enhanced", {
           description: data.message || "No wines needed enhancement",
         });
       } else {
-        toast.warning("Some wines could not be queued", {
+        toast.warning("Some wines could not be enhanced", {
           description: data.message || "Please try again",
         });
       }
@@ -237,8 +235,8 @@ export function VivinoMigration() {
       // Fetch updated queue status
       await fetchQueueStatus();
     } catch (error) {
-      console.error("Database fix error:", error);
-      toast.error("Failed to queue wines for enhancement", {
+      console.error("Database enrichment error:", error);
+      toast.error("Failed to enrich wines", {
         description:
           error instanceof Error ? error.message : "Unknown error occurred",
       });
@@ -694,7 +692,7 @@ export function VivinoMigration() {
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5 mr-2" />
-                    Queue Wines for AI Enhancement
+                    Enrich Wines with AI
                   </>
                 )}
               </button>

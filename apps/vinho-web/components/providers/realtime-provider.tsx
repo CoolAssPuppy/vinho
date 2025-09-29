@@ -52,7 +52,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         {
           event: "UPDATE",
           schema: "public",
-          table: "wines_added",
+          table: "wines_added_queue",
           filter: `user_id=eq.${currentUserId}`,
         },
         (payload) => {

@@ -294,7 +294,7 @@ class DataService: ObservableObject {
             )
 
             try await client
-                .from("wines_added")
+                .from("wines_added_queue")
                 .insert(queueItem)
                 .execute()
 

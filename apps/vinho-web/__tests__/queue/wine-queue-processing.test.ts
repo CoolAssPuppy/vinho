@@ -21,7 +21,7 @@ describe("Wine Queue Processing - Real Workflow", () => {
   const processQueueItem = async (item: QueueItem): Promise<void> => {
     // Mark as working
     await mockSupabase
-      .from("wines_added")
+      .from("wines_added_queue")
       .update({ status: "working" })
       .eq("id", item.id);
 
@@ -42,7 +42,7 @@ describe("Wine Queue Processing - Real Workflow", () => {
 
       // Mark as completed
       await mockSupabase
-        .from("wines_added")
+        .from("wines_added_queue")
         .update({
           status: "completed",
           processed_data: wineData,
@@ -56,7 +56,7 @@ describe("Wine Queue Processing - Real Workflow", () => {
 
       if (item.retry_count >= 3) {
         await mockSupabase
-          .from("wines_added")
+          .from("wines_added_queue")
           .update({
             status: "failed",
             error_message: errorMessage,
@@ -64,7 +64,7 @@ describe("Wine Queue Processing - Real Workflow", () => {
           .eq("id", item.id);
       } else {
         await mockSupabase
-          .from("wines_added")
+          .from("wines_added_queue")
           .update({
             status: "pending",
             retry_count: item.retry_count + 1,
@@ -111,8 +111,8 @@ describe("Wine Queue Processing - Real Workflow", () => {
 
     // Verify status updates
     const fromCalls = mockSupabase.from.mock.calls;
-    expect(fromCalls[0][0]).toBe("wines_added");
-    expect(fromCalls[1][0]).toBe("wines_added");
+    expect(fromCalls[0][0]).toBe("wines_added_queue");
+    expect(fromCalls[1][0]).toBe("wines_added_queue");
 
     // Verify working status set
     const firstUpdate = mockSupabase.from.mock.results[0].value.update;

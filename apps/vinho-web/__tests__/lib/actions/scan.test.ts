@@ -117,7 +117,7 @@ describe("Scan Actions", () => {
 
       expect(mockSupabase.storage.from).toHaveBeenCalledWith("scans");
       expect(mockSupabase.from).toHaveBeenCalledWith("scans");
-      expect(mockSupabase.from).toHaveBeenCalledWith("wines_added");
+      expect(mockSupabase.from).toHaveBeenCalledWith("wines_added_queue");
     });
 
     it("should throw error when user is not authenticated", async () => {

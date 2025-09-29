@@ -91,7 +91,32 @@ else
     ((FAILED++))
 fi
 
+# Test 7: Grape Varietal Extraction
+if run_test "Grape Varietal Extraction" "__tests__/varietals/varietal-extraction.test.ts"; then
+    ((PASSED++))
+else
+    ((FAILED++))
+    echo -e "${RED}WARNING: Grape varietals not being extracted properly!${NC}"
+fi
+
+# Test 8: Varietal Database Storage
+if run_test "Varietal Database Storage" "__tests__/varietals/varietal-storage.test.ts"; then
+    ((PASSED++))
+else
+    ((FAILED++))
+fi
+
 echo ""
+echo "================================================"
+echo "VARIETAL EXTRACTION VERIFICATION"
+echo "================================================"
+echo "Testing known wines with expected varietals:"
+echo "  - Dom Pérignon → Pinot Noir, Chardonnay"
+echo "  - Opus One → Cabernet Sauvignon, Merlot, etc."
+echo "  - Barolo → Nebbiolo"
+echo "  - Chablis → Chardonnay"
+echo ""
+
 echo "================================================"
 echo "TEST SUMMARY"
 echo "================================================"
@@ -110,5 +135,6 @@ else
     echo "2. Real API calls to Supabase and OpenAI"
     echo "3. Actual image upload to storage"
     echo "4. Edge function processing queue items"
+    echo "5. Grape varietals are extracted and saved"
     exit 1
 fi

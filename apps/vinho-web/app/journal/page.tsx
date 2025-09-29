@@ -497,24 +497,24 @@ export default function JournalPage() {
       await fetchTastings();
       await fetchPendingWines();
 
-      // Set up realtime subscription for wines_added status changes
+      // Set up realtime subscription for wines_added_queue status changes
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
       const channel = supabase
-        .channel("wines_added_changes")
+        .channel("wines_added_queue_changes")
         .on(
           "postgres_changes",
           {
             event: "*",
             schema: "public",
-            table: "wines_added",
+            table: "wines_added_queue",
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            // Refresh pending wines count when wines_added changes
+            // Refresh pending wines count when wines_added_queue changes
             fetchPendingWines();
 
             // If a wine just completed, refresh tastings
@@ -543,7 +543,7 @@ export default function JournalPage() {
     if (!user) return;
 
     const { data, error } = await supabase
-      .from("wines_added")
+      .from("wines_added_queue")
       .select("id, status")
       .eq("user_id", user.id)
       .in("status", ["pending", "working"]);
