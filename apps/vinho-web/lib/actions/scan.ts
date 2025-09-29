@@ -11,79 +11,102 @@ export async function scanWineLabel(imageBase64: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  // Upload image to Supabase Storage in user's folder
-  const imageData = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-  const buffer = Buffer.from(imageData, "base64");
-  const fileName = `${user.id}/${Date.now()}.jpg`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("scans")
-    .upload(fileName, buffer, {
-      contentType: "image/jpeg",
-      upsert: false,
-    });
-
-  if (uploadError) throw uploadError;
-
-  // Get public URL for the image
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("scans").getPublicUrl(fileName);
-
-  // Create a scan record
-  const { data: scan, error: scanError } = await supabase
-    .from("scans")
-    .insert({
-      user_id: user.id,
-      image_path: fileName,
-      scan_image_url: publicUrl,
-      ocr_text: null, // Will be populated by the queue processor
-      confidence: null,
-    })
-    .select()
-    .single();
-
-  if (scanError) throw scanError;
-
-  // Add to processing queue
-  const { data: queueItem, error: queueError } = await supabase
-    .from("wines_added_queue")
-    .insert({
-      user_id: user.id,
-      image_url: publicUrl,
-      scan_id: scan.id,
-      status: "pending",
-    })
-    .select()
-    .single();
-
-  if (queueError) throw queueError;
-
-  // Invoke the edge function to process the queue immediately
   try {
-    const { data, error: functionError } = await supabase.functions.invoke(
-      "process-wine-queue",
-      {
-        body: {},
-      },
-    );
+    // Upload image to Supabase Storage in user's folder
+    const imageData = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(imageData, "base64");
+    const fileName = `${user.id}/${Date.now()}.jpg`;
 
-    if (functionError) {
-      console.error("Failed to invoke edge function:", functionError);
-    } else {
-      console.log("Edge function invoked successfully:", data);
+    console.log("Uploading image to storage:", fileName);
+
+    const { error: uploadError } = await supabase.storage
+      .from("scans")
+      .upload(fileName, buffer, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      throw new Error(`Failed to upload image: ${uploadError.message}`);
     }
-  } catch (error) {
-    console.error("Error invoking edge function:", error);
-    // Don't throw - the item is already in the queue and can be processed later
-  }
 
-  return {
-    scanId: scan.id,
-    queueItemId: queueItem.id,
-    message: "Wine label is being analyzed. Results will appear shortly.",
-    wineData: null,
-  };
+    // Get public URL for the image
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("scans").getPublicUrl(fileName);
+
+    console.log("Public URL:", publicUrl);
+
+    // Create a scan record
+    const { data: scan, error: scanError } = await supabase
+      .from("scans")
+      .insert({
+        user_id: user.id,
+        image_path: fileName,
+        scan_image_url: publicUrl,
+        ocr_text: null, // Will be populated by the queue processor
+        confidence: null,
+      })
+      .select()
+      .single();
+
+    if (scanError) {
+      console.error("Scan insert error:", scanError);
+      throw new Error(`Failed to create scan record: ${scanError.message}`);
+    }
+
+    console.log("Scan created:", scan.id);
+
+    // Add to processing queue
+    const { data: queueItem, error: queueError } = await supabase
+      .from("wines_added_queue")
+      .insert({
+        user_id: user.id,
+        image_url: publicUrl,
+        scan_id: scan.id,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (queueError) {
+      console.error("Queue insert error:", queueError);
+      throw new Error(`Failed to add to processing queue: ${queueError.message}`);
+    }
+
+    console.log("Queue item created:", queueItem.id);
+
+    // Invoke the edge function to process the queue immediately
+    try {
+      console.log("Invoking edge function process-wine-queue");
+      const { data, error: functionError } = await supabase.functions.invoke(
+        "process-wine-queue",
+        {
+          body: {},
+        },
+      );
+
+      if (functionError) {
+        console.error("Failed to invoke edge function:", functionError);
+      } else {
+        console.log("Edge function invoked successfully:", data);
+      }
+    } catch (error) {
+      console.error("Error invoking edge function:", error);
+      // Don't throw - the item is already in the queue and can be processed later
+    }
+
+    return {
+      scanId: scan.id,
+      queueItemId: queueItem.id,
+      message: "Wine label is being analyzed. Results will appear shortly.",
+      wineData: null,
+    };
+  } catch (error) {
+    console.error("scanWineLabel error:", error);
+    throw error;
+  }
 }
 
 export async function getUserScans() {

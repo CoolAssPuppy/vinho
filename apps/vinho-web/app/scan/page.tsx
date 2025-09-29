@@ -32,61 +32,102 @@ export default function ScanPage() {
 
   // Note: Global Realtime provider handles background processing notifications
 
+  const compressImage = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          // Calculate new dimensions (max 2000px on longest side)
+          const maxSize = 2000;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to base64 with compression (0.8 quality)
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          resolve(compressedBase64);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    await performScan(file);
+    try {
+      // Compress image for upload and preview
+      const compressedBase64 = await compressImage(file);
+      setImagePreview(compressedBase64);
+      await performScan(compressedBase64);
+    } catch (error) {
+      console.error("Failed to process image:", error);
+      toast.error("Failed to process image. Please try a smaller file.");
+    }
   };
 
-  const performScan = async (file: File) => {
+  const performScan = async (base64: string) => {
     setScanStatus("uploading");
     setProcessingMessage("Uploading image...");
 
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
+      setScanStatus("processing");
+      setProcessingMessage("Analyzing wine label...");
 
-        setScanStatus("processing");
-        setProcessingMessage("Analyzing wine label...");
+      try {
+        const result = await scanWineLabel(base64);
 
-        try {
-          const result = await scanWineLabel(base64);
+        setScanResult({
+          scanId: result.scanId,
+          queueItemId: result.queueItemId,
+          wineData: result.wineData,
+        });
 
-          setScanResult({
-            scanId: result.scanId,
-            queueItemId: result.queueItemId,
-            wineData: result.wineData,
-          });
+        // Immediately show success and let processing happen in background
+        setScanStatus("completed");
+        setProcessingMessage("Wine successfully uploaded!");
 
-          // Immediately show success and let processing happen in background
-          setScanStatus("completed");
-          setProcessingMessage("Wine successfully uploaded!");
-
-          toast.success(
-            "Wine uploaded! Our expert sommeliers are analyzing your wine and it will be added to your collection shortly.",
-          );
-        } catch (error) {
-          console.error("Scan failed:", error);
-          setScanStatus("error");
-          setScanResult({ scanId: "", error: "Failed to process wine label" });
-          toast.error("Failed to scan wine label. Please try again.");
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
+        toast.success(
+          "Wine uploaded! Our expert sommeliers are analyzing your wine and it will be added to your collection shortly.",
+        );
+      } catch (error: any) {
+        console.error("Scan failed:", error);
+        setScanStatus("error");
+        const errorMessage = error?.message || "Failed to process wine label";
+        setScanResult({ scanId: "", error: errorMessage });
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
       console.error("Upload failed:", error);
       setScanStatus("error");
-      setScanResult({ scanId: "", error: "Failed to upload image" });
-      toast.error("Failed to upload image. Please try again.");
+      const errorMessage = error?.message || "Failed to upload image";
+      setScanResult({ scanId: "", error: errorMessage });
+      toast.error(errorMessage);
     }
   };
 

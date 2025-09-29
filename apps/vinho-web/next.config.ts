@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb', // Increase limit to 10MB for wine label images
+    },
+  },
 };
 
 export default nextConfig;
