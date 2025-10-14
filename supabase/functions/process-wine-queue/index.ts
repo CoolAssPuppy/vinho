@@ -204,41 +204,69 @@ async function extractWithOpenAI(
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("No response from OpenAI");
 
-  const parsed = JSON.parse(content) as ExtractedWineData;
+  let parsed: any;
+  try {
+    parsed = JSON.parse(content);
+  } catch (parseError) {
+    console.error("Failed to parse OpenAI response:", content);
+    throw new Error(`OpenAI returned invalid JSON: ${parseError.message}`);
+  }
 
-  // Validate against schema
-  if (
-    !parsed.producer ||
-    !parsed.wine_name ||
-    typeof parsed.confidence !== "number"
-  ) {
-    throw new Error("Invalid response format from OpenAI");
+  // Validate and provide defaults for missing required fields
+  const extractedData: ExtractedWineData = {
+    producer: parsed.producer || "Unknown Producer",
+    wine_name: parsed.wine_name || "Unknown Wine",
+    year: parsed.year ?? null,
+    country: parsed.country ?? null,
+    region: parsed.region ?? null,
+    varietals: Array.isArray(parsed.varietals) ? parsed.varietals : [],
+    abv_percent: parsed.abv_percent ?? null,
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.3,
+    producer_website: parsed.producer_website ?? null,
+    producer_address: parsed.producer_address ?? null,
+    producer_city: parsed.producer_city ?? null,
+    producer_postal_code: parsed.producer_postal_code ?? null,
+    latitude: parsed.latitude ?? null,
+    longitude: parsed.longitude ?? null,
+  };
+
+  // Log warning if we had to use defaults
+  if (!parsed.producer || !parsed.wine_name) {
+    console.warn(
+      `OpenAI returned incomplete data. Using defaults. Original response:`,
+      JSON.stringify(parsed).substring(0, 200)
+    );
+  }
+
+  // If confidence is very low or we're using defaults, mark it low
+  if (!parsed.producer || !parsed.wine_name) {
+    extractedData.confidence = Math.min(extractedData.confidence, 0.2);
   }
 
   // Handle year field - sometimes OpenAI returns a string instead of a number
-  if (parsed.year !== null && parsed.year !== undefined) {
-    if (typeof parsed.year === "string") {
+  if (extractedData.year !== null && extractedData.year !== undefined) {
+    if (typeof extractedData.year === "string") {
       // Try to extract a 4-digit year from the string
-      const yearMatch = String(parsed.year).match(/\b(19\d{2}|20[0-2]\d)\b/);
+      const yearMatch = String(extractedData.year).match(/\b(19\d{2}|20[0-2]\d)\b/);
       if (yearMatch) {
-        parsed.year = parseInt(yearMatch[1]);
+        extractedData.year = parseInt(yearMatch[1]);
       } else {
         // If no valid year found in string, set to null
         console.log(
-          `Could not parse year from string: "${parsed.year}", setting to null`,
+          `Could not parse year from string: "${extractedData.year}", setting to null`,
         );
-        parsed.year = null;
+        extractedData.year = null;
       }
-    } else if (typeof parsed.year === "number") {
+    } else if (typeof extractedData.year === "number") {
       // Validate the year is reasonable (1900-2025)
-      if (parsed.year < 1900 || parsed.year > 2025) {
-        console.log(`Invalid year ${parsed.year}, setting to null`);
-        parsed.year = null;
+      if (extractedData.year < 1900 || extractedData.year > 2025) {
+        console.log(`Invalid year ${extractedData.year}, setting to null`);
+        extractedData.year = null;
       }
     }
   }
 
-  return parsed;
+  return extractedData;
 }
 
 // Upsert region

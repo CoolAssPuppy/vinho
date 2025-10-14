@@ -25,3 +25,4 @@ mcp.json
 # iOS Configuration files with secrets
 Config.local.xcconfig
 *.local.xcconfig
+DopplerSecrets.plist

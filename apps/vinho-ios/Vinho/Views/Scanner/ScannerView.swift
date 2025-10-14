@@ -404,50 +404,74 @@ struct ScanResultView: View {
 
 
     private func checkProcessingStatus() async {
-        // Poll for the vintage_id once processing completes
+        // Poll for status changes with exponential backoff
         guard let winesAddedId = winesAddedId else { return }
 
-        for _ in 0..<30 { // Poll for up to 30 seconds
+        struct QueueStatus: Decodable {
+            let status: String
+        }
+
+        let maxAttempts = 60  // Poll for up to 60 seconds
+        var attempt = 0
+
+        while attempt < maxAttempts && isProcessingImage {
             do {
-                struct QueueStatus: Decodable {
-                    let status: String
-                    let processed_data: ProcessedWineData?
-
-                    struct ProcessedWineData: Decodable {
-                        let producer: String?
-                        let wine_name: String?
-                        let year: Int?
-                        let confidence: Double?
-                    }
-                }
-
                 let queueItem: QueueStatus = try await SupabaseManager.shared.client
                     .from("wines_added_queue")
-                    .select("status, processed_data")
+                    .select("status")
                     .eq("id", value: winesAddedId)
                     .single()
                     .execute()
                     .value
 
                 if queueItem.status == "completed" {
-                    // Successfully processed - we can now get the vintage_id
-                    print("Wine processing completed")
                     isProcessingImage = false
-
-                    // The vintage_id would be available after the edge function creates it
-                    // For now we'll use a placeholder approach
                     await getVintageId()
                     return
+                } else if queueItem.status == "failed" {
+                    isProcessingImage = false
+                    errorMessage = "Wine processing failed. Please try again."
+                    showingError = true
+                    return
                 }
-            } catch {
-                print("Error checking status: \(error)")
-            }
 
-            try? await Task.sleep(for: .seconds(1))
+                // Wait 1 second before next poll
+                try await Task.sleep(for: .seconds(1))
+                attempt += 1
+
+            } catch {
+                print("Error checking processing status: \(error)")
+                // Continue polling even on errors
+                try? await Task.sleep(for: .seconds(1))
+                attempt += 1
+            }
         }
 
-        // If we get here, processing took too long
-        isProcessingImage = false
+        // Timeout - check one final time
+        if isProcessingImage {
+            do {
+                let queueItem: QueueStatus = try await SupabaseManager.shared.client
+                    .from("wines_added_queue")
+                    .select("status")
+                    .eq("id", value: winesAddedId)
+                    .single()
+                    .execute()
+                    .value
+
+                if queueItem.status == "completed" {
+                    isProcessingImage = false
+                    await getVintageId()
+                } else {
+                    isProcessingImage = false
+                    errorMessage = "Processing is taking longer than expected. Your wine will appear in your list shortly."
+                    showingError = true
+                }
+            } catch {
+                isProcessingImage = false
+                errorMessage = "Unable to verify processing status. Check your wine list in a moment."
+                showingError = true
+            }
+        }
     }
 
     private func getVintageId() async {
@@ -468,6 +492,9 @@ struct ScanResultView: View {
 
             pendingVintageId = tasting.vintageId
             pendingTasting = tasting
+
+            // Notify that wine data has changed so other views can refresh
+            DataService.shared.notifyWineDataChanged()
         } catch {
             // Error handled silently
         }

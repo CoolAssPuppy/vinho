@@ -492,6 +492,18 @@ class DataService: ObservableObject {
         }
     }
 
+    // MARK: - Notifications
+
+    /// Post notification when wine data changes to trigger UI updates
+    func notifyWineDataChanged() {
+        NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+    }
+
+    /// Post notification when tasting data changes to trigger UI updates
+    func notifyTastingDataChanged() {
+        NotificationCenter.default.post(name: NSNotification.Name("TastingDataChanged"), object: nil)
+    }
+
     // MARK: - Enhanced Tasting Methods
 
     func saveTasting(
@@ -573,6 +585,8 @@ class DataService: ObservableObject {
             }
 
             await fetchUserTastings()
+            notifyTastingDataChanged()
+            notifyWineDataChanged() // Tastings affect wine statistics
             return true
         } catch {
             errorMessage = "Failed to save tasting: \(error.localizedDescription)"
@@ -589,6 +603,8 @@ class DataService: ObservableObject {
                 .execute()
 
             await fetchUserTastings()
+            notifyTastingDataChanged()
+            notifyWineDataChanged() // Deletion affects wine statistics
             return true
         } catch {
             errorMessage = "Failed to delete tasting: \(error.localizedDescription)"

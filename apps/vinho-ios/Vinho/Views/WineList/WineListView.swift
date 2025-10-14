@@ -88,6 +88,11 @@ struct WineListView: View {
                 await viewModel.loadWines()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WineDataChanged"))) { _ in
+            Task {
+                await viewModel.refreshWines()
+            }
+        }
     }
     
     var backgroundGradient: some View {

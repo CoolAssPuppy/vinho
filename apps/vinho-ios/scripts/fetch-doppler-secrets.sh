@@ -3,12 +3,21 @@
 
 set -e
 
-# Check if Doppler CLI is installed
-if ! command -v doppler &> /dev/null; then
+# Find Doppler CLI - check common installation paths
+DOPPLER_BIN=""
+if [ -f "/opt/homebrew/bin/doppler" ]; then
+    DOPPLER_BIN="/opt/homebrew/bin/doppler"
+elif [ -f "/usr/local/bin/doppler" ]; then
+    DOPPLER_BIN="/usr/local/bin/doppler"
+elif command -v doppler &> /dev/null; then
+    DOPPLER_BIN="doppler"
+else
     echo "Warning: Doppler CLI is not installed. Install it with: brew install dopplerhq/cli/doppler"
     echo "Skipping Doppler secrets fetch. App will use fallback values."
     exit 0
 fi
+
+echo "Using Doppler at: ${DOPPLER_BIN}"
 
 # Handle both Xcode build context and manual runs
 if [ -n "$SRCROOT" ]; then
@@ -39,7 +48,7 @@ echo "Secrets file: ${SECRETS_PLIST}"
 
 # Fetch secrets from Doppler and create a plist
 echo "Fetching secrets from Doppler..."
-doppler secrets download \
+"${DOPPLER_BIN}" secrets download \
     --no-file \
     --format json \
     --config "${DOPPLER_CONFIG}" | \
