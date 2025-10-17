@@ -8,7 +8,7 @@ interface EmailRequest {
   viewer_email: string
   sharer_name: string
   sharer_email: string
-  connection_id: string
+  invite_code: string
 }
 
 serve(async (req) => {
@@ -23,11 +23,11 @@ serve(async (req) => {
   }
 
   try {
-    const { viewer_email, sharer_name, sharer_email, connection_id }: EmailRequest = await req.json()
+    const { viewer_email, sharer_name, sharer_email, invite_code }: EmailRequest = await req.json()
 
-    // Generate deep link for iOS app (will open in app if installed, otherwise fallback to web)
-    const deepLink = `vinho://sharing/accept/${connection_id}`
-    const webLink = `https://app.vinho.dev/sharing?connection=${connection_id}`
+    // Generate invite links using the code (works for both existing users and new signups)
+    const deepLink = `vinho://invite/${invite_code}`
+    const webLink = `https://app.vinho.dev/invite/${invite_code}`
 
     // Beautiful HTML email template
     const htmlContent = `
@@ -167,11 +167,11 @@ serve(async (req) => {
 
     <div class="card">
       <div class="wine-icon">🍷</div>
-      <h1>You've Been Invited!</h1>
+      <h1>Join Vinho and Connect!</h1>
       <p class="message">
         <span class="highlight">${sharer_name}</span> wants to share their wine journey with you on Vinho.
         <br><br>
-        Accept this invitation to view their tasting notes, ratings, and discover new wines together.
+        Sign up (or log in) to view their tasting notes, ratings, and discover new wines together.
       </p>
 
       <div class="button-container">
@@ -220,14 +220,14 @@ serve(async (req) => {
     `
 
     const textContent = `
-${sharer_name} has invited you to view their wine tastings on Vinho!
+${sharer_name} has invited you to join Vinho and view their wine tastings!
 
-Accept this invitation to:
+Sign up or log in to:
 • View their detailed tasting notes and ratings
 • Explore wine regions and producers together
 • Get inspired by their wine recommendations
 
-Accept Invitation: ${webLink}
+Get Started: ${webLink}
 
 Or open in the Vinho app: ${deepLink}
 
