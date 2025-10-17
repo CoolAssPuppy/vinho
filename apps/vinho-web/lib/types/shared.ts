@@ -20,12 +20,12 @@
 import type { Database } from "@/lib/database.types";
 
 // Type aliases for commonly used database types
-type DbTasting = Database["public"]["Tables"]["tastings"]["Row"];
-type DbVintage = Database["public"]["Tables"]["vintages"]["Row"];
-type DbWine = Database["public"]["Tables"]["wines"]["Row"];
-type DbProducer = Database["public"]["Tables"]["producers"]["Row"];
+// type DbTasting = Database["public"]["Tables"]["tastings"]["Row"];
+// type DbVintage = Database["public"]["Tables"]["vintages"]["Row"];
+// type DbWine = Database["public"]["Tables"]["wines"]["Row"];
+// type DbProducer = Database["public"]["Tables"]["producers"]["Row"];
 type DbProfile = Database["public"]["Tables"]["profiles"]["Row"];
-type DbQueueItem = Database["public"]["Tables"]["wines_added_queue"]["Row"];
+// type DbQueueItem = Database["public"]["Tables"]["wines_added_queue"]["Row"];
 
 // ============= Wine & Tasting Types =============
 

@@ -6,9 +6,6 @@ import {
   groupWinesByProducer,
   extractUniqueRegions,
   generateIdempotencyKey,
-  batchEntries,
-  type MigrationProgress,
-  type ProcessedWineData,
 } from "@/app/lib/vivino-migration";
 import { generateEmbedding, generateTastingSearchText } from "@/lib/embeddings";
 import {

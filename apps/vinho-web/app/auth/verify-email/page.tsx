@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Wine } from "lucide-react";
+import { Mail } from "lucide-react";
 
 export default function VerifyEmailPage() {
   return (
@@ -23,16 +23,16 @@ export default function VerifyEmailPage() {
             Check your email
           </CardTitle>
           <CardDescription className="text-center">
-            We've sent you a confirmation link
+            We&apos;ve sent you a confirmation link
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center text-sm text-muted-foreground space-y-2">
             <p>
-              We've sent a confirmation email to your inbox. Please click the
+              We&apos;ve sent a confirmation email to your inbox. Please click the
               link in the email to verify your account.
             </p>
-            <p>If you don't see the email, check your spam folder.</p>
+            <p>If you don&apos;t see the email, check your spam folder.</p>
           </div>
 
           <div className="space-y-2">
@@ -49,7 +49,7 @@ export default function VerifyEmailPage() {
           </div>
 
           <div className="text-xs text-center text-muted-foreground pt-4 border-t">
-            <p>Didn't receive the email?</p>
+            <p>Didn&apos;t receive the email?</p>
             <p>You can request a new one from the sign in page.</p>
           </div>
         </CardContent>

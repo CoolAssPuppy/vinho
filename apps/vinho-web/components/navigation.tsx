@@ -15,7 +15,6 @@ import {
   Wine,
   Map,
   BookOpen,
-  Sparkles,
   Menu,
   Camera,
   User,

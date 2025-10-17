@@ -15,8 +15,8 @@ export async function GET(request: Request) {
       if (type === "signup") {
         return NextResponse.redirect(`${origin}/auth/login?verified=true`);
       }
-      // Redirect to journal after successful login
-      return NextResponse.redirect(`${origin}/journal`);
+      // Redirect to the next page or journal after successful login
+      return NextResponse.redirect(`${origin}${next}`);
     }
   }
 

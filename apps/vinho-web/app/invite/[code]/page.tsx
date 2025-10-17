@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import type { Database } from "@/lib/database.types"
@@ -33,6 +33,33 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+
+  const acceptInvite = useCallback(async () => {
+    if (!inviteCode) return
+
+    setAccepting(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('accept-invite', {
+        body: { code: inviteCode }
+      })
+
+      if (error) throw error
+
+      const result = data as { success: boolean; error?: string }
+
+      if (result.success) {
+        // Redirect to home/feed page after successful acceptance
+        router.push('/journal?invite_accepted=true')
+      } else {
+        throw new Error(result.error || 'Failed to accept invitation')
+      }
+    } catch (err) {
+      console.error('Error accepting invite:', err)
+      alert(err instanceof Error ? err.message : 'Failed to accept invitation')
+    } finally {
+      setAccepting(false)
+    }
+  }, [inviteCode, router, supabase])
 
   useEffect(() => {
     async function loadInvite() {
@@ -69,34 +96,7 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     }
 
     loadInvite()
-  }, [params, supabase])
-
-  async function acceptInvite() {
-    if (!inviteCode) return
-
-    setAccepting(true)
-    try {
-      const { data, error } = await supabase.functions.invoke('accept-invite', {
-        body: { code: inviteCode }
-      })
-
-      if (error) throw error
-
-      const result = data as { success: boolean; error?: string }
-
-      if (result.success) {
-        // Redirect to home/feed page after successful acceptance
-        router.push('/journal?invite_accepted=true')
-      } else {
-        throw new Error(result.error || 'Failed to accept invitation')
-      }
-    } catch (err) {
-      console.error('Error accepting invite:', err)
-      alert(err instanceof Error ? err.message : 'Failed to accept invitation')
-    } finally {
-      setAccepting(false)
-    }
-  }
+  }, [params, supabase, acceptInvite])
 
   async function handleSignUp() {
     // Store invite code in localStorage for post-signup processing
@@ -183,13 +183,13 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
             <div className="flex items-start gap-3">
               <div className="text-xl">📝</div>
               <div>
-                <strong>View Tastings:</strong> See detailed tasting notes and ratings from {sharerName}'s wine collection
+                <strong>View Tastings:</strong> See detailed tasting notes and ratings from {sharerName}&apos;s wine collection
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="text-xl">🗺️</div>
               <div>
-                <strong>Explore Together:</strong> Discover wine regions and producers they've experienced
+                <strong>Explore Together:</strong> Discover wine regions and producers they&apos;ve experienced
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -219,7 +219,7 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
           </div>
 
           <p className="text-center text-xs text-violet-300/60 pt-4">
-            By signing up, you'll be automatically connected with {sharerName}
+            By signing up, you&apos;ll be automatically connected with {sharerName}
           </p>
         </CardContent>
       </Card>

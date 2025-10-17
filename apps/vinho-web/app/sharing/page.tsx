@@ -11,8 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SharingPage() {
   const {
-    connections,
-    preferences,
+    connections: _connections,
+    preferences: _preferences,
     loading,
     error,
     sendInvitation,

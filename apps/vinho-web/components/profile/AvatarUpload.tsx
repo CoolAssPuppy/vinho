@@ -136,11 +136,14 @@ export function AvatarUpload({
         <div className="relative">
           <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center overflow-hidden">
             {currentAvatarUrl ? (
-              <img
-                src={currentAvatarUrl}
-                alt="Avatar"
-                className="h-full w-full object-cover"
-              />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={currentAvatarUrl}
+                  alt="Avatar"
+                  className="h-full w-full object-cover"
+                />
+              </>
             ) : (
               <User className="h-8 w-8 text-muted-foreground" />
             )}

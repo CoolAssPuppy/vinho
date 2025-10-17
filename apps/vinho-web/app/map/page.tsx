@@ -6,12 +6,10 @@ import {
   Wine,
   MapPin,
   Globe,
-  Calendar,
   ToggleLeft,
   ToggleRight,
   Star,
-  TrendingUp,
-  Users,
+  
   Activity,
 } from "lucide-react";
 import {
@@ -39,7 +37,6 @@ import {
 import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogContentNoX } from "@/components/ui/dialog-no-x";
 import { TastingNoteForm } from "@/components/tasting/tasting-note-form";
-import { useRouter } from "next/navigation";
 
 // Dynamically import map component to avoid SSR issues with Leaflet
 const WineMap = dynamic(() => import("@/components/map/WineMap"), {
@@ -73,7 +70,7 @@ export default function MapPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const debouncedBounds = useDebounce(mapBounds, 500);
   const hasInitialLoad = useRef(false);
-  const router = useRouter();
+  // const router = useRouter();
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -146,33 +143,7 @@ export default function MapPage() {
         .limit(10);
 
       if (recentData) {
-        interface TastingData {
-          id: string;
-          verdict?: number | null;
-          tasted_at?: string | null;
-          location_name?: string | null;
-          location_address?: string | null;
-          location_city?: string | null;
-          location_latitude?: number | null;
-          location_longitude?: number | null;
-          notes?: string | null;
-          detailed_notes?: string | null;
-          vintage?: {
-            id: string;
-            year?: number | null;
-            abv?: number | null;
-            wine?: {
-              name?: string;
-              producer?: {
-                name?: string;
-                region?: {
-                  name?: string;
-                  country?: string;
-                };
-              };
-            };
-          } | null;
-        }
+        type _TastingData = typeof recentData[0];
         const formattedRecent: RecentWine[] = recentData.map(
           (tasting) => ({
             id: tasting.id,

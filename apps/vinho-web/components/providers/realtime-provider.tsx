@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Database } from "@/lib/database.types";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface RealtimeContextType {
   // Add any realtime methods we might need
 }

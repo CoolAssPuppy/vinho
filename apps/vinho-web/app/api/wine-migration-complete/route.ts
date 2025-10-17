@@ -4,7 +4,7 @@ import { getMigrationCompleteEmail } from "@/lib/emails/templates";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const supabase = await createServerSupabase();
 

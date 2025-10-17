@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Wine,
   Camera,
@@ -46,15 +46,11 @@ function SuggestionsTab({ tastings, supabase }: SuggestionsTabProps) {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isLoadingRecommendations, setIsLoadingRecommendations] =
     useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [_locationError, setLocationError] = useState<string | null>(null);
   const [manualLocation, setManualLocation] = useState<string>("");
   const [showManualInput, setShowManualInput] = useState(false);
 
-  useEffect(() => {
-    getUserLocation();
-  }, []);
-
-  const getUserLocation = async () => {
+  const getUserLocation = useCallback(async () => {
     setIsLoadingLocation(true);
     setLocationError(null);
 
@@ -94,7 +90,7 @@ function SuggestionsTab({ tastings, supabase }: SuggestionsTabProps) {
         }
         setIsLoadingLocation(false);
       },
-      (error) => {
+      (_error) => {
         // When geolocation fails, show manual input instead of error
         setShowManualInput(true);
         setIsLoadingLocation(false);
@@ -105,7 +101,11 @@ function SuggestionsTab({ tastings, supabase }: SuggestionsTabProps) {
         maximumAge: 0,
       },
     );
-  };
+  }, []);
+
+  useEffect(() => {
+    getUserLocation();
+  }, [getUserLocation]);
 
   const getWineRecommendations = async () => {
     if (!userLocation || tastings.length === 0) return;
@@ -153,8 +153,8 @@ function SuggestionsTab({ tastings, supabase }: SuggestionsTabProps) {
       if (response.data) {
         setRecommendations(response.data.recommendations || []);
       }
-    } catch (error) {
-      console.error("Error getting wine recommendations:", error);
+    } catch (_error) {
+      console.error("Error getting wine recommendations:", _error);
     }
 
     setIsLoadingRecommendations(false);
@@ -330,7 +330,7 @@ function SuggestionsTab({ tastings, supabase }: SuggestionsTabProps) {
                   Ready for Recommendations
                 </h3>
                 <p className="text-muted-foreground">
-                  Click "Get Recommendations" to discover wines similar to your
+                  Click &quot;Get Recommendations&quot; to discover wines similar to your
                   favorites at restaurants in {userLocation}.
                 </p>
               </div>
@@ -530,6 +530,7 @@ export default function JournalPage() {
     };
 
     setupData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchPendingWines = async () => {
@@ -812,10 +813,10 @@ export default function JournalPage() {
           <CardContent>
             <p className="text-sm text-accent-foreground">
               <strong>Tasting Tip:</strong> Professional sommeliers often use
-              the "5 S's" when tasting wine: See (observe color), Swirl (release
+              the &quot;5 S&apos;s&quot; when tasting wine: See (observe color), Swirl (release
               aromas), Sniff (identify scents), Sip (taste), and Savor (evaluate
               the finish). Take your time with each step to fully appreciate the
-              wine's complexity.
+              wine&apos;s complexity.
             </p>
           </CardContent>
         </Card>

@@ -26,7 +26,7 @@ export default function NotFound() {
           </h1>
 
           <p className="text-xl md:text-2xl lg:text-3xl text-white/90 mb-8 max-w-md">
-            I don't know what you're talking about.
+            I don&apos;t know what you&apos;re talking about.
           </p>
 
           <Link href="/">

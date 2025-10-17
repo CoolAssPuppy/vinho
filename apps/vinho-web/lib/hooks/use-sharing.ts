@@ -3,8 +3,8 @@ import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/lib/database.types';
 import type { SharingConnection, UserSharingPreferences, SendInvitationResult } from '@/lib/types/sharing';
 
-type DbSharingConnection = Database['public']['Functions']['get_sharing_connections_with_profiles']['Returns'][number];
-type DbUserSharingPreferences = Database['public']['Tables']['user_sharing_preferences']['Row'];
+// type DbSharingConnection = Database['public']['Functions']['get_sharing_connections_with_profiles']['Returns'][number];
+// type DbUserSharingPreferences = Database['public']['Tables']['user_sharing_preferences']['Row'];
 
 export function useSharing() {
   const [connections, setConnections] = useState<SharingConnection[]>([]);
@@ -50,6 +50,7 @@ export function useSharing() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch preferences');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
   const createDefaultPreferences = async (userId: string) => {

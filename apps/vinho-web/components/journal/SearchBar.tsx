@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Search, X, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -50,6 +50,7 @@ export function SearchBar({ onResults, onClear }: SearchBarProps) {
     };
 
     performSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]); // Only depend on debouncedQuery, not the callbacks
 
   const handleClear = () => {

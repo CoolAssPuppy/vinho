@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { Camera } from "lucide-react";
-import type { Database } from "@/lib/database.types";
 import type { UserProfile, ProfileStats } from "@/lib/types/shared";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
 
@@ -90,7 +89,7 @@ export default function ProfilePage() {
 
           if (!mounted) return;
 
-          if (profileError && (profileError as any).code !== "PGRST116") {
+          if (profileError && (profileError as any).code !== "PGRST116") { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error("Error fetching profile:", profileError);
           }
 
@@ -251,11 +250,14 @@ export default function ProfilePage() {
             {/* Avatar with upload */}
             <div className="relative group">
               {profile?.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={profile.full_name || "Avatar"}
-                  className="w-28 h-28 rounded-full object-cover border-2 border-vino-primary/30"
-                />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.full_name || "Avatar"}
+                    className="w-28 h-28 rounded-full object-cover border-2 border-vino-primary/30"
+                  />
+                </>
               ) : (
                 <div className="w-28 h-28 rounded-full bg-gradient-to-br from-vino-accent/30 to-vino-primary/30 flex items-center justify-center">
                   <span className="text-5xl font-bold text-white">

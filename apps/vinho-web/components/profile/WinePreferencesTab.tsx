@@ -319,7 +319,7 @@ export function WinePreferencesTab({
         .single();
 
       if (data) {
-        const winePrefs = (data.wine_preferences as Record<string, any>) || {};
+        const winePrefs = (data.wine_preferences as Record<string, any>) || {}; // eslint-disable-line @typescript-eslint/no-explicit-any
         const priceRange = (data.price_range as {
           low: number;
           high: number;

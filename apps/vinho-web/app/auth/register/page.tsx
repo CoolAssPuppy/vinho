@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Wine, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Wine, Mail, Lock, User } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 

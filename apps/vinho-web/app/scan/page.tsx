@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 import { scanWineLabel } from "@/lib/actions/scan";
 import { toast } from "sonner";
-import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@/lib/database.types";
+// import type { Database } from "@/lib/database.types";
 import type { ScanStatus, ScanResult } from "@/lib/types/shared";
 
 export default function ScanPage() {
@@ -25,10 +24,10 @@ export default function ScanPage() {
   const [processingMessage, setProcessingMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  // const supabase = createBrowserClient<Database>(
+  //   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  // );
 
   // Note: Global Realtime provider handles background processing notifications
 
@@ -400,7 +399,7 @@ export default function ScanPage() {
                   Wine label images are processed by third-party AI services to
                   identify wine details. Please ensure your photos focus only on
                   the wine label and avoid including personal information or
-                  background details that you don't want to share.
+                  background details that you don&apos;t want to share.
                 </p>
               </div>
             </div>

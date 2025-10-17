@@ -235,14 +235,14 @@ serve(async (req) => {
     }
     .button {
       display: inline-block;
-      background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+      background: #C4161C;
       color: #ffffff;
       text-decoration: none;
       padding: 16px 40px;
       border-radius: 12px;
       font-weight: 600;
       font-size: 17px;
-      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+      box-shadow: 0 4px 12px rgba(196, 22, 28, 0.3);
     }
     .alternative-link {
       text-align: center;

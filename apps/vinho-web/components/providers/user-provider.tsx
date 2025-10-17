@@ -88,7 +88,7 @@ export function UserProvider({ children }: UserProviderProps) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, _session) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         await fetchUserData();
       } else if (event === "SIGNED_OUT") {
@@ -98,6 +98,7 @@ export function UserProvider({ children }: UserProviderProps) {
     });
 
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
