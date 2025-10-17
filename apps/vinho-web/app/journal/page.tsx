@@ -409,7 +409,6 @@ export default function JournalPage() {
       `,
       )
       .eq("user_id", user.id)
-      .order("tasted_at", { ascending: false })
       .order("created_at", { ascending: false })
       .range(from, to);
 
@@ -778,6 +777,7 @@ export default function JournalPage() {
                 initialLocationCity={selectedTasting.location_city || ""}
                 initialLocationLat={selectedTasting.location_latitude}
                 initialLocationLng={selectedTasting.location_longitude}
+                initialImageUrl={selectedTasting.image_url}
                 onSave={handleSaveTasting}
                 onDelete={async () => {
                   if (selectedTasting) {

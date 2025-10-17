@@ -14,10 +14,11 @@ struct TastingNoteEditorView: View {
     @State private var notes: String
     @State private var detailedNotes: String
     @State private var tastedAt: Date
-    @State private var showingSaveConfirmation = false
+    @State private var showingToast = false
     @State private var tastingStyle: TastingStyle = .casual
     @State private var locationText: String = ""
     @State private var selectedLocation: TastingLocation?
+    @State private var wineImageUrl: String?
 
     enum TastingStyle: String {
         case casual = "casual"
@@ -40,6 +41,7 @@ struct TastingNoteEditorView: View {
         self._notes = State(initialValue: existingTasting?.notes ?? "")
         self._detailedNotes = State(initialValue: existingTasting?.detailedNotes ?? "")
         self._tastedAt = State(initialValue: existingTasting?.tastedAt ?? Date())
+        self._wineImageUrl = State(initialValue: existingTasting?.imageUrl)
 
         // Initialize location fields if existing tasting has location data
         if let existing = existingTasting {
@@ -63,6 +65,41 @@ struct TastingNoteEditorView: View {
 
                 ScrollView {
                     VStack(spacing: 24) {
+                        // Wine Image
+                        if let imageUrl = wineImageUrl, let url = URL(string: imageUrl) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(height: 300)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(height: 300)
+                                        .frame(maxWidth: .infinity)
+                                        .clipped()
+                                        .cornerRadius(16)
+                                case .failure:
+                                    // Fallback gradient if image fails to load
+                                    ZStack {
+                                        LinearGradient(
+                                            colors: [Color.vinoAccent.opacity(0.3), Color.vinoAccent.opacity(0.1)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                        Image(systemName: "wineglass")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.vinoTextTertiary)
+                                    }
+                                    .frame(height: 300)
+                                    .cornerRadius(16)
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        }
+
                         switch tastingStyle {
                         case .casual:
                             casualRatingView
@@ -106,16 +143,37 @@ struct TastingNoteEditorView: View {
                     .disabled(!canSave)
                 }
             }
+
+            // Toast notification
+            if showingToast {
+                VStack {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.vinoSuccess)
+
+                        Text("Tasting saved!")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.vinoText)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.vinoDarkSecondary)
+                            .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 4)
+                    )
+                    .padding(.top, 60)
+
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showingToast)
+                .zIndex(999)
+            }
         }
         .task {
             await loadUserProfile()
-        }
-        .alert("Saved", isPresented: $showingSaveConfirmation) {
-            Button("OK") {
-                dismiss()
-            }
-        } message: {
-            Text("Your tasting notes have been saved")
         }
     }
 
@@ -542,7 +600,13 @@ struct TastingNoteEditorView: View {
 
         if success {
             print("Tasting saved successfully")
-            showingSaveConfirmation = true
+            // Show toast
+            withAnimation {
+                showingToast = true
+            }
+            // Wait 0.3 seconds then dismiss
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            dismiss()
         } else {
             print("Failed to save tasting")
         }

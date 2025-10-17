@@ -75,7 +75,6 @@ class DataService: ObservableObject {
                     )
                 """)
                 .eq("user_id", value: userId.uuidString)
-                .order("tasted_at", ascending: false)
                 .order("created_at", ascending: false)
                 .execute()
                 .value
@@ -545,11 +544,11 @@ class DataService: ObservableObject {
         do {
             if let existingId = id {
                 // Update existing - create a struct with only the fields we want to update
+                // Note: We don't update tasted_at to preserve the original scan date
                 struct TastingUpdate: Encodable {
                     let verdict: Int?
                     let notes: String?
                     let detailed_notes: String?
-                    let tasted_at: Date
                     let updated_at: Date
                     let location_name: String?
                     let location_address: String?
@@ -562,7 +561,6 @@ class DataService: ObservableObject {
                     verdict: verdict,
                     notes: notes,
                     detailed_notes: detailedNotes,
-                    tasted_at: tastedAt,
                     updated_at: Date(),
                     location_name: locationName,
                     location_address: locationAddress,

@@ -501,6 +501,11 @@ struct WinePreferencesView: View {
             try await saveToDatabase(profile: updatedProfile)
             await handleSaveSuccess(profile: updatedProfile)
         } catch {
+            print("❌ Save error: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
+            if let decodingError = error as? DecodingError {
+                print("❌ Decoding error: \(decodingError)")
+            }
             await handleSaveError()
         }
     }

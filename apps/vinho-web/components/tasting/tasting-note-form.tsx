@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Star, MapPin } from "lucide-react";
+import { Star, MapPin, Wine } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ interface TastingNoteFormProps {
   initialLocationCity?: string;
   initialLocationLat?: number | null;
   initialLocationLng?: number | null;
+  initialImageUrl?: string | null;
   onSave?: () => void;
   onDelete?: () => void;
   onCancel?: () => void;
@@ -49,6 +51,7 @@ export function TastingNoteForm({
   initialLocationCity = "",
   initialLocationLat = null,
   initialLocationLng = null,
+  initialImageUrl = null,
   onSave,
   onDelete,
   onCancel,
@@ -163,6 +166,22 @@ export function TastingNoteForm({
     return <div className="flex justify-center p-8">Loading...</div>;
   }
 
+  const WineImage = () => {
+    if (!initialImageUrl) return null;
+
+    return (
+      <div className="relative w-full h-64 mb-6 rounded-lg overflow-hidden">
+        <Image
+          src={initialImageUrl}
+          alt="Wine bottle"
+          fill
+          className="object-cover"
+          priority
+        />
+      </div>
+    );
+  };
+
   const StarRating = () => (
     <div className="flex items-center space-x-1">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -200,6 +219,7 @@ export function TastingNoteForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <WineImage />
           <div className="space-y-2">
             <Label>Your Rating</Label>
             <StarRating />
@@ -281,6 +301,7 @@ export function TastingNoteForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <WineImage />
           <div className="space-y-2">
             <Label>Rating</Label>
             <StarRating />
@@ -379,6 +400,7 @@ export function TastingNoteForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <WineImage />
           <Tabs defaultValue="tasting" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="tasting">Tasting Notes</TabsTrigger>
@@ -499,6 +521,7 @@ export function TastingNoteForm({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
+          <WineImage />
           {/* Star Rating */}
           <div className="space-y-2">
             <Label>How did you like this wine?</Label>

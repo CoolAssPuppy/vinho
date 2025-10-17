@@ -694,8 +694,21 @@ async function processJob(
       await upsertVarietals(vintageId, result.varietals);
     }
 
-    // Update scan if linked
+    // Get scan details to use its created_at for tasted_at
+    let scanDate: string | null = null;
     if (job.scan_id) {
+      const { data: scan } = await supabase
+        .from("scans")
+        .select("created_at")
+        .eq("id", job.scan_id)
+        .single();
+
+      if (scan?.created_at) {
+        // Use the scan's created_at date (in the format YYYY-MM-DD)
+        scanDate = scan.created_at.split("T")[0];
+      }
+
+      // Update scan with matched vintage
       await supabase
         .from("scans")
         .update({
@@ -705,13 +718,17 @@ async function processJob(
         .eq("id", job.scan_id);
     }
 
-    // Create a tasting record for the user
+    // Use scan date if available, otherwise fall back to current date
+    const tastedAtDate = scanDate || new Date().toISOString().split("T")[0];
+
+    // Create a tasting record for the user with the wine image
     const { error: tastingError } = await supabase.from("tastings").insert({
       user_id: job.user_id,
       vintage_id: vintageId,
       verdict: null, // User can set later
-      notes: `Wine scanned on ${new Date().toLocaleDateString()}. ${result.varietals.length > 0 ? `Varietals: ${result.varietals.join(", ")}.` : ""} ${result.region ? `From ${result.region}${result.country ? `, ${result.country}` : ""}.` : ""}`,
-      tasted_at: new Date().toISOString().split("T")[0], // Today's date
+      notes: `Wine scanned on ${new Date(tastedAtDate).toLocaleDateString()}. ${result.varietals.length > 0 ? `Varietals: ${result.varietals.join(", ")}.` : ""} ${result.region ? `From ${result.region}${result.country ? `, ${result.country}` : ""}.` : ""}`,
+      tasted_at: tastedAtDate, // Use the scan's date
+      image_url: job.image_url, // Include the scanned wine image
     });
 
     if (tastingError) {

@@ -171,6 +171,7 @@ extension Tasting: Codable {
         if let dateString = try? container.decode(String.self, forKey: .tastedAt) {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateFormatter.timeZone = TimeZone.current // Use user's current timezone
             tastedAt = dateFormatter.date(from: dateString) ?? Date()
         } else {
             tastedAt = try container.decode(Date.self, forKey: .tastedAt)

@@ -7,7 +7,6 @@ struct JournalView: View {
     @StateObject private var viewModel = JournalViewModel()
     @EnvironmentObject var hapticManager: HapticManager
     @EnvironmentObject var authManager: AuthManager
-    @State private var selectedNote: TastingNoteWithWine?
     @State private var showingNewNote = false
     @State private var noteToEdit: TastingNoteWithWine?
     @State private var selectedTimeFilter = TimeFilter.all
@@ -112,46 +111,35 @@ struct JournalView: View {
                 }
             }
         }
-        .sheet(item: $selectedNote) { note in
-            TastingNoteDetailView(
-                note: note,
-                onEdit: {
-                    noteToEdit = note
-                },
-                onDelete: {
-                    Task {
-                        await viewModel.deleteTasting(note.id)
-                    }
-                }
-            )
-                .environmentObject(hapticManager)
-        }
         .sheet(isPresented: $showingNewNote) {
             TastingNoteEditorView(vintageId: nil, existingTasting: nil)
                 .environmentObject(hapticManager)
                 .environmentObject(authManager)
         }
         .sheet(item: $noteToEdit) { note in
-            // Find the original Tasting object from DataService
-            if let tasting = viewModel.dataService.tastings.first(where: { $0.id == note.id }) {
-                TastingNoteEditorView(vintageId: note.vintageId, existingTasting: tasting)
-                    .environmentObject(hapticManager)
-                    .environmentObject(authManager)
-            } else {
-                // Fallback if we can't find the tasting
-                TastingNoteDetailView(
-                    note: note,
-                    onEdit: {
-                        // Already in edit mode
-                    },
-                    onDelete: {
-                        Task {
-                            await viewModel.deleteTasting(note.id)
-                        }
-                    }
-                )
-                    .environmentObject(hapticManager)
-            }
+            // Find the original Tasting object from DataService, or create one from the note
+            let tasting = viewModel.dataService.tastings.first(where: { $0.id == note.id }) ?? Tasting(
+                id: note.id,
+                userId: UUID(), // Will be set by the editor
+                vintageId: note.vintageId,
+                verdict: note.rating > 0 ? note.rating : nil,
+                notes: note.notes,
+                detailedNotes: note.detailedNotes,
+                tastedAt: note.date,
+                createdAt: note.date,
+                updatedAt: note.date,
+                imageUrl: note.imageUrl,
+                locationName: nil,
+                locationAddress: nil,
+                locationCity: nil,
+                locationLatitude: nil,
+                locationLongitude: nil,
+                vintage: nil
+            )
+
+            TastingNoteEditorView(vintageId: note.vintageId, existingTasting: tasting)
+                .environmentObject(hapticManager)
+                .environmentObject(authManager)
         }
         .onAppear {
             Task {
@@ -235,7 +223,7 @@ struct JournalView: View {
                             TastingNoteCard(note: note)
                                 .onTapGesture {
                                     hapticManager.lightImpact()
-                                    selectedNote = note
+                                    noteToEdit = note
                                 }
                                 .onAppear {
                                     // Load more when approaching the end
