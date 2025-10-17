@@ -59,21 +59,15 @@ class DataService: ObservableObject {
 
     func fetchUserTastings() async {
         guard (try? await client.auth.session.user.id) != nil else {
-            print("❌ DataService: Not authenticated")
             errorMessage = "Not authenticated"
             return
         }
 
-        print("✅ DataService: Authenticated, fetching tastings...")
         isLoading = true
         do {
-            // Use the new function that includes shared tastings
-            print("📞 DataService: Calling get_tastings_with_sharing RPC...")
             let response = try await client
                 .rpc("get_tastings_with_sharing", params: ["p_limit": 100, "p_offset": 0])
                 .execute()
-
-            print("✅ DataService: RPC call successful, decoding response...")
 
             // Decode the response
             struct TastingWithSharing: Decodable {
@@ -144,30 +138,18 @@ class DataService: ObservableObject {
 
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-
-            print("🔍 DataService: Raw response data size: \(response.data.count) bytes")
-
-            // Debug: Print first 500 chars of raw JSON
-            if let jsonString = String(data: response.data, encoding: .utf8) {
-                let preview = String(jsonString.prefix(500))
-                print("📄 DataService: JSON preview: \(preview)")
-            }
-
             let tastingsWithSharing = try decoder.decode([TastingWithSharing].self, from: response.data)
 
-            print("📊 DataService: Decoded \(tastingsWithSharing.count) tastings")
 
             // Now fetch the full tasting data with vintages
             let tastingIds = tastingsWithSharing.map { $0.id.uuidString }
 
             if tastingIds.isEmpty {
-                print("⚠️ DataService: No tasting IDs returned")
                 self.tastings = []
                 isLoading = false
                 return
             }
 
-            print("🔍 DataService: Fetching full tasting data for \(tastingIds.count) IDs...")
             let fullResponse: [Tasting] = try await client
                 .from("tastings")
                 .select("""
@@ -185,10 +167,8 @@ class DataService: ObservableObject {
                 .execute()
                 .value
 
-            print("✅ DataService: Fetched \(fullResponse.count) full tastings")
             self.tastings = fullResponse
         } catch let decodingError as DecodingError {
-            print("❌ DataService: Decoding error: \(decodingError)")
             switch decodingError {
             case .typeMismatch(let type, let context):
                 print("   Type mismatch: \(type) at \(context.codingPath)")
@@ -204,7 +184,6 @@ class DataService: ObservableObject {
             }
             errorMessage = "Failed to decode tastings: \(decodingError.localizedDescription)"
         } catch {
-            print("❌ DataService: Error fetching tastings: \(error)")
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
         }
         isLoading = false
@@ -212,23 +191,18 @@ class DataService: ObservableObject {
 
     // Fetch limited tastings for map view
     func fetchTastingsForMap(limit: Int = 100) async -> [Tasting] {
-        print("🗺️ fetchTastingsForMap: limit=\(limit)")
 
         guard let userId = try? await client.auth.session.user.id else {
-            print("❌ fetchTastingsForMap: Not authenticated")
             return []
         }
 
-        print("✅ fetchTastingsForMap: Authenticated as \(userId)")
 
         do {
             // Use the new function that includes shared tastings
-            print("📞 fetchTastingsForMap: Calling get_tastings_with_sharing RPC...")
             let response = try await client
                 .rpc("get_tastings_with_sharing", params: ["p_limit": limit, "p_offset": 0])
                 .execute()
 
-            print("✅ fetchTastingsForMap: RPC returned \(response.data.count) bytes")
 
             struct TastingWithSharing: Decodable {
                 let id: UUID
@@ -236,16 +210,13 @@ class DataService: ObservableObject {
 
             let decoder = JSONDecoder()
             let tastingsWithSharing = try decoder.decode([TastingWithSharing].self, from: response.data)
-            print("📊 fetchTastingsForMap: Decoded \(tastingsWithSharing.count) tasting IDs")
 
             let tastingIds = tastingsWithSharing.map { $0.id.uuidString }
 
             if tastingIds.isEmpty {
-                print("⚠️ fetchTastingsForMap: No tasting IDs returned")
                 return []
             }
 
-            print("🔍 fetchTastingsForMap: Fetching full data for \(tastingIds.count) tastings...")
             let fullResponse: [Tasting] = try await client
                 .from("tastings")
                 .select("""
@@ -263,10 +234,8 @@ class DataService: ObservableObject {
                 .execute()
                 .value
 
-            print("✅ fetchTastingsForMap: Returning \(fullResponse.count) full tastings")
             return fullResponse
         } catch let decodingError as DecodingError {
-            print("❌ fetchTastingsForMap: Decoding error: \(decodingError)")
             switch decodingError {
             case .typeMismatch(let type, let context):
                 print("   Type mismatch: \(type) at \(context.codingPath)")
@@ -281,38 +250,25 @@ class DataService: ObservableObject {
             }
             return []
         } catch {
-            print("❌ fetchTastingsForMap: Error: \(error)")
             return []
         }
     }
 
     // Paginated fetching for tastings
     func fetchUserTastingsPaginated(page: Int, pageSize: Int = 12) async -> [Tasting] {
-        print("🔵 fetchUserTastingsPaginated: page=\(page), pageSize=\(pageSize)")
 
         guard let userId = try? await client.auth.session.user.id else {
-            print("❌ fetchUserTastingsPaginated: Not authenticated")
             return []
         }
 
-        print("✅ fetchUserTastingsPaginated: Authenticated as \(userId)")
 
         let offset = page * pageSize
 
         do {
             // Use the new function that includes shared tastings
-            print("📞 fetchUserTastingsPaginated: Calling get_tastings_with_sharing RPC (limit=\(pageSize), offset=\(offset))...")
             let response = try await client
                 .rpc("get_tastings_with_sharing", params: ["p_limit": pageSize, "p_offset": offset])
                 .execute()
-
-            print("✅ fetchUserTastingsPaginated: RPC returned \(response.data.count) bytes")
-
-            // Debug: Print first 500 chars of raw JSON
-            if let jsonString = String(data: response.data, encoding: .utf8) {
-                let preview = String(jsonString.prefix(500))
-                print("📄 fetchUserTastingsPaginated: JSON preview: \(preview)")
-            }
 
             struct TastingWithSharing: Decodable {
                 let id: UUID
@@ -320,16 +276,13 @@ class DataService: ObservableObject {
 
             let decoder = JSONDecoder()
             let tastingsWithSharing = try decoder.decode([TastingWithSharing].self, from: response.data)
-            print("📊 fetchUserTastingsPaginated: Decoded \(tastingsWithSharing.count) tasting IDs")
 
             let tastingIds = tastingsWithSharing.map { $0.id.uuidString }
 
             if tastingIds.isEmpty {
-                print("⚠️ fetchUserTastingsPaginated: No tasting IDs returned")
                 return []
             }
 
-            print("🔍 fetchUserTastingsPaginated: Fetching full data for \(tastingIds.count) tastings...")
             let fullResponse: [Tasting] = try await client
                 .from("tastings")
                 .select("""
@@ -348,10 +301,8 @@ class DataService: ObservableObject {
                 .execute()
                 .value
 
-            print("✅ fetchUserTastingsPaginated: Returning \(fullResponse.count) full tastings")
             return fullResponse
         } catch let decodingError as DecodingError {
-            print("❌ fetchUserTastingsPaginated: Decoding error: \(decodingError)")
             switch decodingError {
             case .typeMismatch(let type, let context):
                 print("   Type mismatch: \(type) at \(context.codingPath)")
@@ -368,7 +319,6 @@ class DataService: ObservableObject {
             errorMessage = "Failed to decode tastings: \(decodingError.localizedDescription)"
             return []
         } catch {
-            print("❌ fetchUserTastingsPaginated: Error: \(error)")
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
             return []
         }

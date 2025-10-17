@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Supabase
 
 @MainActor
 class DeepLinkHandler: ObservableObject {
@@ -59,7 +60,11 @@ class DeepLinkHandler: ObservableObject {
                 return
             }
 
-            // User is authenticated, accept invite
+            // User is authenticated, accept invite via edge function
+            struct AcceptInviteBody: Encodable {
+                let code: String
+            }
+
             struct AcceptResult: Decodable {
                 let success: Bool
                 let error: String?
@@ -67,9 +72,10 @@ class DeepLinkHandler: ObservableObject {
                 let sharer_id: String?
             }
 
-            let response = try await client.rpc("accept_invite_by_code", params: ["code": code]).execute()
-            let decoder = JSONDecoder()
-            let result = try decoder.decode(AcceptResult.self, from: response.data)
+            let result: AcceptResult = try await client.functions.invoke(
+                "accept-invite",
+                options: FunctionInvokeOptions(body: AcceptInviteBody(code: code))
+            )
 
             if result.success {
                 print("Successfully accepted invite from deep link")

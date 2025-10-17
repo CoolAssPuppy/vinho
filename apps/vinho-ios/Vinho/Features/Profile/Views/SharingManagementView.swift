@@ -4,8 +4,8 @@ struct SharingManagementView: View {
     @StateObject private var sharingService = SharingService.shared
     @State private var showInviteSheet = false
     @State private var inviteEmail = ""
-    @State private var alertMessage = ""
-    @State private var showAlert = false
+    @State private var toastMessage = ""
+    @State private var showToast = false
 
     var body: some View {
         List {
@@ -39,24 +39,14 @@ struct SharingManagementView: View {
                         PendingInvitationRow(connection: connection) {
                             Task {
                                 let success = await sharingService.acceptInvitation(connection.id)
-                                if success {
-                                    alertMessage = "Invitation accepted! You can now see \(connection.sharerProfile?.fullName ?? "their") tastings."
-                                    showAlert = true
-                                } else {
-                                    alertMessage = "Failed to accept invitation"
-                                    showAlert = true
-                                }
+                                toastMessage = success ? "Invitation accepted!" : "Failed to accept invitation"
+                                showToast = true
                             }
                         } onReject: {
                             Task {
                                 let success = await sharingService.rejectInvitation(connection.id)
-                                if success {
-                                    alertMessage = "Invitation rejected"
-                                    showAlert = true
-                                } else {
-                                    alertMessage = "Failed to reject invitation"
-                                    showAlert = true
-                                }
+                                toastMessage = success ? "Invitation rejected" : "Failed to reject invitation"
+                                showToast = true
                             }
                         }
                     }
@@ -79,13 +69,8 @@ struct SharingManagementView: View {
                         ) {
                             Task {
                                 let success = await sharingService.revokeSharing(connection.id)
-                                if success {
-                                    alertMessage = "Sharing revoked successfully"
-                                    showAlert = true
-                                } else {
-                                    alertMessage = "Failed to revoke sharing"
-                                    showAlert = true
-                                }
+                                toastMessage = success ? "Sharing revoked" : "Failed to revoke sharing"
+                                showToast = true
                             }
                         }
                     }
@@ -150,8 +135,8 @@ struct SharingManagementView: View {
             ) { email in
                 Task {
                     let (success, message) = await sharingService.sendInvitation(toEmail: email)
-                    alertMessage = message
-                    showAlert = true
+                    toastMessage = message
+                    showToast = true
                     if success {
                         inviteEmail = ""
                         showInviteSheet = false
@@ -159,11 +144,21 @@ struct SharingManagementView: View {
                 }
             }
         }
-        .alert("Sharing", isPresented: $showAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(alertMessage)
+        .overlay(alignment: .bottom) {
+            if showToast {
+                ToastView(message: toastMessage)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            withAnimation {
+                                showToast = false
+                            }
+                        }
+                    }
+                    .padding(.bottom, 50)
+            }
         }
+        .animation(.spring(), value: showToast)
         .task {
             await sharingService.fetchSharingConnections()
             await sharingService.fetchPreferences()

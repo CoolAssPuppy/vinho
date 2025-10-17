@@ -5,7 +5,7 @@ import SwiftUI
 struct SharingConnection: Identifiable, Codable, Hashable {
     let id: UUID
     let sharerId: UUID
-    let viewerId: UUID
+    let viewerId: UUID?
     let status: SharingStatus
     let createdAt: Date
     let updatedAt: Date
@@ -38,7 +38,7 @@ struct SharingConnection: Identifiable, Codable, Hashable {
 
         id = try container.decode(UUID.self, forKey: .id)
         sharerId = try container.decode(UUID.self, forKey: .sharerId)
-        viewerId = try container.decode(UUID.self, forKey: .viewerId)
+        viewerId = try? container.decode(UUID.self, forKey: .viewerId)
 
         let statusString = try container.decode(String.self, forKey: .status)
         status = SharingStatus(rawValue: statusString) ?? .pending

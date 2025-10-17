@@ -21,12 +21,13 @@ interface InviteDetails {
   }
 }
 
-export default function InvitePage({ params }: { params: { code: string } }) {
+export default function InvitePage({ params }: { params: Promise<{ code: string }> }) {
   const router = useRouter()
   const [invite, setInvite] = useState<InviteDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,12 +37,16 @@ export default function InvitePage({ params }: { params: { code: string } }) {
   useEffect(() => {
     async function loadInvite() {
       try {
+        // Await params
+        const resolvedParams = await params
+        setInviteCode(resolvedParams.code)
+
         // Check if user is already logged in
         const { data: { session } } = await supabase.auth.getSession()
         setIsAuthenticated(!!session)
 
         // Get invite details
-        const { data, error } = await supabase.rpc('get_invite_by_code', { code: params.code })
+        const { data, error } = await supabase.rpc('get_invite_by_code', { code: resolvedParams.code })
 
         if (error) throw error
 
@@ -64,16 +69,20 @@ export default function InvitePage({ params }: { params: { code: string } }) {
     }
 
     loadInvite()
-  }, [params.code])
+  }, [params, supabase])
 
   async function acceptInvite() {
+    if (!inviteCode) return
+
     setAccepting(true)
     try {
-      const { data, error } = await supabase.rpc('accept_invite_by_code', { code: params.code })
+      const { data, error } = await supabase.functions.invoke('accept-invite', {
+        body: { code: inviteCode }
+      })
 
       if (error) throw error
 
-      const result = data as unknown as { success: boolean; error?: string }
+      const result = data as { success: boolean; error?: string }
 
       if (result.success) {
         // Redirect to home/feed page after successful acceptance
@@ -91,13 +100,17 @@ export default function InvitePage({ params }: { params: { code: string } }) {
 
   async function handleSignUp() {
     // Store invite code in localStorage for post-signup processing
-    localStorage.setItem('pending_invite_code', params.code)
+    if (inviteCode) {
+      localStorage.setItem('pending_invite_code', inviteCode)
+    }
     router.push('/auth/signup')
   }
 
   async function handleSignIn() {
     // Store invite code in localStorage for post-signin processing
-    localStorage.setItem('pending_invite_code', params.code)
+    if (inviteCode) {
+      localStorage.setItem('pending_invite_code', inviteCode)
+    }
     router.push('/auth/login')
   }
 

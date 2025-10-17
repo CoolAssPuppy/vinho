@@ -68,71 +68,20 @@ export function useSharing() {
   };
 
   const sendInvitation = async (
-    contact: string,
-    method: 'email' | 'sms' = 'email'
+    viewerEmail: string
   ): Promise<SendInvitationResult> => {
     try {
-      // Call RPC with either email or phone
-      const { data, error } = await supabase.rpc('send_sharing_invitation', {
-        viewer_email: method === 'email' ? contact : null,
-        viewer_phone: method === 'sms' ? contact : null
+      // Call edge function to handle invitation creation and email sending
+      const { data, error } = await supabase.functions.invoke('send-sharing-invitation', {
+        body: { viewer_email: viewerEmail }
       });
 
       if (error) throw error;
 
-      const result = data as unknown as (SendInvitationResult & { invite_code?: string });
+      const result = data as SendInvitationResult;
 
-      if (result.success && result.connection_id && result.invite_code) {
-        // Send invitation via email or SMS
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', user.id)
-              .single();
-
-            const sharerName = profile
-              ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'A Vinho user'
-              : 'A Vinho user';
-
-            if (method === 'email') {
-              await supabase.functions.invoke('send-sharing-invitation-email', {
-                body: {
-                  viewer_email: contact,
-                  sharer_name: sharerName,
-                  sharer_email: user.email,
-                  invite_code: result.invite_code,
-                },
-              });
-            } else {
-              await supabase.functions.invoke('send-sharing-invitation-sms', {
-                body: {
-                  viewer_phone: contact,
-                  sharer_name: sharerName,
-                  invite_code: result.invite_code,
-                },
-              });
-            }
-          }
-        } catch (sendError) {
-          console.error(`Failed to send invitation ${method}:`, sendError);
-          // Don't fail the whole invitation if sending fails
-        }
-
+      if (result.success) {
         await fetchConnections();
-
-        let message = method === 'email'
-          ? 'Invitation sent via email'
-          : 'Invitation sent via SMS';
-        if (result.action === 'reshared') {
-          message = 'Invitation resent successfully';
-        } else if (result.action === 'resent') {
-          message = 'Invitation resent after previous rejection';
-        }
-
-        return { ...result, error: undefined };
       }
 
       return result;

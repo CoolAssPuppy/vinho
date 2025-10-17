@@ -65,70 +65,24 @@ class SharingService: ObservableObject {
 
     func sendInvitation(toEmail: String) async -> (success: Bool, message: String) {
         do {
-            struct InviteParams: Encodable {
+            struct InviteBody: Encodable {
                 let viewer_email: String
             }
 
-            let response = try await client
-                .rpc("send_sharing_invitation", params: InviteParams(viewer_email: toEmail))
-                .execute()
-
-            // Parse the JSONB response
             struct InviteResponse: Decodable {
                 let success: Bool
                 let error: String?
                 let action: String?
                 let connection_id: String?
+                let invite_code: String?
             }
 
-            let decoder = JSONDecoder()
-            let result = try decoder.decode(InviteResponse.self, from: response.data)
+            let result: InviteResponse = try await client.functions.invoke(
+                "send-sharing-invitation",
+                options: FunctionInvokeOptions(body: InviteBody(viewer_email: toEmail))
+            )
 
-            if result.success, let connectionId = result.connection_id {
-                // Send email invitation
-                do {
-                    let user = try await client.auth.session.user
-
-                    // Get profile info
-                    let profileResponse: UserProfile? = try? await client
-                        .from("profiles")
-                        .select("first_name, last_name")
-                        .eq("id", value: user.id.uuidString)
-                        .single()
-                        .execute()
-                        .value
-
-                    let sharerName = if let profile = profileResponse,
-                                       let firstName = profile.firstName,
-                                       let lastName = profile.lastName {
-                        "\(firstName) \(lastName)"
-                    } else {
-                        "A Vinho user"
-                    }
-
-                    struct EmailRequest: Encodable {
-                        let viewer_email: String
-                        let sharer_name: String
-                        let sharer_email: String
-                        let connection_id: String
-                    }
-
-                    let _ = try await client.functions.invoke(
-                        "send-sharing-invitation-email",
-                        options: FunctionInvokeOptions(
-                            body: EmailRequest(
-                                viewer_email: toEmail,
-                                sharer_name: sharerName,
-                                sharer_email: user.email ?? "",
-                                connection_id: connectionId
-                            )
-                        )
-                    )
-                } catch {
-                    print("Failed to send invitation email: \(error)")
-                    // Don't fail the whole invitation if email fails
-                }
-
+            if result.success {
                 // Refresh connections
                 await fetchSharingConnections()
 
