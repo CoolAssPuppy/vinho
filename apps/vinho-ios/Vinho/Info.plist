@@ -28,5 +28,18 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Vinho uses your location to show where you've enjoyed wines and find nearby wine venues.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.strategicnerds.vinho</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>vinho</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

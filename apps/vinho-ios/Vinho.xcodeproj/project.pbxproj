@@ -46,6 +46,11 @@
 		E9DB772961E1A4E1690205FC /* SecretsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */; };
 		F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */ = {isa = PBXBuildFile; fileRef = E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */; };
 		F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */; };
+		N31BG9GXAK1Y5OJXCQ0XJ1P8 /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = U112QBPIWS8JARF38QPXHVHZ /* DeepLinkHandler.swift */; };
+		7DSJ31BKAF49DTUBA1IS03PD /* SharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56CXGTLJK99C4PG3S40E7TZ1 /* SharingService.swift */; };
+		QM4XKQQ35U9PDL0CXGYB2MHQ /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AGT2IDEK52GIA8JMWCO0EH /* Sharing.swift */; };
+		2PAJHRT8FS1XSV0MHU8TGWPS /* SharedUsersToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3P5PEBDM5YDLD8171XPX0DTX /* SharedUsersToggleView.swift */; };
+		S604V0NPFTYJWF3BFM1W3A6U /* SharingManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A93MEQI9OB9PS2ES7GARVT2 /* SharingManagementView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -89,6 +94,11 @@
 		E7623913BA99093EBB4AB0B6 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		F35B623A39A4E69CF7377EBF /* VinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VinoApp.swift; sourceTree = "<group>"; };
+		U112QBPIWS8JARF38QPXHVHZ /* DeepLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkHandler.swift; sourceTree = "<group>"; };
+		56CXGTLJK99C4PG3S40E7TZ1 /* SharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingService.swift; sourceTree = "<group>"; };
+		05AGT2IDEK52GIA8JMWCO0EH /* Sharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
+		3P5PEBDM5YDLD8171XPX0DTX /* SharedUsersToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vinho/Features/Profile/Views/SharedUsersToggleView.swift; sourceTree = SOURCE_ROOT; };
+		1A93MEQI9OB9PS2ES7GARVT2 /* SharingManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vinho/Features/Profile/Views/SharingManagementView.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +130,8 @@
 			isa = PBXGroup;
 			children = (
 				AADC32950C12BBEE23AA069C /* ProfileView.swift */,
+				3P5PEBDM5YDLD8171XPX0DTX /* SharedUsersToggleView.swift */,
+				1A93MEQI9OB9PS2ES7GARVT2 /* SharingManagementView.swift */,
 				B7612EC30B456A179E23623B /* SubViews */,
 			);
 			path = Profile;
@@ -145,6 +157,8 @@
 			isa = PBXGroup;
 			children = (
 				B148593675AB8A0C77F55433 /* DataService.swift */,
+				U112QBPIWS8JARF38QPXHVHZ /* DeepLinkHandler.swift */,
+				56CXGTLJK99C4PG3S40E7TZ1 /* SharingService.swift */,
 				CED0979C5BF1EB4DE9122B7C /* StatsService.swift */,
 			);
 			path = Services;
@@ -220,6 +234,7 @@
 		A1F676E615635572AA87E7EC /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				05AGT2IDEK52GIA8JMWCO0EH /* Sharing.swift */,
 				4C5FF736994778CE20D63418 /* Wine.swift */,
 			);
 			path = Models;
@@ -455,6 +470,11 @@
 				B6778FAC52FC305D601ADD3B /* Wine.swift in Sources */,
 				8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */,
 				BAEDAB496398490D44302725 /* WineListView.swift in Sources */,
+				N31BG9GXAK1Y5OJXCQ0XJ1P8 /* DeepLinkHandler.swift in Sources */,
+				7DSJ31BKAF49DTUBA1IS03PD /* SharingService.swift in Sources */,
+				QM4XKQQ35U9PDL0CXGYB2MHQ /* Sharing.swift in Sources */,
+				2PAJHRT8FS1XSV0MHU8TGWPS /* SharedUsersToggleView.swift in Sources */,
+				S604V0NPFTYJWF3BFM1W3A6U /* SharingManagementView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

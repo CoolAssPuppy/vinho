@@ -16,6 +16,7 @@ struct ProfileView: View {
         case personalInfo
         case privacySecurity
         case winePreferences
+        case sharing
         case helpCenter
         case contactUs
         case about
@@ -67,6 +68,9 @@ struct ProfileView: View {
                 case .winePreferences:
                     WinePreferencesView()
                         .environmentObject(authManager)
+                        .environmentObject(hapticManager)
+                case .sharing:
+                    SharingManagementView()
                         .environmentObject(hapticManager)
                 case .helpCenter:
                     HelpCenterView()
@@ -321,6 +325,11 @@ struct ProfileView: View {
                 MenuRow(icon: "slider.horizontal.3", title: "Wine Preferences", showChevron: true) {
                     hapticManager.lightImpact()
                     navigationPath.append(Destination.winePreferences)
+                }
+
+                MenuRow(icon: "person.2.fill", title: "Sharing", showChevron: true) {
+                    hapticManager.lightImpact()
+                    navigationPath.append(Destination.sharing)
                 }
             }
             

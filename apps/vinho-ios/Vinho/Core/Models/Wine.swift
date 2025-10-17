@@ -127,6 +127,11 @@ struct Tasting: Identifiable, Hashable {
     let locationLatitude: Double?
     let locationLongitude: Double?
     var vintage: Vintage?
+    var sharedBy: SharedTastingInfo?  // Info about who shared this tasting (if it's a shared tasting)
+
+    var isShared: Bool {
+        return sharedBy != nil
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -145,6 +150,7 @@ struct Tasting: Identifiable, Hashable {
         case locationLatitude = "location_latitude"
         case locationLongitude = "location_longitude"
         case vintage = "vintages"
+        case sharedBy = "profiles"
     }
 }
 
@@ -166,6 +172,7 @@ extension Tasting: Codable {
         locationLatitude = try container.decodeIfPresent(Double.self, forKey: .locationLatitude)
         locationLongitude = try container.decodeIfPresent(Double.self, forKey: .locationLongitude)
         vintage = try container.decodeIfPresent(Vintage.self, forKey: .vintage)
+        sharedBy = try container.decodeIfPresent(SharedTastingInfo.self, forKey: .sharedBy)
 
         // Handle date-only format for tastedAt
         if let dateString = try? container.decode(String.self, forKey: .tastedAt) {

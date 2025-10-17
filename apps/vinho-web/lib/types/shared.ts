@@ -57,6 +57,12 @@ export interface Tasting {
   location_latitude?: number | null;
   location_longitude?: number | null;
   image_url?: string | null;
+  is_shared?: boolean;
+  sharer?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
   vintage: {
     id: string;
     year: number | null;
@@ -189,6 +195,12 @@ export interface RecentWine {
   location_longitude: number | null | undefined;
   notes: string | null | undefined;
   detailed_notes: string | null | undefined;
+  is_shared?: boolean;
+  sharer?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
 }
 
 // ============= Wine Preferences Types =============

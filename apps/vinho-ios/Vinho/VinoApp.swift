@@ -5,6 +5,7 @@ struct VinoApp: App {
     @StateObject private var authManager = AuthManager()
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var hapticManager = HapticManager()
+    @StateObject private var deepLinkHandler = DeepLinkHandler()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     init() {
@@ -18,6 +19,10 @@ struct VinoApp: App {
                 .environmentObject(authManager)
                 .environmentObject(themeManager)
                 .environmentObject(hapticManager)
+                .environmentObject(deepLinkHandler)
+                .onOpenURL { url in
+                    deepLinkHandler.handle(url: url)
+                }
                 .task {
                     await authManager.checkSession()
                 }

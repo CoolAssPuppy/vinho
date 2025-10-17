@@ -1,0 +1,303 @@
+import Foundation
+import Supabase
+import Combine
+
+@MainActor
+class SharingService: ObservableObject {
+    static let shared = SharingService()
+
+    @Published var connections: [SharingConnection] = []
+    @Published var preferences: UserSharingPreferences?
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let client = SupabaseManager.shared.client
+    private var currentUserId: UUID?
+
+    private init() {
+        // Initialize current user ID
+        Task {
+            currentUserId = try? await client.auth.session.user.id
+        }
+    }
+
+    // MARK: - Fetch Methods
+
+    func fetchSharingConnections() async {
+        isLoading = true
+        do {
+            let response = try await client
+                .rpc("get_sharing_connections_with_profiles")
+                .execute()
+
+            // Decode response into SharingConnection array
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            connections = try decoder.decode([SharingConnection].self, from: response.data)
+        } catch {
+            print("Error fetching sharing connections: \(error)")
+            errorMessage = "Failed to fetch sharing connections: \(error.localizedDescription)"
+        }
+        isLoading = false
+    }
+
+    func fetchPreferences() async {
+        guard let userId = try? await client.auth.session.user.id else { return }
+        currentUserId = userId
+
+        do {
+            let response: UserSharingPreferences = try await client
+                .from("user_sharing_preferences")
+                .select("*")
+                .eq("user_id", value: userId.uuidString)
+                .single()
+                .execute()
+                .value
+
+            preferences = response
+        } catch {
+            // Create preferences if they don't exist
+            await createDefaultPreferences()
+        }
+    }
+
+    // MARK: - Mutation Methods
+
+    func sendInvitation(toEmail: String) async -> (success: Bool, message: String) {
+        do {
+            struct InviteParams: Encodable {
+                let viewer_email: String
+            }
+
+            let response = try await client
+                .rpc("send_sharing_invitation", params: InviteParams(viewer_email: toEmail))
+                .execute()
+
+            // Parse the JSONB response
+            struct InviteResponse: Decodable {
+                let success: Bool
+                let error: String?
+                let action: String?
+                let connection_id: String?
+            }
+
+            let decoder = JSONDecoder()
+            let result = try decoder.decode(InviteResponse.self, from: response.data)
+
+            if result.success, let connectionId = result.connection_id {
+                // Send email invitation
+                do {
+                    let user = try await client.auth.session.user
+
+                    // Get profile info
+                    let profileResponse: UserProfile? = try? await client
+                        .from("profiles")
+                        .select("first_name, last_name")
+                        .eq("id", value: user.id.uuidString)
+                        .single()
+                        .execute()
+                        .value
+
+                    let sharerName = if let profile = profileResponse,
+                                       let firstName = profile.firstName,
+                                       let lastName = profile.lastName {
+                        "\(firstName) \(lastName)"
+                    } else {
+                        "A Vinho user"
+                    }
+
+                    struct EmailRequest: Encodable {
+                        let viewer_email: String
+                        let sharer_name: String
+                        let sharer_email: String
+                        let connection_id: String
+                    }
+
+                    let _ = try await client.functions.invoke(
+                        "send-sharing-invitation-email",
+                        options: FunctionInvokeOptions(
+                            body: EmailRequest(
+                                viewer_email: toEmail,
+                                sharer_name: sharerName,
+                                sharer_email: user.email ?? "",
+                                connection_id: connectionId
+                            )
+                        )
+                    )
+                } catch {
+                    print("Failed to send invitation email: \(error)")
+                    // Don't fail the whole invitation if email fails
+                }
+
+                // Refresh connections
+                await fetchSharingConnections()
+
+                let actionMsg: String
+                switch result.action {
+                case "reshared":
+                    actionMsg = "Invitation resent successfully"
+                case "resent":
+                    actionMsg = "Invitation resent after previous rejection"
+                default:
+                    actionMsg = "Invitation sent successfully"
+                }
+
+                return (true, actionMsg)
+            } else {
+                return (false, result.error ?? "Failed to send invitation")
+            }
+        } catch {
+            print("Error sending invitation: \(error)")
+            errorMessage = "Failed to send invitation: \(error.localizedDescription)"
+            return (false, error.localizedDescription)
+        }
+    }
+
+    func acceptInvitation(_ connectionId: UUID) async -> Bool {
+        do {
+            try await client
+                .from("sharing_connections")
+                .update([
+                    "status": "accepted",
+                    "accepted_at": Date().ISO8601Format()
+                ])
+                .eq("id", value: connectionId.uuidString)
+                .execute()
+
+            // Add to visible sharers by default
+            if let connection = connections.first(where: { $0.id == connectionId }) {
+                await toggleSharerVisibility(sharerId: connection.sharerId, visible: true)
+            }
+
+            await fetchSharingConnections()
+            return true
+        } catch {
+            print("Error accepting invitation: \(error)")
+            errorMessage = "Failed to accept invitation: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    func rejectInvitation(_ connectionId: UUID) async -> Bool {
+        do {
+            try await client
+                .from("sharing_connections")
+                .update(["status": "rejected"])
+                .eq("id", value: connectionId.uuidString)
+                .execute()
+
+            await fetchSharingConnections()
+            return true
+        } catch {
+            print("Error rejecting invitation: \(error)")
+            errorMessage = "Failed to reject invitation: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    func revokeSharing(_ connectionId: UUID) async -> Bool {
+        do {
+            // Update status to 'revoked' instead of deleting to preserve history
+            // This allows re-sharing with the same user later
+            try await client
+                .from("sharing_connections")
+                .update([
+                    "status": "revoked",
+                    "updated_at": Date().ISO8601Format()
+                ])
+                .eq("id", value: connectionId.uuidString)
+                .execute()
+
+            await fetchSharingConnections()
+            return true
+        } catch {
+            print("Error revoking sharing: \(error)")
+            errorMessage = "Failed to revoke sharing: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    func toggleSharerVisibility(sharerId: UUID, visible: Bool) async {
+        guard var prefs = preferences else { return }
+
+        let sharerIdStr = sharerId.uuidString
+        if visible {
+            if !prefs.visibleSharers.contains(sharerIdStr) {
+                prefs.visibleSharers.append(sharerIdStr)
+            }
+        } else {
+            prefs.visibleSharers.removeAll { $0 == sharerIdStr }
+        }
+
+        do {
+            struct UpdatePrefs: Encodable {
+                let visible_sharers: [String]
+                let updated_at: String
+            }
+
+            try await client
+                .from("user_sharing_preferences")
+                .update(UpdatePrefs(
+                    visible_sharers: prefs.visibleSharers,
+                    updated_at: Date().ISO8601Format()
+                ))
+                .eq("user_id", value: prefs.userId.uuidString)
+                .execute()
+
+            preferences = prefs
+
+            // Notify data service to refresh tastings
+            NotificationCenter.default.post(name: NSNotification.Name("TastingDataChanged"), object: nil)
+        } catch {
+            print("Error updating preferences: \(error)")
+            errorMessage = "Failed to update preferences: \(error.localizedDescription)"
+        }
+    }
+
+    private func createDefaultPreferences() async {
+        guard let userId = try? await client.auth.session.user.id else { return }
+        currentUserId = userId
+
+        do {
+            let newPrefs = UserSharingPreferences(
+                id: UUID(),
+                userId: userId,
+                visibleSharers: [],
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+
+            try await client
+                .from("user_sharing_preferences")
+                .insert(newPrefs)
+                .execute()
+
+            preferences = newPrefs
+        } catch {
+            print("Error creating default preferences: \(error)")
+            errorMessage = "Failed to create default preferences: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    func isSharerVisible(_ sharerId: UUID) -> Bool {
+        guard let prefs = preferences else { return false }
+        return prefs.visibleSharers.contains(sharerId.uuidString)
+    }
+
+    func getPendingInvitationsReceived() -> [SharingConnection] {
+        guard let userId = currentUserId else { return [] }
+        return connections.filter { $0.status == .pending && $0.viewerId == userId }
+    }
+
+    func getActiveSharesSent() -> [SharingConnection] {
+        guard let userId = currentUserId else { return [] }
+        return connections.filter { $0.status == .accepted && $0.sharerId == userId }
+    }
+
+    func getActiveSharesReceived() -> [SharingConnection] {
+        guard let userId = currentUserId else { return [] }
+        return connections.filter { $0.status == .accepted && $0.viewerId == userId }
+    }
+}

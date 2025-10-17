@@ -58,11 +58,52 @@ class DataService: ObservableObject {
     // MARK: - Tastings
 
     func fetchUserTastings() async {
-        guard let userId = try? await client.auth.session.user.id else { return }
+        guard (try? await client.auth.session.user.id) != nil else { return }
 
         isLoading = true
         do {
-            let response: [Tasting] = try await client
+            // Use the new function that includes shared tastings
+            let response = try await client
+                .rpc("get_tastings_with_sharing", params: ["p_limit": 100, "p_offset": 0])
+                .execute()
+
+            // Decode the response
+            struct TastingWithSharing: Decodable {
+                let id: UUID
+                let user_id: UUID
+                let vintage_id: UUID
+                let verdict: Int?
+                let notes: String?
+                let detailed_notes: String?
+                let tasted_at: String?
+                let created_at: String
+                let updated_at: String
+                let image_url: String?
+                let location_name: String?
+                let location_address: String?
+                let location_city: String?
+                let location_latitude: Double?
+                let location_longitude: Double?
+                let is_shared: Bool
+                let sharer_id: UUID?
+                let sharer_first_name: String?
+                let sharer_last_name: String?
+            }
+
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let tastingsWithSharing = try decoder.decode([TastingWithSharing].self, from: response.data)
+
+            // Now fetch the full tasting data with vintages
+            let tastingIds = tastingsWithSharing.map { $0.id.uuidString }
+
+            if tastingIds.isEmpty {
+                self.tastings = []
+                isLoading = false
+                return
+            }
+
+            let fullResponse: [Tasting] = try await client
                 .from("tastings")
                 .select("""
                     *,
@@ -72,14 +113,19 @@ class DataService: ObservableObject {
                             *,
                             producers!producer_id(*)
                         )
+                    ),
+                    profiles!user_id(
+                        id,
+                        first_name,
+                        last_name
                     )
                 """)
-                .eq("user_id", value: userId.uuidString)
+                .in("id", values: tastingIds)
                 .order("created_at", ascending: false)
                 .execute()
                 .value
 
-            self.tastings = response
+            self.tastings = fullResponse
         } catch {
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
         }
@@ -88,10 +134,27 @@ class DataService: ObservableObject {
 
     // Fetch limited tastings for map view
     func fetchTastingsForMap(limit: Int = 100) async -> [Tasting] {
-        guard let userId = try? await client.auth.session.user.id else { return [] }
+        guard (try? await client.auth.session.user.id) != nil else { return [] }
 
         do {
-            let response: [Tasting] = try await client
+            // Use the new function that includes shared tastings
+            let response = try await client
+                .rpc("get_tastings_with_sharing", params: ["p_limit": limit, "p_offset": 0])
+                .execute()
+
+            struct TastingWithSharing: Decodable {
+                let id: UUID
+            }
+
+            let decoder = JSONDecoder()
+            let tastingsWithSharing = try decoder.decode([TastingWithSharing].self, from: response.data)
+            let tastingIds = tastingsWithSharing.map { $0.id.uuidString }
+
+            if tastingIds.isEmpty {
+                return []
+            }
+
+            let fullResponse: [Tasting] = try await client
                 .from("tastings")
                 .select("""
                     *,
@@ -101,15 +164,19 @@ class DataService: ObservableObject {
                             *,
                             producers!producer_id(*)
                         )
+                    ),
+                    profiles!user_id(
+                        id,
+                        first_name,
+                        last_name
                     )
                 """)
-                .eq("user_id", value: userId.uuidString)
+                .in("id", values: tastingIds)
                 .order("tasted_at", ascending: false)
-                .limit(limit)
                 .execute()
                 .value
 
-            return response
+            return fullResponse
         } catch {
             return []
         }
@@ -117,13 +184,29 @@ class DataService: ObservableObject {
 
     // Paginated fetching for tastings
     func fetchUserTastingsPaginated(page: Int, pageSize: Int = 12) async -> [Tasting] {
-        guard let userId = try? await client.auth.session.user.id else { return [] }
+        guard (try? await client.auth.session.user.id) != nil else { return [] }
 
-        let from = page * pageSize
-        let to = from + pageSize - 1
+        let offset = page * pageSize
 
         do {
-            let response: [Tasting] = try await client
+            // Use the new function that includes shared tastings
+            let response = try await client
+                .rpc("get_tastings_with_sharing", params: ["p_limit": pageSize, "p_offset": offset])
+                .execute()
+
+            struct TastingWithSharing: Decodable {
+                let id: UUID
+            }
+
+            let decoder = JSONDecoder()
+            let tastingsWithSharing = try decoder.decode([TastingWithSharing].self, from: response.data)
+            let tastingIds = tastingsWithSharing.map { $0.id.uuidString }
+
+            if tastingIds.isEmpty {
+                return []
+            }
+
+            let fullResponse: [Tasting] = try await client
                 .from("tastings")
                 .select("""
                     *,
@@ -133,16 +216,20 @@ class DataService: ObservableObject {
                             *,
                             producers!producer_id(*)
                         )
+                    ),
+                    profiles!user_id(
+                        id,
+                        first_name,
+                        last_name
                     )
                 """)
-                .eq("user_id", value: userId.uuidString)
+                .in("id", values: tastingIds)
                 .order("tasted_at", ascending: false)
                 .order("created_at", ascending: false)
-                .range(from: from, to: to)
                 .execute()
                 .value
 
-            return response
+            return fullResponse
         } catch {
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
             return []

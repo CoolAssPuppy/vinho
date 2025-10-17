@@ -430,11 +430,29 @@ struct TastingNoteCard: View {
             
             // Note Details
             VStack(alignment: .leading, spacing: 6) {
-                // Wine Name + Vintage as title
-                Text("\(note.wineName) \(note.vintage != nil ? String(note.vintage!) : "NV")")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.vinoText)
-                    .lineLimit(1)
+                // Wine Name + Vintage as title with shared indicator
+                HStack(spacing: 6) {
+                    Text("\(note.wineName) \(note.vintage != nil ? String(note.vintage!) : "NV")")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.vinoText)
+                        .lineLimit(1)
+
+                    if note.isShared, let sharedBy = note.sharedBy {
+                        HStack(spacing: 2) {
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 8))
+                            Text(sharedBy.fullName)
+                                .font(.system(size: 9, weight: .medium))
+                        }
+                        .foregroundColor(.vinoAccent)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(Color.vinoAccent.opacity(0.15))
+                        )
+                    }
+                }
 
                 // Producer name as secondary
                 Text(note.producer)
@@ -449,7 +467,7 @@ struct TastingNoteCard: View {
                         .foregroundColor(.vinoTextTertiary)
                         .lineLimit(1)
                 }
-                
+
                 // Rating
                 HStack(spacing: 4) {
                     ForEach(0..<5) { index in
@@ -457,10 +475,10 @@ struct TastingNoteCard: View {
                             .font(.system(size: 10))
                             .foregroundColor(index < note.rating ? .vinoGold : .vinoTextTertiary)
                     }
-                    
+
                     Text("·")
                         .foregroundColor(.vinoTextTertiary)
-                    
+
                     Text(note.date.timeAgo())
                         .font(.system(size: 12))
                         .foregroundColor(.vinoTextSecondary)
@@ -701,7 +719,9 @@ class JournalViewModel: ObservableObject {
                 flavors: [],
                 date: tasting.tastedAt,
                 imageUrl: tasting.imageUrl,
-                vintageId: vintage.id
+                vintageId: vintage.id,
+                isShared: tasting.isShared,
+                sharedBy: tasting.sharedBy
             )
         }
     }
@@ -787,4 +807,6 @@ struct TastingNoteWithWine: Identifiable {
     let date: Date
     let imageUrl: String?
     let vintageId: UUID
+    let isShared: Bool
+    let sharedBy: SharedTastingInfo?
 }

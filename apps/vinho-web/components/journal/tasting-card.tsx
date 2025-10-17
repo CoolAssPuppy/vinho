@@ -1,9 +1,10 @@
 "use client";
 
-import { Edit, MapPin, Wine } from "lucide-react";
+import { Edit, MapPin, Wine, Users } from "lucide-react";
 import Image from "next/image";
 import { StarDisplay } from "@/components/ui/star-rating";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -51,9 +52,17 @@ export function TastingCard({ tasting, onEdit }: TastingCardProps) {
             <div className="flex justify-between items-start">
               <div className="space-y-2 flex-1">
                 {/* Wine Name + Vintage as the main title */}
-                <CardTitle className="text-lg">
-                  {wineName} {vintage || "NV"}
-                </CardTitle>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-lg">
+                    {wineName} {vintage || "NV"}
+                  </CardTitle>
+                  {tasting.is_shared && tasting.sharer && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Users className="h-3 w-3 mr-1" />
+                      {tasting.sharer.first_name} {tasting.sharer.last_name}
+                    </Badge>
+                  )}
+                </div>
 
                 {/* Producer name as secondary info */}
                 <CardDescription className="text-base">

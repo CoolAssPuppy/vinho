@@ -161,7 +161,7 @@ describe('Grape Varietal Database Storage', () => {
     expect(savedAssociations).toBeDefined();
     expect(savedAssociations!.length).toBe(2);
 
-    const savedNames = savedAssociations?.map((a: any) => a.varietal.name) || [];
+    const savedNames = savedAssociations?.map((a: { varietal: { name: string } }) => a.varietal.name) || [];
     expect(savedNames).toContain('Test Pinot Noir');
     expect(savedNames).toContain('Test Chardonnay');
   });

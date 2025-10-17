@@ -115,17 +115,17 @@ export default function ScanPage() {
         toast.success(
           "Wine uploaded! Our expert sommeliers are analyzing your wine and it will be added to your collection shortly.",
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Scan failed:", error);
         setScanStatus("error");
-        const errorMessage = error?.message || "Failed to process wine label";
+        const errorMessage = error instanceof Error ? error.message : "Failed to process wine label";
         setScanResult({ scanId: "", error: errorMessage });
         toast.error(errorMessage);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload failed:", error);
       setScanStatus("error");
-      const errorMessage = error?.message || "Failed to upload image";
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
       setScanResult({ scanId: "", error: errorMessage });
       toast.error(errorMessage);
     }
