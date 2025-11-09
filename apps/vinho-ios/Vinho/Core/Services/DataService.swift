@@ -55,6 +55,34 @@ class DataService: ObservableObject {
         }
     }
 
+    func updateWine(id: UUID, name: String?, description: String?) async throws {
+        // Create update struct with only the fields we want to update
+        struct WineUpdate: Encodable {
+            let name: String?
+            let tasting_notes: String?
+        }
+
+        let updateData = WineUpdate(
+            name: name,
+            tasting_notes: description
+        )
+
+        do {
+            try await client
+                .from("wines")
+                .update(updateData)
+                .eq("id", value: id.uuidString)
+                .execute()
+
+            // Refresh wines list
+            await fetchWines()
+            notifyWineDataChanged()
+        } catch {
+            errorMessage = "Failed to update wine: \(error.localizedDescription)"
+            throw error
+        }
+    }
+
     // MARK: - Tastings
 
     func fetchUserTastings() async {

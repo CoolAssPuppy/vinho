@@ -779,6 +779,9 @@ export default function JournalPage() {
                 initialLocationLat={selectedTasting.location_latitude}
                 initialLocationLng={selectedTasting.location_longitude}
                 initialImageUrl={selectedTasting.image_url}
+                wineId={selectedTasting.vintage.wine.id}
+                wineName={selectedTasting.vintage.wine.name}
+                wineDescription={selectedTasting.vintage.wine.tasting_notes}
                 onSave={handleSaveTasting}
                 onDelete={async () => {
                   if (selectedTasting) {

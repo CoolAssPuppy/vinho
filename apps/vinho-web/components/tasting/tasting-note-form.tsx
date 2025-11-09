@@ -32,6 +32,9 @@ interface TastingNoteFormProps {
   initialLocationLat?: number | null;
   initialLocationLng?: number | null;
   initialImageUrl?: string | null;
+  wineId?: string;
+  wineName?: string;
+  wineDescription?: string | null;
   onSave?: () => void;
   onDelete?: () => void;
   onCancel?: () => void;
@@ -52,6 +55,9 @@ export function TastingNoteForm({
   initialLocationLat = null,
   initialLocationLng = null,
   initialImageUrl = null,
+  wineId,
+  wineName = "",
+  wineDescription = null,
   onSave,
   onDelete,
   onCancel,
@@ -77,6 +83,13 @@ export function TastingNoteForm({
   const [tastedAt, setTastedAt] = useState(
     initialTastedAt || new Date().toISOString().split("T")[0],
   );
+
+  // Wine editing states
+  const [editedWineName, setEditedWineName] = useState(wineName);
+  const [editedWineDescription, setEditedWineDescription] = useState(wineDescription || "");
+  const [isEditingWineName, setIsEditingWineName] = useState(false);
+  const [isEditingWineDescription, setIsEditingWineDescription] = useState(false);
+  const [isSavingWine, setIsSavingWine] = useState(false);
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -163,6 +176,52 @@ export function TastingNoteForm({
     }
   };
 
+  const handleSaveWineName = async () => {
+    if (!wineId || !editedWineName.trim()) {
+      setIsEditingWineName(false);
+      return;
+    }
+
+    setIsSavingWine(true);
+
+    const { error } = await supabase
+      .from("wines")
+      .update({ name: editedWineName })
+      .eq("id", wineId);
+
+    setIsSavingWine(false);
+
+    if (error) {
+      console.error("Error updating wine name:", error);
+      alert("Failed to update wine name. Please try again.");
+    } else {
+      setIsEditingWineName(false);
+    }
+  };
+
+  const handleSaveWineDescription = async () => {
+    if (!wineId) {
+      setIsEditingWineDescription(false);
+      return;
+    }
+
+    setIsSavingWine(true);
+
+    const { error } = await supabase
+      .from("wines")
+      .update({ tasting_notes: editedWineDescription || null })
+      .eq("id", wineId);
+
+    setIsSavingWine(false);
+
+    if (error) {
+      console.error("Error updating wine description:", error);
+      alert("Failed to update wine description. Please try again.");
+    } else {
+      setIsEditingWineDescription(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center p-8">Loading...</div>;
   }
@@ -179,6 +238,111 @@ export function TastingNoteForm({
           className="object-cover"
           priority
         />
+      </div>
+    );
+  };
+
+  const WineInfo = () => {
+    if (!wineId) return null;
+
+    return (
+      <div className="space-y-4 p-4 rounded-lg bg-muted/50 border border-border">
+        {/* Wine Name */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Wine Name</Label>
+          {isEditingWineName ? (
+            <div className="flex gap-2">
+              <Input
+                value={editedWineName}
+                onChange={(e) => setEditedWineName(e.target.value)}
+                className="flex-1"
+                placeholder="Wine name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveWineName();
+                  } else if (e.key === "Escape") {
+                    setIsEditingWineName(false);
+                    setEditedWineName(wineName);
+                  }
+                }}
+                autoFocus
+                disabled={isSavingWine}
+              />
+              <Button
+                size="sm"
+                onClick={handleSaveWineName}
+                disabled={isSavingWine || !editedWineName.trim()}
+              >
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setIsEditingWineName(false);
+                  setEditedWineName(wineName);
+                }}
+                disabled={isSavingWine}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div
+              className="p-2 rounded cursor-pointer hover:bg-muted transition-colors"
+              onClick={() => setIsEditingWineName(true)}
+            >
+              <p className="text-lg font-semibold">{wineName || "Tap to add wine name"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Click to edit</p>
+            </div>
+          )}
+        </div>
+
+        {/* Wine Description */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Wine Description</Label>
+          {isEditingWineDescription ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editedWineDescription}
+                onChange={(e) => setEditedWineDescription(e.target.value)}
+                className="min-h-[100px]"
+                placeholder="Add wine description or tasting notes..."
+                disabled={isSavingWine}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSaveWineDescription}
+                  disabled={isSavingWine}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditingWineDescription(false);
+                    setEditedWineDescription(wineDescription || "");
+                  }}
+                  disabled={isSavingWine}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="p-2 rounded cursor-pointer hover:bg-muted transition-colors min-h-[60px]"
+              onClick={() => setIsEditingWineDescription(true)}
+            >
+              <p className="text-sm whitespace-pre-wrap">
+                {wineDescription || "Tap to add wine description"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Click to edit</p>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -221,6 +385,7 @@ export function TastingNoteForm({
         </CardHeader>
         <CardContent className="space-y-6">
           <WineImage />
+          <WineInfo />
           <div className="space-y-2">
             <Label>Your Rating</Label>
             <StarRating />
@@ -303,6 +468,7 @@ export function TastingNoteForm({
         </CardHeader>
         <CardContent className="space-y-6">
           <WineImage />
+          <WineInfo />
           <div className="space-y-2">
             <Label>Rating</Label>
             <StarRating />
@@ -402,7 +568,8 @@ export function TastingNoteForm({
         </CardHeader>
         <CardContent>
           <WineImage />
-          <Tabs defaultValue="tasting" className="space-y-6">
+          <WineInfo />
+          <Tabs defaultValue="tasting" className="space-y-6 mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="tasting">Tasting Notes</TabsTrigger>
               <TabsTrigger value="technical">Technical Analysis</TabsTrigger>
