@@ -601,6 +601,7 @@ class WineListViewModel: ObservableObject {
         // Convert to WineWithDetails format
         wines = dataService.wines.map { wine in
             WineWithDetails(
+                id: wine.id,
                 name: wine.name,
                 producer: wine.producer?.name ?? "Unknown",
                 year: wine.vintages?.first?.year,
@@ -609,7 +610,8 @@ class WineListViewModel: ObservableObject {
                 price: nil, // Add price field to database if needed
                 averageRating: nil, // Calculate from tastings if needed
                 imageUrl: nil,
-                type: wine.isNV ? .sparkling : .red // Default, you can improve this
+                type: wine.isNV ? .sparkling : .red, // Default, you can improve this
+                description: nil // Will be loaded from wine's tasting_notes when available
             )
         }
         isLoading = false
@@ -668,8 +670,8 @@ enum WineType: String, CaseIterable {
 }
 
 struct WineWithDetails: Identifiable {
-    let id = UUID()
-    let name: String
+    let id: UUID  // Wine ID from database
+    var name: String
     let producer: String
     let year: Int?
     let region: String?
@@ -678,4 +680,5 @@ struct WineWithDetails: Identifiable {
     let averageRating: Double?
     let imageUrl: String?
     let type: WineType
+    var description: String?  // Wine description from tasting_notes
 }

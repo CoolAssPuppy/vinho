@@ -3,13 +3,20 @@ import MapKit
 
 /// Sophisticated wine detail view with immersive design
 struct WineDetailView: View {
-    let wine: WineWithDetails
+    var wine: WineWithDetails
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab = 0
     @State private var showingTastingNote = false
     @State private var isFavorite = false
     @State private var heroImageScale: CGFloat = 1.0
+
+    // Inline editing states
+    @State private var editedName: String = ""
+    @State private var editedDescription: String = ""
+    @State private var isEditingName = false
+    @State private var isEditingDescription = false
+    @State private var isSaving = false
     
     var body: some View {
         NavigationView {
@@ -191,12 +198,90 @@ struct WineDetailView: View {
                 .foregroundColor(.vinoAccent)
                 .textCase(.uppercase)
                 .tracking(1.2)
-            
-            // Wine Name
-            Text(wine.name)
-                .font(.system(size: 32, weight: .bold, design: .serif))
-                .foregroundColor(.vinoText)
-            
+
+            // Wine Name (Editable)
+            VStack(alignment: .leading, spacing: 8) {
+                if isEditingName {
+                    TextField("Wine Name", text: $editedName)
+                        .font(.system(size: 32, weight: .bold, design: .serif))
+                        .foregroundColor(.vinoText)
+                        .textFieldStyle(.plain)
+                        .onSubmit {
+                            saveWineName()
+                        }
+                        .overlay(alignment: .trailing) {
+                            Button {
+                                saveWineName()
+                            } label: {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.vinoSuccess)
+                            }
+                            .padding(.leading, 8)
+                        }
+                } else {
+                    Text(wine.name)
+                        .font(.system(size: 32, weight: .bold, design: .serif))
+                        .foregroundColor(.vinoText)
+                        .onTapGesture {
+                            hapticManager.lightImpact()
+                            editedName = wine.name
+                            isEditingName = true
+                        }
+                }
+            }
+
+            // Wine Description (Editable)
+            if isEditingDescription || wine.description != nil || isEditingDescription {
+                VStack(alignment: .leading, spacing: 8) {
+                    if isEditingDescription {
+                        TextEditor(text: $editedDescription)
+                            .font(.system(size: 14))
+                            .foregroundColor(.vinoTextSecondary)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 80)
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.vinoDarkSecondary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.vinoBorder, lineWidth: 1)
+                                    )
+                            )
+
+                        HStack {
+                            Button("Cancel") {
+                                hapticManager.lightImpact()
+                                isEditingDescription = false
+                            }
+                            .foregroundColor(.vinoTextSecondary)
+
+                            Spacer()
+
+                            Button("Save") {
+                                saveWineDescription()
+                            }
+                            .foregroundColor(.vinoSuccess)
+                            .fontWeight(.semibold)
+                            .disabled(isSaving)
+                        }
+                        .font(.system(size: 14))
+                    } else {
+                        Text(wine.description ?? "Tap to add wine description")
+                            .font(.system(size: 14))
+                            .foregroundColor(wine.description == nil ? .vinoTextTertiary : .vinoTextSecondary)
+                            .lineSpacing(4)
+                            .onTapGesture {
+                                hapticManager.lightImpact()
+                                editedDescription = wine.description ?? ""
+                                isEditingDescription = true
+                            }
+                    }
+                }
+                .padding(.top, 4)
+            }
+
             // Vintage & Region
             HStack(spacing: 16) {
                 if let year = wine.year {
@@ -209,7 +294,7 @@ struct WineDetailView: View {
                     }
                     .foregroundColor(.vinoTextSecondary)
                 }
-                
+
                 if let region = wine.region {
                     Label {
                         Text(region)
@@ -447,6 +532,74 @@ struct WineDetailView: View {
                         .foregroundColor(.vinoText)
                 }
             }
+        }
+    }
+
+    // MARK: - Save Functions
+    private func saveWineName() {
+        guard !editedName.isEmpty else {
+            isEditingName = false
+            return
+        }
+
+        Task {
+            isSaving = true
+            hapticManager.mediumImpact()
+
+            do {
+                try await DataService.shared.updateWine(
+                    id: wine.id,
+                    name: editedName,
+                    description: nil
+                )
+
+                // Update local state
+                await MainActor.run {
+                    var updatedWine = wine
+                    updatedWine.name = editedName
+                    isEditingName = false
+                    hapticManager.success()
+
+                    // Post notification to refresh wine list
+                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                }
+            } catch {
+                print("Error updating wine name: \(error)")
+                hapticManager.error()
+            }
+
+            isSaving = false
+        }
+    }
+
+    private func saveWineDescription() {
+        Task {
+            isSaving = true
+            hapticManager.mediumImpact()
+
+            do {
+                try await DataService.shared.updateWine(
+                    id: wine.id,
+                    name: nil,
+                    description: editedDescription.isEmpty ? nil : editedDescription
+                )
+
+                // Update local state
+                await MainActor.run {
+                    var updatedWine = wine
+                    updatedWine.description = editedDescription.isEmpty ? nil : editedDescription
+                    isEditingDescription = false
+                    hapticManager.success()
+
+                    // Post notification to refresh wine list
+                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                }
+            } catch {
+                print("Error updating wine description: \(error)")
+                hapticManager.error()
+            }
+
+            isSaving = false
         }
     }
 }
