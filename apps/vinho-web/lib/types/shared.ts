@@ -30,51 +30,27 @@ type DbProfile = Database["public"]["Tables"]["profiles"]["Row"];
 // ============= Wine & Tasting Types =============
 
 /**
- * Tasting with nested relations as returned by queries with joins
- * Example query:
- * .from("tastings").select(`
- *   *,
- *   vintage:vintage_id (
- *     year,
- *     wine:wine_id (
- *       name,
- *       producer:producer_id (name, city)
- *     )
- *   )
- * `)
- *
- * Note: Some fields are optional as search results may not include all fields
+ * Tasting type with nested relations using Supabase generated types
+ * Based on queries with joins that replace foreign keys with nested objects
+ * Includes optional sharing fields that may be added by specific queries
  */
-export interface Tasting {
-  id: string;
-  verdict: number | null;
-  notes: string | null;
-  detailed_notes: string | null;
-  tasted_at: string;
-  location_name?: string | null;
-  location_address?: string | null;
-  location_city?: string | null;
-  location_latitude?: number | null;
-  location_longitude?: number | null;
-  image_url?: string | null;
+export type Tasting = Omit<
+  Database["public"]["Tables"]["tastings"]["Row"],
+  "vintage_id"
+> & {
+  vintage: Omit<Database["public"]["Tables"]["vintages"]["Row"], "wine_id"> & {
+    wine: Omit<Database["public"]["Tables"]["wines"]["Row"], "producer_id"> & {
+      producer: Database["public"]["Tables"]["producers"]["Row"];
+    };
+  };
+  // Optional fields for shared tastings (from get_tastings_with_sharing function)
   is_shared?: boolean;
   sharer?: {
     id: string;
     first_name: string | null;
     last_name: string | null;
   } | null;
-  vintage: {
-    id: string;
-    year: number | null;
-    wine: {
-      name: string;
-      producer: {
-        name: string;
-        city?: string | null;
-      };
-    };
-  };
-}
+};
 
 export interface WineLocation {
   id: string;

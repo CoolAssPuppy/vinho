@@ -400,7 +400,9 @@ export default function JournalPage() {
           id,
           year,
           wine:wine_id (
+            id,
             name,
+            tasting_notes,
             producer:producer_id (
               name
             )
@@ -415,56 +417,9 @@ export default function JournalPage() {
     if (error) {
       console.error("Error fetching tastings:", error);
     } else if (data) {
-      // Transform the nested data structure
-      interface RawTastingData {
-        id: string;
-        verdict: number | null;
-        notes: string | null;
-        detailed_notes: string | null;
-        tasted_at: string | null;
-        location_name: string | null;
-        location_city: string | null;
-        image_url: string | null;
-        vintage: {
-          id: string;
-          year: number | null;
-          wine: {
-            name: string;
-            producer: {
-              name: string;
-            } | null;
-          } | null;
-        } | null;
-      }
-      const transformedData = data
-        .map((item: RawTastingData) => ({
-          id: item.id,
-          verdict: item.verdict,
-          notes: item.notes,
-          detailed_notes: item.detailed_notes,
-          tasted_at: item.tasted_at,
-          location_name: item.location_name,
-          location_city: item.location_city,
-          image_url: item.image_url,
-          vintage: item.vintage
-            ? {
-                id: item.vintage.id,
-                year: item.vintage.year,
-                wine: item.vintage.wine
-                  ? {
-                      name: item.vintage.wine.name,
-                      producer: item.vintage.wine.producer
-                        ? {
-                            name: item.vintage.wine.producer.name,
-                            city: null, // producers table doesn't have a city column
-                          }
-                        : null,
-                    }
-                  : null,
-              }
-            : null,
-        }))
-        .filter((item) => item.vintage !== null) as Tasting[];
+      // Supabase automatically infers the nested type from the query
+      const transformedData = (data
+        .filter((item) => item.vintage !== null) as unknown) as Tasting[];
 
       // Set has more based on whether we got a full page
       setHasMore(data.length === PAGE_SIZE + 1);
@@ -645,7 +600,7 @@ export default function JournalPage() {
               onResults={(results) => {
                 setIsSearching(true);
                 // Map search results to Tasting format
-                interface SearchResult {
+                const mappedResults = results.map((r: {
                   tasting_id: string;
                   verdict: number | null;
                   notes: string | null;
@@ -653,25 +608,54 @@ export default function JournalPage() {
                   vintage_year: number | null;
                   wine_name: string | null;
                   producer_name: string | null;
-                }
-                const mappedResults = results.map((r: SearchResult) => ({
+                }) => ({
                   id: r.tasting_id,
                   verdict: r.verdict,
                   notes: r.notes,
                   detailed_notes: null,
-                  tasted_at: new Date().toISOString().split("T")[0], // Placeholder
+                  tasted_at: new Date().toISOString().split("T")[0],
                   location_name: r.location_name,
+                  location_address: null,
+                  location_city: null,
+                  location_latitude: null,
+                  location_longitude: null,
+                  image_url: null,
+                  created_at: null,
+                  updated_at: null,
+                  user_id: null,
+                  embedding: null,
+                  search_text: null,
                   vintage: {
                     id: "search-result",
                     year: r.vintage_year,
+                    created_at: null,
                     wine: {
+                      id: "search-result-wine",
                       name: r.wine_name || "Unknown Wine",
+                      tasting_notes: null,
+                      created_at: null,
+                      color: null,
+                      food_pairings: null,
+                      image_url: null,
+                      is_nv: null,
+                      serving_temperature: null,
+                      style: null,
+                      wine_type: null,
                       producer: {
+                        id: "search-result-producer",
                         name: r.producer_name || "Unknown Producer",
+                        address: null,
+                        city: null,
+                        created_at: null,
+                        latitude: null,
+                        longitude: null,
+                        postal_code: null,
+                        region_id: null,
+                        website: null,
                       },
                     },
                   },
-                }));
+                } as Tasting));
                 setFilteredTastings(mappedResults);
               }}
               onClear={() => {
@@ -772,16 +756,16 @@ export default function JournalPage() {
                 initialRating={selectedTasting.verdict || 0}
                 initialNotes={selectedTasting.notes || ""}
                 initialDetailedNotes={selectedTasting.detailed_notes || ""}
-                initialTastedAt={selectedTasting.tasted_at}
+                initialTastedAt={selectedTasting.tasted_at ?? undefined}
                 initialLocationName={selectedTasting.location_name || ""}
                 initialLocationAddress={selectedTasting.location_address || ""}
                 initialLocationCity={selectedTasting.location_city || ""}
-                initialLocationLat={selectedTasting.location_latitude}
-                initialLocationLng={selectedTasting.location_longitude}
-                initialImageUrl={selectedTasting.image_url}
+                initialLocationLat={selectedTasting.location_latitude ?? undefined}
+                initialLocationLng={selectedTasting.location_longitude ?? undefined}
+                initialImageUrl={selectedTasting.image_url ?? undefined}
                 wineId={selectedTasting.vintage.wine.id}
                 wineName={selectedTasting.vintage.wine.name}
-                wineDescription={selectedTasting.vintage.wine.tasting_notes}
+                wineDescription={selectedTasting.vintage.wine.tasting_notes ?? undefined}
                 onSave={handleSaveTasting}
                 onDelete={async () => {
                   if (selectedTasting) {

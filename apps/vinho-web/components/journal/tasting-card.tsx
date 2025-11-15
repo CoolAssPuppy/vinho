@@ -124,7 +124,7 @@ export function TastingCard({ tasting, onEdit }: TastingCardProps) {
                   </div>
                 )}
                 <span className="text-xs text-muted-foreground block">
-                  Tasted on {format(new Date(tasting.tasted_at), "MMM d, yyyy")}
+                  Tasted on {tasting.tasted_at ? format(new Date(tasting.tasted_at), "MMM d, yyyy") : "Unknown"}
                 </span>
               </div>
             </div>
