@@ -4,12 +4,17 @@ import MapKit
 /// Sophisticated wine detail view with immersive design
 struct WineDetailView: View {
     var wine: WineWithDetails
+    var fromTasting: Bool = false // Track if navigated from a tasting to prevent circular nav
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab = 0
     @State private var showingTastingNote = false
     @State private var isFavorite = false
     @State private var heroImageScale: CGFloat = 1.0
+    @State private var tastings: [TastingNoteWithWine] = []
+    @State private var isLoadingTastings = false
+    @State private var selectedTasting: TastingNoteWithWine?
+    @State private var showingTastingDetail = false
 
     // Inline editing states
     @State private var editedName: String = ""
@@ -64,6 +69,28 @@ struct WineDetailView: View {
         .sheet(isPresented: $showingTastingNote) {
             AddTastingNoteView(wine: wine)
                 .environmentObject(hapticManager)
+        }
+        .sheet(isPresented: $showingTastingDetail) {
+            if let tasting = selectedTasting {
+                TastingNoteDetailView(
+                    note: tasting,
+                    onEdit: {
+                        // Handle edit
+                    },
+                    onDelete: {
+                        // Handle delete
+                        Task {
+                            await loadTastings()
+                        }
+                    }
+                )
+                .environmentObject(hapticManager)
+            }
+        }
+        .onAppear {
+            Task {
+                await loadTastings()
+            }
         }
     }
     
@@ -417,29 +444,45 @@ struct WineDetailView: View {
     
     var tastingTab: some View {
         VStack(alignment: .leading, spacing: 16) {
-            TastingAspect(
-                title: "Appearance",
-                description: "Deep ruby with purple reflections",
-                icon: "eye"
-            )
-            
-            TastingAspect(
-                title: "Nose",
-                description: "Blackcurrant, violet, cedar, tobacco, graphite",
-                icon: "nose"
-            )
-            
-            TastingAspect(
-                title: "Palate",
-                description: "Full-bodied with silky tannins, dark fruits, spice, and mineral notes",
-                icon: "mouth"
-            )
-            
-            TastingAspect(
-                title: "Finish",
-                description: "Long and persistent with evolving complexity",
-                icon: "timer"
-            )
+            if isLoadingTastings {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .tint(.vinoAccent)
+                    Spacer()
+                }
+                .padding(40)
+            } else if tastings.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "wineglass")
+                        .font(.system(size: 40))
+                        .foregroundColor(.vinoTextTertiary)
+                    Text("No tastings yet")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.vinoTextSecondary)
+                    Text("Add your first tasting note for this wine")
+                        .font(.system(size: 14))
+                        .foregroundColor(.vinoTextTertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(40)
+            } else {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(tastings) { tasting in
+                            Button {
+                                hapticManager.lightImpact()
+                                selectedTasting = tasting
+                                showingTastingDetail = true
+                            } label: {
+                                TastingRowView(tasting: tasting)
+                            }
+                        }
+                    }
+                }
+                .frame(maxHeight: 400)
+            }
         }
         .padding(16)
         .background(
@@ -535,6 +578,43 @@ struct WineDetailView: View {
         }
     }
 
+    // MARK: - Data Loading
+    private func loadTastings() async {
+        isLoadingTastings = true
+        let fetchedTastings = await DataService.shared.fetchTastingsForWine(wineId: wine.id)
+        let converted = fetchedTastings.compactMap { convertToTastingNoteWithWine($0) }
+        await MainActor.run {
+            tastings = converted
+            isLoadingTastings = false
+        }
+    }
+
+    private func convertToTastingNoteWithWine(_ tasting: Tasting) -> TastingNoteWithWine? {
+        guard let vintage = tasting.vintage,
+              let wine = vintage.wine,
+              let producer = wine.producer else {
+            return nil
+        }
+
+        return TastingNoteWithWine(
+            id: tasting.id,
+            wineName: wine.name,
+            producer: producer.name,
+            producerCity: producer.city,
+            vintage: vintage.year,
+            rating: tasting.verdict ?? 0,
+            notes: tasting.notes,
+            detailedNotes: tasting.detailedNotes,
+            aromas: [], // Not available in current tasting model
+            flavors: [], // Not available in current tasting model
+            date: tasting.tastedAt,
+            imageUrl: tasting.imageUrl,
+            vintageId: tasting.vintageId,
+            isShared: tasting.sharedBy != nil,
+            sharedBy: tasting.sharedBy
+        )
+    }
+
     // MARK: - Save Functions
     private func saveWineName() {
         guard !editedName.isEmpty else {
@@ -605,6 +685,84 @@ struct WineDetailView: View {
 }
 
 // MARK: - Supporting Views
+struct TastingRowView: View {
+    let tasting: TastingNoteWithWine
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Left side - Image or placeholder
+            if let imageUrl = tasting.imageUrl {
+                AsyncImage(url: URL(string: imageUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    ZStack {
+                        Color.vinoDarkSecondary
+                        Image(systemName: "wineglass")
+                            .foregroundColor(.vinoTextTertiary)
+                    }
+                }
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                ZStack {
+                    Color.vinoDarkSecondary
+                    Image(systemName: "wineglass")
+                        .font(.system(size: 20))
+                        .foregroundColor(.vinoTextTertiary)
+                }
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+
+            // Middle - Info
+            VStack(alignment: .leading, spacing: 4) {
+                // Stars
+                HStack(spacing: 2) {
+                    ForEach(0..<5) { index in
+                        Image(systemName: index < tasting.rating ? "star.fill" : "star")
+                            .font(.system(size: 12))
+                            .foregroundColor(index < tasting.rating ? .vinoGold : .vinoTextTertiary)
+                    }
+                }
+
+                // Notes preview
+                if let notes = tasting.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(.system(size: 13))
+                        .foregroundColor(.vinoTextSecondary)
+                        .lineLimit(2)
+                }
+
+                // Date
+                Text(formattedDate(tasting.date))
+                    .font(.system(size: 11))
+                    .foregroundColor(.vinoTextTertiary)
+            }
+
+            Spacer()
+
+            // Right arrow
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12))
+                .foregroundColor(.vinoTextTertiary)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.vinoDarkSecondary)
+        )
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+}
+
 struct StatCard: View {
     let icon: String
     let value: String

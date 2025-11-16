@@ -220,7 +220,7 @@ class DataService: ObservableObject {
     // Fetch limited tastings for map view
     func fetchTastingsForMap(limit: Int = 100) async -> [Tasting] {
 
-        guard let userId = try? await client.auth.session.user.id else {
+        guard (try? await client.auth.session.user.id) != nil else {
             return []
         }
 
@@ -285,7 +285,7 @@ class DataService: ObservableObject {
     // Paginated fetching for tastings
     func fetchUserTastingsPaginated(page: Int, pageSize: Int = 12) async -> [Tasting] {
 
-        guard let userId = try? await client.auth.session.user.id else {
+        guard (try? await client.auth.session.user.id) != nil else {
             return []
         }
 
@@ -438,6 +438,39 @@ class DataService: ObservableObject {
         } catch {
             errorMessage = "Failed to create tasting: \(error.localizedDescription)"
             return false
+        }
+    }
+
+    // Fetch tastings for a specific wine
+    func fetchTastingsForWine(wineId: UUID) async -> [Tasting] {
+        guard (try? await client.auth.session.user.id) != nil else {
+            return []
+        }
+
+        do {
+            // Fetch all tastings for vintages of this wine
+            let tastings: [Tasting] = try await client
+                .from("tastings")
+                .select("""
+                    *,
+                    vintages!vintage_id(
+                        *,
+                        wines!wine_id(
+                            *,
+                            producers!producer_id(*)
+                        )
+                    )
+                """)
+                .eq("vintages.wine_id", value: wineId.uuidString)
+                .order("tasted_at", ascending: false)
+                .execute()
+                .value
+
+            return tastings
+        } catch {
+            print("Failed to fetch tastings for wine: \(error)")
+            errorMessage = "Failed to fetch wine tastings: \(error.localizedDescription)"
+            return []
         }
     }
 

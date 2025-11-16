@@ -27,6 +27,7 @@ extension FeedItem {
 
 extension WineWithDetails {
     static let previewData = WineWithDetails(
+        id: UUID(),
         name: "Margaux",
         producer: "Château Margaux",
         year: 2019,

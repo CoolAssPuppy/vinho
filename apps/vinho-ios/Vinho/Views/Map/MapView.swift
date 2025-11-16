@@ -9,6 +9,8 @@ struct MapView: View {
     @EnvironmentObject var hapticManager: HapticManager
     @State private var mapView: MapViewType = .origins
     @State private var selectedWine: WineMapLocation?
+    @State private var showingWineDetail = false
+    @State private var wineForDetail: WineWithDetails?
     @ObservedObject private var statsService = StatsService.shared
     @State private var mapCameraPosition = MapCameraPosition.region(
         MKCoordinateRegion(
@@ -164,6 +166,12 @@ struct MapView: View {
                     VStack {
                         Spacer()
                         WineMapDetailCard(wine: wine, mapView: mapView)
+                            .onTapGesture {
+                                hapticManager.mediumImpact()
+                                Task {
+                                    await loadWineForDetail(wine)
+                                }
+                            }
                             .padding()
                             .padding(.bottom, 80) // Account for tab bar
                             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -196,6 +204,35 @@ struct MapView: View {
         .onChange(of: mapView) { _, newValue in
             // Just switch to cached data, don't fetch again
             viewModel.switchToView(newValue)
+        }
+        .sheet(isPresented: $showingWineDetail) {
+            if let wine = wineForDetail {
+                WineDetailView(wine: wine, fromTasting: false)
+                    .environmentObject(hapticManager)
+            }
+        }
+    }
+
+    // MARK: - Wine Loading
+    private func loadWineForDetail(_ wineLocation: WineMapLocation) async {
+        // Convert WineMapLocation to WineWithDetails
+        let wine = WineWithDetails(
+            id: wineLocation.id,
+            name: wineLocation.name,
+            producer: wineLocation.producer,
+            year: wineLocation.year,
+            region: wineLocation.region,
+            varietal: nil,
+            price: nil,
+            averageRating: nil,
+            imageUrl: nil,
+            type: .red, // Default, could be improved
+            description: nil
+        )
+
+        await MainActor.run {
+            wineForDetail = wine
+            showingWineDetail = true
         }
     }
 
@@ -452,6 +489,18 @@ struct WineMapDetailCard: View {
                             .foregroundColor(.vinoTextSecondary)
                     }
                 }
+            }
+
+            // Tap indicator
+            HStack {
+                Spacer()
+                HStack(spacing: 4) {
+                    Text("Tap for details")
+                        .font(.system(size: 11, weight: .medium))
+                    Image(systemName: "arrow.up.forward.circle.fill")
+                        .font(.system(size: 12))
+                }
+                .foregroundColor(.vinoAccent)
             }
         }
         .padding(16)

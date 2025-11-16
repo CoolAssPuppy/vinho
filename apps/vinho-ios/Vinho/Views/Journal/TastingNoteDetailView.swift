@@ -3,6 +3,7 @@ import SwiftUI
 /// Detailed view for a single tasting note
 struct TastingNoteDetailView: View {
     let note: TastingNoteWithWine
+    var fromWine: Bool = false // Track if navigated from wine to prevent circular nav
     let onEdit: () -> Void
     let onDelete: () -> Void
     @EnvironmentObject var hapticManager: HapticManager
@@ -10,6 +11,9 @@ struct TastingNoteDetailView: View {
     @State private var showingEditView = false
     @State private var showingShareSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showingWineDetail = false
+    @State private var wineForDetail: WineWithDetails?
+    @State private var isLoadingWine = false
     
     var body: some View {
         NavigationView {
@@ -94,6 +98,12 @@ struct TastingNoteDetailView: View {
                 Text("This action cannot be undone.")
             }
         }
+        .sheet(isPresented: $showingWineDetail) {
+            if let wine = wineForDetail {
+                WineDetailView(wine: wine, fromTasting: true)
+                    .environmentObject(hapticManager)
+            }
+        }
     }
 
     var wineHeader: some View {
@@ -118,7 +128,7 @@ struct TastingNoteDetailView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    
+
                     Image(systemName: "wineglass")
                         .font(.system(size: 60))
                         .foregroundColor(.vinoPrimary.opacity(0.5))
@@ -126,23 +136,90 @@ struct TastingNoteDetailView: View {
                 .frame(height: 200)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             }
-            
-            // Wine Info
-            VStack(spacing: 8) {
-                Text(note.producer)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.vinoAccent)
-                    .textCase(.uppercase)
-                    .tracking(1.2)
-                
-                Text(note.wineName)
-                    .font(.system(size: 28, weight: .bold, design: .serif))
-                    .foregroundColor(.vinoText)
-                
-                if let vintage = note.vintage {
-                    Text(String(vintage))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.vinoTextSecondary)
+
+            // Wine Info - tappable if not from wine view
+            if !fromWine {
+                Button {
+                    hapticManager.mediumImpact()
+                    Task {
+                        await loadWineDetails()
+                    }
+                } label: {
+                    VStack(spacing: 8) {
+                        Text(note.producer)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.vinoAccent)
+                            .textCase(.uppercase)
+                            .tracking(1.2)
+
+                        HStack(spacing: 8) {
+                            Text(note.wineName)
+                                .font(.system(size: 28, weight: .bold, design: .serif))
+                                .foregroundColor(.vinoText)
+
+                            Image(systemName: "arrow.up.forward.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.vinoAccent)
+                        }
+
+                        if let vintage = note.vintage {
+                            Text(String(vintage))
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.vinoTextSecondary)
+                        }
+
+                        // Prominent tap indicator
+                        HStack(spacing: 6) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.system(size: 11))
+                            Text("Tap to view wine details")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(.vinoAccent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color.vinoAccent.opacity(0.15))
+                        )
+                        .padding(.top, 4)
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.vinoDarkSecondary)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: [Color.vinoAccent.opacity(0.5), Color.vinoAccent.opacity(0.2)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                    )
+                }
+                .buttonStyle(ScaleButtonStyle())
+            } else {
+                // Not tappable - show without button styling
+                VStack(spacing: 8) {
+                    Text(note.producer)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.vinoAccent)
+                        .textCase(.uppercase)
+                        .tracking(1.2)
+
+                    Text(note.wineName)
+                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .foregroundColor(.vinoText)
+
+                    if let vintage = note.vintage {
+                        Text(String(vintage))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.vinoTextSecondary)
+                    }
                 }
             }
         }
@@ -312,6 +389,76 @@ struct TastingNoteDetailView: View {
         formatter.dateStyle = .long
         formatter.timeStyle = .short
         return formatter.string(from: note.date)
+    }
+
+    // MARK: - Wine Loading
+    private func loadWineDetails() async {
+        isLoadingWine = true
+        hapticManager.lightImpact()
+
+        // Fetch the vintage to get the wine ID
+        do {
+            struct VintageResponse: Decodable {
+                let wine_id: UUID
+                let year: Int?
+                let wine: WineResponse
+            }
+
+            struct WineResponse: Decodable {
+                let id: UUID
+                let name: String
+                let producer_id: UUID?
+                let tasting_notes: String?
+                let wine_type: String?
+                let producer: ProducerResponse?
+            }
+
+            struct ProducerResponse: Decodable {
+                let name: String
+            }
+
+            let client = SupabaseManager.shared.client
+            let vintage: VintageResponse = try await client
+                .from("vintages")
+                .select("wine_id, year, wine:wine_id(id, name, producer_id, tasting_notes, wine_type, producer:producer_id(name))")
+                .eq("id", value: note.vintageId.uuidString)
+                .single()
+                .execute()
+                .value
+
+            // Convert to WineWithDetails
+            let wineType: WineType
+            if let typeString = vintage.wine.wine_type {
+                wineType = WineType(rawValue: typeString.capitalized) ?? .red
+            } else {
+                wineType = .red
+            }
+
+            let wine = WineWithDetails(
+                id: vintage.wine.id,
+                name: vintage.wine.name,
+                producer: vintage.wine.producer?.name ?? note.producer,
+                year: vintage.year,
+                region: nil,
+                varietal: nil,
+                price: nil,
+                averageRating: Double(note.rating),
+                imageUrl: note.imageUrl,
+                type: wineType,
+                description: vintage.wine.tasting_notes
+            )
+
+            await MainActor.run {
+                wineForDetail = wine
+                showingWineDetail = true
+                isLoadingWine = false
+            }
+        } catch {
+            print("Failed to load wine details: \(error)")
+            await MainActor.run {
+                isLoadingWine = false
+            }
+        }
     }
 }
 
@@ -628,6 +775,15 @@ struct FlowLayout: Layout {
                 height = currentY + lineHeight
             }
         }
+    }
+}
+
+// MARK: - Button Styles
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 

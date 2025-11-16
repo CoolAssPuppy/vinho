@@ -726,6 +726,10 @@ class JournalViewModel: ObservableObject {
         }
     }
 
+    func deleteNote(id: UUID) async {
+        await deleteTasting(id)
+    }
+
     func deleteTasting(_ tastingId: UUID) async {
         do {
             // Delete from Supabase
