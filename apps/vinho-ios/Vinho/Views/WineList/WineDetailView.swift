@@ -611,7 +611,12 @@ struct WineDetailView: View {
             imageUrl: tasting.imageUrl,
             vintageId: tasting.vintageId,
             isShared: tasting.sharedBy != nil,
-            sharedBy: tasting.sharedBy
+            sharedBy: tasting.sharedBy,
+            locationName: tasting.locationName,
+            locationCity: tasting.locationCity,
+            locationAddress: tasting.locationAddress,
+            locationLatitude: tasting.locationLatitude,
+            locationLongitude: tasting.locationLongitude
         )
     }
 

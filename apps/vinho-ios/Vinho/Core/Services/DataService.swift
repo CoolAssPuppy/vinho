@@ -448,7 +448,25 @@ class DataService: ObservableObject {
         }
 
         do {
-            // Fetch all tastings for vintages of this wine
+            // First, fetch all vintage IDs for this wine
+            struct VintageIdResponse: Decodable {
+                let id: UUID
+            }
+
+            let vintages: [VintageIdResponse] = try await client
+                .from("vintages")
+                .select("id")
+                .eq("wine_id", value: wineId.uuidString)
+                .execute()
+                .value
+
+            let vintageIds = vintages.map { $0.id.uuidString }
+
+            guard !vintageIds.isEmpty else {
+                return []
+            }
+
+            // Then fetch all tastings for these vintages
             let tastings: [Tasting] = try await client
                 .from("tastings")
                 .select("""
@@ -461,7 +479,7 @@ class DataService: ObservableObject {
                         )
                     )
                 """)
-                .eq("vintages.wine_id", value: wineId.uuidString)
+                .in("vintage_id", values: vintageIds)
                 .order("tasted_at", ascending: false)
                 .execute()
                 .value

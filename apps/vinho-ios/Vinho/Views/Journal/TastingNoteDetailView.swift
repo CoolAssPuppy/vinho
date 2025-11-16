@@ -17,9 +17,16 @@ struct TastingNoteDetailView: View {
     // Editable fields
     @State private var editedRating: Int
     @State private var editedNotes: String
+    @State private var editedDate: Date
+    @State private var editedLocationName: String
     @State private var isEditingRating = false
     @State private var isEditingNotes = false
+    @State private var isEditingDate = false
+    @State private var isEditingLocation = false
     @State private var isSaving = false
+    @State private var showingImageViewer = false
+    @State private var showingDatePicker = false
+    @State private var showingLocationPicker = false
 
     init(note: TastingNoteWithWine, fromWine: Bool = false, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.note = note
@@ -28,6 +35,8 @@ struct TastingNoteDetailView: View {
         self.onDelete = onDelete
         self._editedRating = State(initialValue: note.rating)
         self._editedNotes = State(initialValue: note.notes ?? "")
+        self._editedDate = State(initialValue: note.date)
+        self._editedLocationName = State(initialValue: note.locationName ?? "")
     }
     
     var body: some View {
@@ -93,6 +102,28 @@ struct TastingNoteDetailView: View {
                     .environmentObject(hapticManager)
             }
         }
+        .fullScreenCover(isPresented: $showingImageViewer) {
+            if let imageUrl = note.imageUrl {
+                FullScreenImageViewer(imageUrl: imageUrl)
+                    .environmentObject(hapticManager)
+            }
+        }
+        .sheet(isPresented: $showingDatePicker) {
+            DatePickerSheet(selectedDate: $editedDate) { newDate in
+                Task {
+                    await saveTastingDate(newDate)
+                }
+            }
+            .environmentObject(hapticManager)
+        }
+        .sheet(isPresented: $showingLocationPicker) {
+            LocationPickerSheet(selectedLocation: $editedLocationName) { location in
+                Task {
+                    await saveTastingLocation(location)
+                }
+            }
+            .environmentObject(hapticManager)
+        }
     }
 
     var wineHeader: some View {
@@ -110,6 +141,10 @@ struct TastingNoteDetailView: View {
                 }
                 .frame(height: 200)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
+                .onTapGesture {
+                    hapticManager.lightImpact()
+                    showingImageViewer = true
+                }
             } else {
                 ZStack {
                     LinearGradient(
@@ -245,46 +280,34 @@ struct TastingNoteDetailView: View {
 
                 Text(formattedDate)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.vinoText)
+                    .foregroundColor(.vinoAccent)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                hapticManager.lightImpact()
+                showingDatePicker = true
             }
 
             // Location section
-            if let locationName = note.locationName {
-                HStack {
-                    Image(systemName: "mappin.circle")
-                        .font(.system(size: 16))
-                        .foregroundColor(.vinoAccent)
+            HStack {
+                Image(systemName: "mappin.circle")
+                    .font(.system(size: 16))
+                    .foregroundColor(.vinoAccent)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(locationName)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.vinoText)
+                Text("Tasting location")
+                    .font(.system(size: 14))
+                    .foregroundColor(.vinoTextSecondary)
 
-                        if let city = note.locationCity {
-                            Text(city)
-                                .font(.system(size: 12))
-                                .foregroundColor(.vinoTextSecondary)
-                        }
-                    }
+                Spacer()
 
-                    Spacer()
-                }
-            } else {
-                HStack {
-                    Image(systemName: "mappin.circle")
-                        .font(.system(size: 16))
-                        .foregroundColor(.vinoTextTertiary)
-
-                    Text("Add where you tasted this wine")
-                        .font(.system(size: 14))
-                        .foregroundColor(.vinoTextTertiary)
-
-                    Spacer()
-                }
-                .onTapGesture {
-                    // TODO: Open location picker
-                    hapticManager.lightImpact()
-                }
+                Text(editedLocationName.isEmpty ? "Tap to add" : editedLocationName)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(editedLocationName.isEmpty ? .vinoTextTertiary : .vinoAccent)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                hapticManager.lightImpact()
+                showingLocationPicker = true
             }
         }
         .padding(16)
@@ -511,12 +534,85 @@ struct TastingNoteDetailView: View {
             }
         }
     }
+
+    private func saveTastingDate(_ newDate: Date) async {
+        guard !isSaving else { return }
+        isSaving = true
+
+        do {
+            let client = SupabaseManager.shared.client
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            let dateString = dateFormatter.string(from: newDate)
+
+            try await client
+                .from("tastings")
+                .update(["tasted_at": dateString])
+                .eq("id", value: note.id.uuidString)
+                .execute()
+
+            await MainActor.run {
+                isSaving = false
+                isEditingDate = false
+                hapticManager.success()
+            }
+        } catch {
+            print("Error saving tasting date: \(error)")
+            await MainActor.run {
+                isSaving = false
+                hapticManager.error()
+            }
+        }
+    }
+
+    private func saveTastingLocation(_ location: TastingLocation) async {
+        guard !isSaving else { return }
+        isSaving = true
+
+        do {
+            let client = SupabaseManager.shared.client
+
+            struct LocationUpdate: Encodable {
+                let location_name: String?
+                let location_address: String?
+                let location_city: String?
+                let location_latitude: Double?
+                let location_longitude: Double?
+            }
+
+            let updateData = LocationUpdate(
+                location_name: location.name.isEmpty ? nil : location.name,
+                location_address: location.address.isEmpty ? nil : location.address,
+                location_city: location.city,
+                location_latitude: location.latitude,
+                location_longitude: location.longitude
+            )
+
+            try await client
+                .from("tastings")
+                .update(updateData)
+                .eq("id", value: note.id.uuidString)
+                .execute()
+
+            await MainActor.run {
+                isSaving = false
+                isEditingLocation = false
+                hapticManager.success()
+            }
+        } catch {
+            print("Error saving tasting location: \(error)")
+            await MainActor.run {
+                isSaving = false
+                hapticManager.error()
+            }
+        }
+    }
     
     var formattedDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
-        formatter.timeStyle = .short
-        return formatter.string(from: note.date)
+        formatter.timeStyle = .none
+        return formatter.string(from: editedDate)
     }
 
     // MARK: - Wine Loading
@@ -1014,5 +1110,216 @@ struct WineSelectorView: View {
                 }
             }
         }
+    }
+}
+// MARK: - Full Screen Image Viewer
+struct FullScreenImageViewer: View {
+    let imageUrl: String
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var hapticManager: HapticManager
+    @State private var dragOffset: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            AsyncImage(url: URL(string: imageUrl)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .offset(y: dragOffset)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                if value.translation.height > 0 {
+                                    dragOffset = value.translation.height
+                                }
+                            }
+                            .onEnded { value in
+                                if value.translation.height > 100 {
+                                    hapticManager.lightImpact()
+                                    dismiss()
+                                } else {
+                                    withAnimation(.spring()) {
+                                        dragOffset = 0
+                                    }
+                                }
+                            }
+                    )
+            } placeholder: {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+            }
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        hapticManager.lightImpact()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(.white.opacity(0.8))
+                            .shadow(color: .black.opacity(0.3), radius: 5)
+                    }
+                    .padding()
+                }
+                Spacer()
+            }
+        }
+    }
+}
+
+// MARK: - Date Picker Sheet
+struct DatePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var hapticManager: HapticManager
+    @Binding var selectedDate: Date
+    let onSave: (Date) -> Void
+
+    @State private var tempDate: Date
+
+    init(selectedDate: Binding<Date>, onSave: @escaping (Date) -> Void) {
+        self._selectedDate = selectedDate
+        self.onSave = onSave
+        self._tempDate = State(initialValue: selectedDate.wrappedValue)
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                DatePicker(
+                    "Select Date",
+                    selection: $tempDate,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.graphical)
+                .padding()
+
+                Spacer()
+            }
+            .background(Color.vinoDark)
+            .navigationTitle("Tasting Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        hapticManager.lightImpact()
+                        dismiss()
+                    }
+                    .foregroundColor(.vinoAccent)
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        hapticManager.lightImpact()
+                        selectedDate = tempDate
+                        onSave(tempDate)
+                        dismiss()
+                    }
+                    .foregroundColor(.vinoAccent)
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+// MARK: - Location Picker Sheet
+struct LocationPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var hapticManager: HapticManager
+    @Binding var selectedLocation: String
+    let onSave: (TastingLocation) -> Void
+
+    @State private var searchText: String
+    @State private var selectedPlace: TastingLocation?
+
+    init(selectedLocation: Binding<String>, onSave: @escaping (TastingLocation) -> Void) {
+        self._selectedLocation = selectedLocation
+        self.onSave = onSave
+        self._searchText = State(initialValue: selectedLocation.wrappedValue)
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack(alignment: .leading, spacing: 20) {
+                PlaceAutocompleteField(
+                    text: $searchText,
+                    selectedPlace: $selectedPlace,
+                    placeholder: "Search for a location"
+                )
+                .padding(.horizontal)
+                .padding(.top, 8)
+
+                if let place = selectedPlace {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Selected Location")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.vinoTextSecondary)
+                            .padding(.horizontal)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "mappin.circle.fill")
+                                    .foregroundColor(.vinoAccent)
+                                    .font(.system(size: 16))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(place.name)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.vinoText)
+
+                                    if !place.address.isEmpty {
+                                        Text(place.address)
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.vinoTextSecondary)
+                                            .lineLimit(2)
+                                    }
+                                }
+
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Color.vinoCardBg)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.top, 8)
+                }
+
+                Spacer()
+            }
+            .background(Color.vinoDark)
+            .navigationTitle("Tasting Location")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        hapticManager.lightImpact()
+                        dismiss()
+                    }
+                    .foregroundColor(.vinoAccent)
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        hapticManager.lightImpact()
+                        if let place = selectedPlace {
+                            selectedLocation = place.name
+                            onSave(place)
+                        }
+                        dismiss()
+                    }
+                    .foregroundColor(.vinoAccent)
+                    .fontWeight(.semibold)
+                    .disabled(selectedPlace == nil)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }

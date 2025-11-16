@@ -738,7 +738,12 @@ class JournalViewModel: ObservableObject {
                 imageUrl: tasting.imageUrl,
                 vintageId: vintage.id,
                 isShared: tasting.isShared,
-                sharedBy: tasting.sharedBy
+                sharedBy: tasting.sharedBy,
+                locationName: tasting.locationName,
+                locationCity: tasting.locationCity,
+                locationAddress: tasting.locationAddress,
+                locationLatitude: tasting.locationLatitude,
+                locationLongitude: tasting.locationLongitude
             )
         }
     }
@@ -830,4 +835,9 @@ struct TastingNoteWithWine: Identifiable {
     let vintageId: UUID
     let isShared: Bool
     let sharedBy: SharedTastingInfo?
+    let locationName: String?
+    let locationCity: String?
+    let locationAddress: String?
+    let locationLatitude: Double?
+    let locationLongitude: Double?
 }

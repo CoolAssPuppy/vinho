@@ -163,6 +163,23 @@ struct MapView: View {
                                     .background(Color.vinoDarkSecondary.opacity(0.9))
                                     .clipShape(Circle())
                             }
+
+                            Divider()
+                                .frame(width: 30)
+                                .background(Color.vinoBorder)
+
+                            // Refresh Map
+                            Button {
+                                hapticManager.lightImpact()
+                                refreshMap()
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.vinoDarkSecondary.opacity(0.9))
+                                    .clipShape(Circle())
+                            }
                         }
                         .padding(.trailing, 12)
                         .padding(.top, 12)
@@ -322,11 +339,19 @@ struct MapView: View {
         }
     }
 
+    func refreshMap() {
+        Task {
+            await viewModel.forceRefresh(for: mapView)
+        }
+    }
+
     func statsCardsView(stats: WineStats) -> some View {
         GeometryReader { geometry in
             HStack(spacing: 8) {
-                // Calculate width for each card to fit in screen width
-                let cardWidth = (geometry.size.width - 32 - 24) / 4 // account for padding and spacing
+                // Calculate width for each card to fit in available width
+                // geometry.size.width is full container width
+                // We have 3 spacings of 8 between 4 cards = 24 total
+                let cardWidth = (geometry.size.width - 24) / 4
 
                 // Unique Wines Card
                 StatsCard(
@@ -368,6 +393,7 @@ struct MapView: View {
                     width: cardWidth
                 )
             }
+            .frame(width: geometry.size.width)
         }
         .frame(height: 100)
     }
@@ -563,6 +589,15 @@ class MapViewModel: ObservableObject {
         }
     }
 
+    func forceRefresh(for mapView: MapView.MapViewType) async {
+        // Clear both caches
+        cachedOrigins.removeAll()
+        cachedTastings.removeAll()
+
+        // Force reload
+        await loadWines(for: mapView)
+    }
+
     func loadWines(for mapView: MapView.MapViewType) async {
         // Use cache if available (remove time limit for better performance)
         if mapView == .origins && !cachedOrigins.isEmpty {
@@ -635,20 +670,22 @@ class MapViewModel: ObservableObject {
         // Cancel any pending timer
         regionChangeTimer?.invalidate()
 
-        // Only refetch if the region changed significantly
-        guard let lastRegion = lastRegion else {
-            self.lastRegion = newRegion
-            return
-        }
+        // Store the new region
+        lastRegion = newRegion
 
-        let centerChanged = abs(lastRegion.center.latitude - newRegion.center.latitude) > 0.5 ||
-                           abs(lastRegion.center.longitude - newRegion.center.longitude) > 0.5
-        let zoomChanged = abs(lastRegion.span.latitudeDelta - newRegion.span.latitudeDelta) > 0.5
+        // Only refetch if the region changed significantly from when we last loaded data
+        let centerChanged = abs(lastRegion!.center.latitude - newRegion.center.latitude) > 0.5 ||
+                           abs(lastRegion!.center.longitude - newRegion.center.longitude) > 0.5
+        let zoomChanged = abs(lastRegion!.span.latitudeDelta - newRegion.span.latitudeDelta) > 5.0
 
         if centerChanged || zoomChanged {
-            // Debounce: wait 1 second after map stops moving before fetching
-            regionChangeTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in
-                Task {
+            // Clear cache to force reload with new viewport
+            cachedOrigins.removeAll()
+            cachedTastings.removeAll()
+
+            // Debounce: wait 0.5 seconds after map stops moving before fetching
+            regionChangeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+                Task { @MainActor in
                     await self.loadWines(for: self.locations == self.cachedOrigins ? .origins : .tastings)
                 }
             }

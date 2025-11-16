@@ -9,8 +9,8 @@ import {
   ToggleLeft,
   ToggleRight,
   Star,
-  
   Activity,
+  RefreshCw,
 } from "lucide-react";
 import {
   Card,
@@ -60,6 +60,7 @@ export default function MapPage() {
   const [recentWines, setRecentWines] = useState<RecentWine[]>([]);
   const [stats, setStats] = useState<WineStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [hasWines, setHasWines] = useState(false);
   const [selectedWine, setSelectedWine] = useState<WineLocation | null>(null);
   const [mapView, setMapView] = useState<MapView>("origins");
@@ -342,6 +343,17 @@ export default function MapPage() {
     setMapBounds(newBounds);
   }, []);
 
+  // Handle manual refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchWinesInBounds(mapBounds),
+      fetchStats(),
+      fetchRecentWines(),
+    ]);
+    setRefreshing(false);
+  }, [mapBounds, fetchWinesInBounds, fetchStats, fetchRecentWines]);
+
   // Handle tasting edit
   const handleEditTasting = (wine: RecentWine) => {
     setSelectedTasting(wine);
@@ -399,6 +411,16 @@ export default function MapPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
           <span className="text-sm text-muted-foreground">View:</span>
           <Button
             variant="ghost"
