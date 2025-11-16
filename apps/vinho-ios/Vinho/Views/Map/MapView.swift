@@ -90,6 +90,15 @@ struct MapView: View {
                         // This is throttled to avoid excessive API calls
                         viewModel.onMapRegionChanged(context.region)
                     }
+                    .onTapGesture {
+                        // Dismiss wine detail preview when tapping elsewhere on map
+                        if selectedWine != nil {
+                            hapticManager.lightImpact()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedWine = nil
+                            }
+                        }
+                    }
                 } else {
                     // Show loading state
                     VStack {
@@ -200,6 +209,18 @@ struct MapView: View {
                     _ = await statsService.fetchUserStats()
                 }
             }
+
+            // Listen for wine data changes to refresh stats
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("WineDataChanged"),
+                object: nil,
+                queue: .main
+            ) { _ in
+                Task {
+                    _ = await statsService.fetchUserStats()
+                    await viewModel.loadWines(for: mapView)
+                }
+            }
         }
         .onChange(of: mapView) { _, newValue in
             // Just switch to cached data, don't fetch again
@@ -216,8 +237,9 @@ struct MapView: View {
     // MARK: - Wine Loading
     private func loadWineForDetail(_ wineLocation: WineMapLocation) async {
         // Convert WineMapLocation to WineWithDetails
+        // Use the wine ID (not tasting ID) so that tastings can be fetched properly
         let wine = WineWithDetails(
-            id: wineLocation.id,
+            id: wineLocation.wineId,
             name: wineLocation.name,
             producer: wineLocation.producer,
             year: wineLocation.year,
@@ -315,15 +337,19 @@ struct MapView: View {
     }
 
     func statsCardsView(stats: WineStats) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+        GeometryReader { geometry in
+            HStack(spacing: 8) {
+                // Calculate width for each card to fit in screen width
+                let cardWidth = (geometry.size.width - 32 - 24) / 4 // account for padding and spacing
+
                 // Unique Wines Card
                 StatsCard(
-                    title: "Unique Wines",
+                    title: "Wines",
                     value: "\(stats.uniqueWines)",
-                    subtitle: "from \(stats.totalTastings) tastings",
+                    subtitle: "\(stats.totalTastings) total",
                     icon: "wineglass.fill",
-                    color: .vinoPrimary
+                    color: .vinoPrimary,
+                    width: cardWidth
                 )
 
                 // Countries Card
@@ -332,29 +358,32 @@ struct MapView: View {
                     value: "\(stats.uniqueCountries)",
                     subtitle: "\(stats.uniqueRegions) regions",
                     icon: "globe",
-                    color: .vinoAccent
+                    color: .vinoAccent,
+                    width: cardWidth
                 )
 
                 // Average Rating Card
                 StatsCard(
-                    title: "Avg Rating",
+                    title: "Rating",
                     value: String(format: "%.1f", stats.averageRating ?? 0),
-                    subtitle: "\(stats.favorites) favorites",
+                    subtitle: "\(stats.favorites) favs",
                     icon: "star.fill",
-                    color: .yellow
+                    color: .yellow,
+                    width: cardWidth
                 )
 
                 // Recent Activity Card
                 StatsCard(
-                    title: "This Month",
+                    title: "Month",
                     value: "\(stats.tastingsLast30Days)",
                     subtitle: "tastings",
                     icon: "chart.line.uptrend.xyaxis",
-                    color: .green
+                    color: .green,
+                    width: cardWidth
                 )
             }
-            .padding(.horizontal, 2)
         }
+        .frame(height: 100)
     }
 }
 
@@ -365,37 +394,44 @@ struct StatsCard: View {
     let subtitle: String
     let icon: String
     let color: Color
+    let width: CGFloat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(color)
                 Spacer()
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 12))
+                    .font(.system(size: 10))
                     .foregroundColor(.vinoTextSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 Text(value)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.vinoText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 Text(subtitle)
-                    .font(.system(size: 11))
+                    .font(.system(size: 9))
                     .foregroundColor(.vinoTextSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
-        .padding(12)
-        .frame(width: 110, height: 100)
+        .padding(8)
+        .frame(width: width, height: 100)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.vinoDarkSecondary)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(Color.vinoBorder.opacity(0.5), lineWidth: 1)
                 )
         )
@@ -568,6 +604,7 @@ class MapViewModel: ObservableObject {
 
                 return WineMapLocation(
                     id: tasting.id,
+                    wineId: wine.id,
                     name: wine.name,
                     producer: producer.name,
                     region: producer.region?.name ?? "Unknown Region",
@@ -590,6 +627,7 @@ class MapViewModel: ObservableObject {
 
                 return WineMapLocation(
                     id: tasting.id,
+                    wineId: wine.id,
                     name: wine.name,
                     producer: producer.name,
                     region: producer.region?.name ?? "Unknown Region",
@@ -668,7 +706,8 @@ class MapLocationManager: NSObject, ObservableObject, CLLocationManagerDelegate 
 
 // MARK: - Models
 struct WineMapLocation: Identifiable, Equatable {
-    let id: UUID
+    let id: UUID // Tasting ID
+    let wineId: UUID // Wine ID for fetching tastings
     let name: String
     let producer: String
     let region: String
