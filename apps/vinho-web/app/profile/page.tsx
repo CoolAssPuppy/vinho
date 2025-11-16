@@ -98,21 +98,12 @@ export default function ProfilePage() {
               profileData;
             const fullName = [first_name, last_name].filter(Boolean).join(" ");
 
-            console.log("Profile data found:", {
-              first_name,
-              last_name,
-              fullName,
-              avatar_url,
-              description,
-            });
-
             setProfile({
               full_name: fullName || "Wine Enthusiast",
               description: description || null,
               avatar_url: avatar_url || null,
             });
           } else {
-            console.log("No profile data found for user:", session.user.id);
             // No profile exists yet, create one
             const { error: insertError } = await supabase
               .from("profiles")

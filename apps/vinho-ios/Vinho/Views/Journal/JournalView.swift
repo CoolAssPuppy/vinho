@@ -9,6 +9,7 @@ struct JournalView: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var showingNewNote = false
     @State private var noteToEdit: TastingNoteWithWine?
+    @State private var selectedNote: TastingNoteWithWine?
     @State private var selectedTimeFilter = TimeFilter.all
     @State private var searchText = ""
     @State private var pendingWinesCount = 0
@@ -141,6 +142,22 @@ struct JournalView: View {
                 .environmentObject(hapticManager)
                 .environmentObject(authManager)
         }
+        .sheet(item: $selectedNote) { note in
+            TastingNoteDetailView(
+                note: note,
+                fromWine: false,
+                onEdit: {
+                    selectedNote = nil
+                    noteToEdit = note
+                },
+                onDelete: {
+                    Task {
+                        await viewModel.deleteNote(id: note.id)
+                    }
+                }
+            )
+            .environmentObject(hapticManager)
+        }
         .onAppear {
             Task {
                 await viewModel.loadNotes()
@@ -223,7 +240,7 @@ struct JournalView: View {
                             TastingNoteCard(note: note)
                                 .onTapGesture {
                                     hapticManager.lightImpact()
-                                    noteToEdit = note
+                                    selectedNote = note
                                 }
                                 .onAppear {
                                     // Load more when approaching the end
