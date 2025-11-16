@@ -203,23 +203,9 @@ struct MapView: View {
                     await viewModel.loadWines(for: mapView)
                 }
             }
-            // Stats are loaded separately and cached
-            if statsService.currentStats == nil {
-                Task {
-                    _ = await statsService.fetchUserStats()
-                }
-            }
-
-            // Listen for wine data changes to refresh stats
-            NotificationCenter.default.addObserver(
-                forName: NSNotification.Name("WineDataChanged"),
-                object: nil,
-                queue: .main
-            ) { _ in
-                Task {
-                    _ = await statsService.fetchUserStats()
-                    await viewModel.loadWines(for: mapView)
-                }
+            // Always refresh stats on appear to catch changes from web or other platforms
+            Task {
+                _ = await statsService.fetchUserStats()
             }
         }
         .onChange(of: mapView) { _, newValue in
