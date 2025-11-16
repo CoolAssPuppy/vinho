@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var showingImagePicker = false
     @State private var showingEditProfile = false
     @State private var showingSettings = false
+    @State private var showingVivinoImport = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var navigationPath = NavigationPath()
 
@@ -113,6 +114,10 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
+                .environmentObject(hapticManager)
+        }
+        .sheet(isPresented: $showingVivinoImport) {
+            VivinoImportInfoView()
                 .environmentObject(hapticManager)
         }
         .photosPicker(isPresented: $showingImagePicker,
@@ -330,6 +335,11 @@ struct ProfileView: View {
                 MenuRow(icon: "person.2.fill", title: "Sharing", showChevron: true) {
                     hapticManager.lightImpact()
                     navigationPath.append(Destination.sharing)
+                }
+
+                MenuRow(icon: "arrow.down.circle.fill", title: "Import from Vivino", showChevron: false) {
+                    hapticManager.lightImpact()
+                    showingVivinoImport = true
                 }
             }
             
@@ -724,6 +734,172 @@ struct SettingsView: View {
                     .foregroundColor(.vinoAccent)
                     .fontWeight(.medium)
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Vivino Import Info View
+struct VivinoImportInfoView: View {
+    @EnvironmentObject var hapticManager: HapticManager
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.vinoDark.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header Icon
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.vinoAccent.opacity(0.2), Color.vinoPrimary.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 100, height: 100)
+
+                            Image(systemName: "arrow.down.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.vinoAccent)
+                        }
+                        .padding(.top, 20)
+
+                        // Title
+                        VStack(spacing: 8) {
+                            Text("Import from Vivino")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.vinoText)
+
+                            Text("Bring your wine collection to Vinho")
+                                .font(.system(size: 16))
+                                .foregroundColor(.vinoTextSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+
+                        // Instructions
+                        VStack(alignment: .leading, spacing: 16) {
+                            InstructionStep(
+                                number: 1,
+                                title: "Log in on the web",
+                                description: "Visit vinho.dev in your browser and log in with your account"
+                            )
+
+                            InstructionStep(
+                                number: 2,
+                                title: "Go to Profile",
+                                description: "Navigate to your profile settings"
+                            )
+
+                            InstructionStep(
+                                number: 3,
+                                title: "Import Vivino Data",
+                                description: "Click 'Import from Vivino' and follow the steps to connect your account"
+                            )
+
+                            InstructionStep(
+                                number: 4,
+                                title: "Sync Complete",
+                                description: "Your wines will appear here in the app automatically"
+                            )
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.vinoDarkSecondary)
+                        )
+
+                        // Open Web Button
+                        Button {
+                            hapticManager.mediumImpact()
+                            if let url = URL(string: "https://vinho.dev") {
+                                openURL(url)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "safari")
+                                Text("Open vinho.dev")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(LinearGradient.vinoGradient)
+                            )
+                            .foregroundColor(.white)
+                        }
+
+                        // Info Note
+                        HStack(spacing: 12) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.vinoAccent)
+
+                            Text("Vivino import is only available on the web version due to OAuth requirements")
+                                .font(.system(size: 13))
+                                .foregroundColor(.vinoTextSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.vinoAccent.opacity(0.1))
+                        )
+
+                        Spacer(minLength: 20)
+                    }
+                    .padding(20)
+                }
+            }
+            .navigationTitle("Import from Vivino")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        hapticManager.lightImpact()
+                        dismiss()
+                    }
+                    .foregroundColor(.vinoAccent)
+                    .fontWeight(.medium)
+                }
+            }
+        }
+    }
+}
+
+struct InstructionStep: View {
+    let number: Int
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            // Step Number
+            ZStack {
+                Circle()
+                    .fill(LinearGradient.vinoGradient)
+                    .frame(width: 32, height: 32)
+
+                Text("\(number)")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+            }
+
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.vinoText)
+
+                Text(description)
+                    .font(.system(size: 14))
+                    .foregroundColor(.vinoTextSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

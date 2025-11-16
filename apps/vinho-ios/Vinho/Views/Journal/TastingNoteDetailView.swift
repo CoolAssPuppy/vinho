@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Detailed view for a single tasting note
+/// Detailed view for a single tasting note with inline editing
 struct TastingNoteDetailView: View {
     let note: TastingNoteWithWine
     var fromWine: Bool = false // Track if navigated from wine to prevent circular nav
@@ -8,12 +8,27 @@ struct TastingNoteDetailView: View {
     let onDelete: () -> Void
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
-    @State private var showingEditView = false
     @State private var showingShareSheet = false
     @State private var showingDeleteAlert = false
     @State private var showingWineDetail = false
     @State private var wineForDetail: WineWithDetails?
     @State private var isLoadingWine = false
+
+    // Editable fields
+    @State private var editedRating: Int
+    @State private var editedNotes: String
+    @State private var isEditingRating = false
+    @State private var isEditingNotes = false
+    @State private var isSaving = false
+
+    init(note: TastingNoteWithWine, fromWine: Bool = false, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
+        self.note = note
+        self.fromWine = fromWine
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+        self._editedRating = State(initialValue: note.rating)
+        self._editedNotes = State(initialValue: note.notes ?? "")
+    }
     
     var body: some View {
         NavigationView {
@@ -41,7 +56,10 @@ struct TastingNoteDetailView: View {
                         
                         // Wine Details
                         wineDetails
-                        
+
+                        // Action Buttons at bottom
+                        actionButtons
+
                         Spacer(minLength: 50)
                     }
                     .padding(20)
@@ -57,35 +75,6 @@ struct TastingNoteDetailView: View {
                     }
                     .foregroundColor(.vinoAccent)
                     .fontWeight(.medium)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button {
-                            hapticManager.lightImpact()
-                            dismiss()
-                            onEdit()
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }
-                        
-                        Button {
-                            hapticManager.lightImpact()
-                            showingShareSheet = true
-                        } label: {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        
-                        Button(role: .destructive) {
-                            hapticManager.lightImpact()
-                            showingDeleteAlert = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundColor(.vinoAccent)
-                    }
                 }
             }
             .alert("Delete Tasting Note?", isPresented: $showingDeleteAlert) {
@@ -167,22 +156,6 @@ struct TastingNoteDetailView: View {
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.vinoTextSecondary)
                         }
-
-                        // Prominent tap indicator
-                        HStack(spacing: 6) {
-                            Image(systemName: "hand.tap.fill")
-                                .font(.system(size: 11))
-                            Text("Tap to view wine details")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundColor(.vinoAccent)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule()
-                                .fill(Color.vinoAccent.opacity(0.15))
-                        )
-                        .padding(.top, 4)
                     }
                     .padding(16)
                     .background(
@@ -231,15 +204,20 @@ struct TastingNoteDetailView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.vinoTextSecondary)
                 .textCase(.uppercase)
-            
+
             HStack(spacing: 8) {
                 ForEach(0..<5) { index in
-                    Image(systemName: index < note.rating ? "star.fill" : "star")
+                    Image(systemName: index < editedRating ? "star.fill" : "star")
                         .font(.system(size: 28))
-                        .foregroundColor(index < note.rating ? .vinoGold : .vinoTextTertiary)
+                        .foregroundColor(index < editedRating ? .vinoGold : .vinoTextTertiary)
+                        .onTapGesture {
+                            hapticManager.lightImpact()
+                            editedRating = index + 1
+                            saveChanges()
+                        }
                 }
             }
-            
+
             Text(ratingDescription)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.vinoText)
@@ -253,20 +231,61 @@ struct TastingNoteDetailView: View {
     }
     
     var dateSection: some View {
-        HStack {
-            Image(systemName: "calendar")
-                .font(.system(size: 16))
-                .foregroundColor(.vinoAccent)
-            
-            Text("Tasted on")
-                .font(.system(size: 14))
-                .foregroundColor(.vinoTextSecondary)
-            
-            Spacer()
-            
-            Text(formattedDate)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.vinoText)
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "calendar")
+                    .font(.system(size: 16))
+                    .foregroundColor(.vinoAccent)
+
+                Text("Tasted on")
+                    .font(.system(size: 14))
+                    .foregroundColor(.vinoTextSecondary)
+
+                Spacer()
+
+                Text(formattedDate)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.vinoText)
+            }
+
+            // Location section
+            if let locationName = note.locationName {
+                HStack {
+                    Image(systemName: "mappin.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(.vinoAccent)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(locationName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.vinoText)
+
+                        if let city = note.locationCity {
+                            Text(city)
+                                .font(.system(size: 12))
+                                .foregroundColor(.vinoTextSecondary)
+                        }
+                    }
+
+                    Spacer()
+                }
+            } else {
+                HStack {
+                    Image(systemName: "mappin.circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(.vinoTextTertiary)
+
+                    Text("Add where you tasted this wine")
+                        .font(.system(size: 14))
+                        .foregroundColor(.vinoTextTertiary)
+
+                    Spacer()
+                }
+                .onTapGesture {
+                    // TODO: Open location picker
+                    hapticManager.lightImpact()
+                }
+            }
         }
         .padding(16)
         .background(
@@ -280,12 +299,54 @@ struct TastingNoteDetailView: View {
             Text("Tasting Notes")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.vinoText)
-            
-            Text(notes)
-                .font(.system(size: 15))
-                .foregroundColor(.vinoTextSecondary)
-                .lineSpacing(6)
-                .fixedSize(horizontal: false, vertical: true)
+
+            if isEditingNotes {
+                TextEditor(text: $editedNotes)
+                    .font(.system(size: 15))
+                    .foregroundColor(.vinoText)
+                    .scrollContentBackground(.hidden)
+                    .padding(8)
+                    .frame(minHeight: 100)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.vinoDark)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.vinoBorder, lineWidth: 1)
+                            )
+                    )
+
+                HStack {
+                    Button("Cancel") {
+                        hapticManager.lightImpact()
+                        editedNotes = note.notes ?? ""
+                        isEditingNotes = false
+                    }
+                    .foregroundColor(.vinoTextSecondary)
+
+                    Spacer()
+
+                    Button("Save") {
+                        hapticManager.success()
+                        isEditingNotes = false
+                        saveChanges()
+                    }
+                    .foregroundColor(.vinoSuccess)
+                    .fontWeight(.semibold)
+                    .disabled(isSaving)
+                }
+                .font(.system(size: 14))
+            } else {
+                Text(editedNotes.isEmpty ? "Tap to add tasting notes" : editedNotes)
+                    .font(.system(size: 15))
+                    .foregroundColor(editedNotes.isEmpty ? .vinoTextTertiary : .vinoTextSecondary)
+                    .lineSpacing(6)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onTapGesture {
+                        hapticManager.lightImpact()
+                        isEditingNotes = true
+                    }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -374,13 +435,80 @@ struct TastingNoteDetailView: View {
     }
     
     var ratingDescription: String {
-        switch note.rating {
+        switch editedRating {
         case 1: return "Disappointing"
         case 2: return "Below Average"
         case 3: return "Good"
         case 4: return "Very Good"
         case 5: return "Outstanding"
         default: return ""
+        }
+    }
+
+    var actionButtons: some View {
+        VStack(spacing: 12) {
+            // Share Button
+            Button {
+                hapticManager.mediumImpact()
+                showingShareSheet = true
+            } label: {
+                HStack {
+                    Image(systemName: "square.and.arrow.up")
+                    Text("Share Tasting")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.vinoDarkSecondary)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.vinoAccent, lineWidth: 1)
+                        )
+                )
+                .foregroundColor(.vinoAccent)
+            }
+
+            // Delete Button
+            Button {
+                hapticManager.mediumImpact()
+                showingDeleteAlert = true
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                    Text("Delete Tasting")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.vinoError.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.vinoError.opacity(0.3), lineWidth: 1)
+                        )
+                )
+                .foregroundColor(.vinoError)
+            }
+        }
+    }
+
+    // MARK: - Save Changes
+    private func saveChanges() {
+        guard !isSaving else { return }
+        isSaving = true
+
+        Task {
+            // TODO: Call DataService to update the tasting note
+            // For now, just simulate a save
+            try? await Task.sleep(nanoseconds: 500_000_000)
+
+            await MainActor.run {
+                isSaving = false
+                hapticManager.success()
+            }
         }
     }
     
