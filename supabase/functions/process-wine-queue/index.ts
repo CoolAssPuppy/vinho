@@ -722,7 +722,7 @@ async function processJob(
     const tastedAtDate = scanDate || new Date().toISOString().split("T")[0];
 
     // Create a tasting record for the user with the wine image
-    const { error: tastingError } = await supabase.from("tastings").insert({
+    const { data: tastingData, error: tastingError } = await supabase.from("tastings").insert({
       user_id: job.user_id,
       vintage_id: vintageId,
       verdict: null, // User can set later
@@ -733,12 +733,19 @@ async function processJob(
 
     if (tastingError) {
       console.error(
-        `Failed to create tasting for user ${job.user_id}:`,
-        tastingError,
+        `⚠️ WARNING: Failed to create tasting for user ${job.user_id}, vintage ${vintageId}`,
       );
-      // Don't fail the job if tasting creation fails
+      console.error("Tasting error details:", JSON.stringify(tastingError, null, 2));
+      console.error("Tasting data attempted:", {
+        user_id: job.user_id,
+        vintage_id: vintageId,
+        tasted_at: tastedAtDate,
+        image_url: job.image_url,
+      });
+      console.error("⚠️ Wine data has been saved. User can add tasting notes manually.");
+      // Don't throw - the wine data is saved, user can add notes manually
     } else {
-      console.log(`Created tasting for vintage ${vintageId}`);
+      console.log(`✅ Created tasting for vintage ${vintageId}`);
     }
 
     // Queue wine for enrichment
