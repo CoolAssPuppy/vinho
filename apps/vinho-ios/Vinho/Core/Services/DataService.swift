@@ -862,6 +862,35 @@ class DataService: ObservableObject {
         }
     }
 
+    /// Update tasting rating and notes - used for inline editing in detail view
+    func updateTastingRatingAndNotes(
+        id: UUID,
+        rating: Int?,
+        notes: String?
+    ) async throws {
+        struct TastingRatingUpdate: Encodable {
+            let verdict: Int?
+            let notes: String?
+            let updated_at: Date
+        }
+
+        let updateData = TastingRatingUpdate(
+            verdict: rating,
+            notes: notes,
+            updated_at: Date()
+        )
+
+        try await client
+            .from("tastings")
+            .update(updateData)
+            .eq("id", value: id.uuidString)
+            .execute()
+
+        await fetchUserTastings()
+        notifyTastingDataChanged()
+        notifyWineDataChanged() // Rating changes affect wine statistics
+    }
+
     // Statistics functionality has been moved to StatsService.swift
     // for consistency and to eliminate duplication across the app
 }

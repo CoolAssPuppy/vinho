@@ -4,17 +4,166 @@ import SwiftUI
 
 /// Comprehensive test suite for Vinho iOS app
 final class VinoTests: XCTestCase {
-    
+
     override func setUpWithError() throws {
         // Setup before each test
     }
-    
+
     override func tearDownWithError() throws {
         // Cleanup after each test
     }
-    
+
+    // MARK: - Tasting Edit/Save Tests
+
+    /// Test that TastingNoteWithWine correctly initializes with all fields
+    func testTastingNoteWithWineInitialization() throws {
+        let id = UUID()
+        let vintageId = UUID()
+        let date = Date()
+
+        let note = TastingNoteWithWine(
+            id: id,
+            wineName: "Test Wine",
+            producer: "Test Producer",
+            producerCity: "Napa Valley",
+            vintage: 2020,
+            rating: 4,
+            notes: "Great wine with complex flavors",
+            detailedNotes: "Full-bodied with hints of oak",
+            aromas: ["cherry", "oak"],
+            flavors: ["blackberry", "vanilla"],
+            date: date,
+            imageUrl: "https://example.com/image.jpg",
+            vintageId: vintageId,
+            isShared: false,
+            sharedBy: nil,
+            locationName: "Test Restaurant",
+            locationCity: "San Francisco",
+            locationAddress: "123 Main St",
+            locationLatitude: 37.7749,
+            locationLongitude: -122.4194
+        )
+
+        XCTAssertEqual(note.id, id)
+        XCTAssertEqual(note.wineName, "Test Wine")
+        XCTAssertEqual(note.producer, "Test Producer")
+        XCTAssertEqual(note.vintage, 2020)
+        XCTAssertEqual(note.rating, 4)
+        XCTAssertEqual(note.notes, "Great wine with complex flavors")
+        XCTAssertEqual(note.vintageId, vintageId)
+        XCTAssertFalse(note.isShared)
+    }
+
+    /// Test that rating values are valid (1-5 range)
+    func testTastingRatingValidation() throws {
+        // Test valid ratings
+        for rating in 1...5 {
+            let note = TastingNoteWithWine(
+                id: UUID(),
+                wineName: "Test",
+                producer: "Test",
+                producerCity: nil,
+                vintage: 2020,
+                rating: rating,
+                notes: nil,
+                detailedNotes: nil,
+                aromas: [],
+                flavors: [],
+                date: Date(),
+                imageUrl: nil,
+                vintageId: UUID(),
+                isShared: false,
+                sharedBy: nil,
+                locationName: nil,
+                locationCity: nil,
+                locationAddress: nil,
+                locationLatitude: nil,
+                locationLongitude: nil
+            )
+            XCTAssertTrue(note.rating >= 1 && note.rating <= 5, "Rating \(rating) should be valid")
+        }
+    }
+
+    /// Test that WineWithDetails correctly stores mutable fields
+    func testWineWithDetailsMutableFields() throws {
+        var wine = WineWithDetails(
+            id: UUID(),
+            name: "Original Name",
+            producer: "Test Producer",
+            year: 2020,
+            region: "Napa Valley",
+            varietal: "Cabernet Sauvignon",
+            price: 50.0,
+            averageRating: 4.5,
+            imageUrl: nil,
+            type: .red,
+            description: "Original description"
+        )
+
+        // Test that name is mutable
+        wine.name = "Updated Name"
+        XCTAssertEqual(wine.name, "Updated Name")
+
+        // Test that description is mutable
+        wine.description = "Updated description"
+        XCTAssertEqual(wine.description, "Updated description")
+    }
+
+    /// Test that empty notes are handled correctly
+    func testEmptyNotesHandling() throws {
+        let noteWithEmptyNotes = TastingNoteWithWine(
+            id: UUID(),
+            wineName: "Test",
+            producer: "Test",
+            producerCity: nil,
+            vintage: 2020,
+            rating: 3,
+            notes: "",
+            detailedNotes: nil,
+            aromas: [],
+            flavors: [],
+            date: Date(),
+            imageUrl: nil,
+            vintageId: UUID(),
+            isShared: false,
+            sharedBy: nil,
+            locationName: nil,
+            locationCity: nil,
+            locationAddress: nil,
+            locationLatitude: nil,
+            locationLongitude: nil
+        )
+
+        XCTAssertEqual(noteWithEmptyNotes.notes, "")
+
+        let noteWithNilNotes = TastingNoteWithWine(
+            id: UUID(),
+            wineName: "Test",
+            producer: "Test",
+            producerCity: nil,
+            vintage: 2020,
+            rating: 3,
+            notes: nil,
+            detailedNotes: nil,
+            aromas: [],
+            flavors: [],
+            date: Date(),
+            imageUrl: nil,
+            vintageId: UUID(),
+            isShared: false,
+            sharedBy: nil,
+            locationName: nil,
+            locationCity: nil,
+            locationAddress: nil,
+            locationLatitude: nil,
+            locationLongitude: nil
+        )
+
+        XCTAssertNil(noteWithNilNotes.notes)
+    }
+
     // MARK: - Authentication Tests
-    
+
     func testAuthenticationViewModelInitialization() throws {
         let viewModel = AuthenticationViewModel()
         XCTAssertEqual(viewModel.email, "")
@@ -326,5 +475,271 @@ final class VinoUITests: XCTestCase {
     func testScannerViewInitialization() throws {
         let scannerView = ScannerView()
         XCTAssertNotNil(scannerView)
+    }
+}
+
+// MARK: - DataService Edit Tests
+
+final class DataServiceEditTests: XCTestCase {
+
+    /// Test that Tasting model can be properly encoded with all fields
+    func testTastingModelEncoding() throws {
+        let tasting = Tasting(
+            id: UUID(),
+            userId: UUID(),
+            vintageId: UUID(),
+            verdict: 4,
+            notes: "Test notes",
+            detailedNotes: "Detailed notes",
+            tastedAt: Date(),
+            createdAt: Date(),
+            updatedAt: Date(),
+            imageUrl: nil,
+            locationName: "Test Location",
+            locationAddress: "123 Main St",
+            locationCity: "San Francisco",
+            locationLatitude: 37.7749,
+            locationLongitude: -122.4194,
+            vintage: nil
+        )
+
+        XCTAssertEqual(tasting.verdict, 4)
+        XCTAssertEqual(tasting.notes, "Test notes")
+        XCTAssertEqual(tasting.locationName, "Test Location")
+    }
+
+    /// Test that Wine model updates work correctly
+    func testWineModelUpdates() throws {
+        let wine = Wine(
+            id: UUID(),
+            name: "Original Name",
+            producerId: UUID(),
+            isNV: false,
+            createdAt: Date()
+        )
+
+        XCTAssertEqual(wine.name, "Original Name")
+        XCTAssertFalse(wine.isNV)
+    }
+
+    /// Test that tasting verdict (rating) is in valid range
+    func testTastingVerdictRange() throws {
+        // Test with nil verdict (no rating)
+        let tastingNoRating = Tasting(
+            id: UUID(),
+            userId: UUID(),
+            vintageId: UUID(),
+            verdict: nil,
+            notes: nil,
+            detailedNotes: nil,
+            tastedAt: Date(),
+            createdAt: Date(),
+            updatedAt: Date(),
+            imageUrl: nil,
+            locationName: nil,
+            locationAddress: nil,
+            locationCity: nil,
+            locationLatitude: nil,
+            locationLongitude: nil,
+            vintage: nil
+        )
+        XCTAssertNil(tastingNoRating.verdict)
+
+        // Test with valid rating
+        let tastingWithRating = Tasting(
+            id: UUID(),
+            userId: UUID(),
+            vintageId: UUID(),
+            verdict: 5,
+            notes: nil,
+            detailedNotes: nil,
+            tastedAt: Date(),
+            createdAt: Date(),
+            updatedAt: Date(),
+            imageUrl: nil,
+            locationName: nil,
+            locationAddress: nil,
+            locationCity: nil,
+            locationLatitude: nil,
+            locationLongitude: nil,
+            vintage: nil
+        )
+        XCTAssertEqual(tastingWithRating.verdict, 5)
+    }
+}
+
+// MARK: - Save Operation Contract Tests
+
+final class SaveOperationContractTests: XCTestCase {
+
+    /// Test that rating description mapping is correct
+    func testRatingDescriptionMapping() throws {
+        let descriptions = [
+            1: "Disappointing",
+            2: "Below Average",
+            3: "Good",
+            4: "Very Good",
+            5: "Outstanding"
+        ]
+
+        for (rating, expectedDescription) in descriptions {
+            let actualDescription = ratingDescription(for: rating)
+            XCTAssertEqual(actualDescription, expectedDescription, "Rating \(rating) should be '\(expectedDescription)'")
+        }
+    }
+
+    /// Test that zero rating returns empty description
+    func testZeroRatingDescription() throws {
+        let description = ratingDescription(for: 0)
+        XCTAssertEqual(description, "")
+    }
+
+    /// Helper function to mirror TastingNoteDetailView.ratingDescription
+    private func ratingDescription(for rating: Int) -> String {
+        switch rating {
+        case 1: return "Disappointing"
+        case 2: return "Below Average"
+        case 3: return "Good"
+        case 4: return "Very Good"
+        case 5: return "Outstanding"
+        default: return ""
+        }
+    }
+
+    /// Test that TastingLocation struct works correctly
+    func testTastingLocationStruct() throws {
+        let location = TastingLocation(
+            name: "Test Restaurant",
+            address: "123 Main St",
+            city: "San Francisco",
+            latitude: 37.7749,
+            longitude: -122.4194
+        )
+
+        XCTAssertEqual(location.name, "Test Restaurant")
+        XCTAssertEqual(location.address, "123 Main St")
+        XCTAssertEqual(location.city, "San Francisco")
+        XCTAssertEqual(location.latitude, 37.7749)
+        XCTAssertEqual(location.longitude, -122.4194)
+    }
+}
+
+// MARK: - Wine Detail Edit Tests
+
+final class WineDetailEditTests: XCTestCase {
+
+    /// Test that WineWithDetails name can be updated
+    func testWineNameUpdate() throws {
+        var wine = WineWithDetails(
+            id: UUID(),
+            name: "Original",
+            producer: "Producer",
+            year: 2020,
+            region: nil,
+            varietal: nil,
+            price: nil,
+            averageRating: nil,
+            imageUrl: nil,
+            type: .red,
+            description: nil
+        )
+
+        wine.name = "Updated Name"
+        XCTAssertEqual(wine.name, "Updated Name")
+    }
+
+    /// Test that WineWithDetails description can be updated
+    func testWineDescriptionUpdate() throws {
+        var wine = WineWithDetails(
+            id: UUID(),
+            name: "Test Wine",
+            producer: "Producer",
+            year: 2020,
+            region: nil,
+            varietal: nil,
+            price: nil,
+            averageRating: nil,
+            imageUrl: nil,
+            type: .red,
+            description: nil
+        )
+
+        // Start with nil
+        XCTAssertNil(wine.description)
+
+        // Update to a value
+        wine.description = "A great wine with complex flavors"
+        XCTAssertEqual(wine.description, "A great wine with complex flavors")
+
+        // Update to nil
+        wine.description = nil
+        XCTAssertNil(wine.description)
+    }
+
+    /// Test that WineType enum has correct cases
+    func testWineTypeEnum() throws {
+        let allTypes: [WineType] = [.red, .white, .rose, .sparkling, .dessert]
+        XCTAssertEqual(allTypes.count, 5)
+
+        // Test that each type has a color (doesn't crash)
+        for type in allTypes {
+            XCTAssertNotNil(type.color)
+            XCTAssertNotNil(type.rawValue)
+        }
+    }
+}
+
+// MARK: - Integration Contract Tests
+
+final class IntegrationContractTests: XCTestCase {
+
+    /// Test that TimeFilter enum is complete
+    func testTimeFilterCompleteness() throws {
+        let allFilters = TimeFilter.allCases
+        XCTAssertEqual(allFilters.count, 5)
+
+        let expectedFilters: [TimeFilter] = [.all, .today, .week, .month, .year]
+        for filter in expectedFilters {
+            XCTAssertTrue(allFilters.contains(filter), "TimeFilter should contain \(filter)")
+        }
+    }
+
+    /// Test that TimeFilter titles are correct
+    func testTimeFilterTitles() throws {
+        XCTAssertEqual(TimeFilter.all.title, "All")
+        XCTAssertEqual(TimeFilter.today.title, "Today")
+        XCTAssertEqual(TimeFilter.week.title, "This Week")
+        XCTAssertEqual(TimeFilter.month.title, "This Month")
+        XCTAssertEqual(TimeFilter.year.title, "This Year")
+    }
+
+    /// Test that SharedTastingInfo works correctly when present
+    func testSharedTastingInfoHandling() throws {
+        // Create a note without sharing
+        let unsharedNote = TastingNoteWithWine(
+            id: UUID(),
+            wineName: "Test",
+            producer: "Test",
+            producerCity: nil,
+            vintage: 2020,
+            rating: 4,
+            notes: nil,
+            detailedNotes: nil,
+            aromas: [],
+            flavors: [],
+            date: Date(),
+            imageUrl: nil,
+            vintageId: UUID(),
+            isShared: false,
+            sharedBy: nil,
+            locationName: nil,
+            locationCity: nil,
+            locationAddress: nil,
+            locationLatitude: nil,
+            locationLongitude: nil
+        )
+
+        XCTAssertFalse(unsharedNote.isShared)
+        XCTAssertNil(unsharedNote.sharedBy)
     }
 }

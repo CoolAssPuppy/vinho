@@ -524,13 +524,23 @@ struct TastingNoteDetailView: View {
         isSaving = true
 
         Task {
-            // TODO: Call DataService to update the tasting note
-            // For now, just simulate a save
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            do {
+                try await DataService.shared.updateTastingRatingAndNotes(
+                    id: note.id,
+                    rating: editedRating,
+                    notes: editedNotes.isEmpty ? nil : editedNotes
+                )
 
-            await MainActor.run {
-                isSaving = false
-                hapticManager.success()
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.success()
+                }
+            } catch {
+                print("Error saving tasting changes: \(error)")
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.error()
+                }
             }
         }
     }
