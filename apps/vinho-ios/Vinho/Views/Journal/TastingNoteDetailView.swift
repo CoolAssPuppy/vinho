@@ -662,6 +662,11 @@ struct TastingNoteDetailView: View {
                 let producer_id: UUID?
                 let tasting_notes: String?
                 let wine_type: String?
+                let varietal: String?
+                let style: String?
+                let serving_temperature: String?
+                let food_pairings: [String]?
+                let color: String?
                 let producer: ProducerResponse?
             }
 
@@ -672,7 +677,7 @@ struct TastingNoteDetailView: View {
             let client = SupabaseManager.shared.client
             let vintage: VintageResponse = try await client
                 .from("vintages")
-                .select("wine_id, year, wine:wine_id(id, name, producer_id, tasting_notes, wine_type, producer:producer_id(name))")
+                .select("wine_id, year, wine:wine_id(id, name, producer_id, tasting_notes, wine_type, varietal, style, serving_temperature, food_pairings, color, producer:producer_id(name))")
                 .eq("id", value: note.vintageId.uuidString)
                 .single()
                 .execute()
@@ -692,12 +697,17 @@ struct TastingNoteDetailView: View {
                 producer: vintage.wine.producer?.name ?? note.producer,
                 year: vintage.year,
                 region: nil,
-                varietal: nil,
+                varietal: vintage.wine.varietal,
                 price: nil,
                 averageRating: Double(note.rating),
                 imageUrl: note.imageUrl,
                 type: wineType,
-                description: vintage.wine.tasting_notes
+                description: vintage.wine.tasting_notes,
+                servingTemperature: vintage.wine.serving_temperature,
+                foodPairings: vintage.wine.food_pairings,
+                style: vintage.wine.style,
+                color: vintage.wine.color,
+                vintageId: note.vintageId
             )
 
             await MainActor.run {

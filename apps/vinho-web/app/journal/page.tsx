@@ -403,6 +403,12 @@ export default function JournalPage() {
             id,
             name,
             tasting_notes,
+            wine_type,
+            varietal,
+            style,
+            serving_temperature,
+            food_pairings,
+            color,
             producer:producer_id (
               name
             )

@@ -508,6 +508,7 @@ export type Database = {
           serving_temperature: string | null
           style: string | null
           tasting_notes: string | null
+          varietal: string | null
           wine_type: string | null
         }
         Insert: {
@@ -522,6 +523,7 @@ export type Database = {
           serving_temperature?: string | null
           style?: string | null
           tasting_notes?: string | null
+          varietal?: string | null
           wine_type?: string | null
         }
         Update: {
@@ -536,6 +538,7 @@ export type Database = {
           serving_temperature?: string | null
           style?: string | null
           tasting_notes?: string | null
+          varietal?: string | null
           wine_type?: string | null
         }
         Relationships: [
