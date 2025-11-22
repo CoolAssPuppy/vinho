@@ -11,6 +11,15 @@ struct Wine: Identifiable, Codable, Hashable {
     var producer: Producer?
     var vintages: [Vintage]?
 
+    // Enriched fields from AI
+    var wineType: String?
+    var color: String?
+    var style: String?
+    var foodPairings: [String]?
+    var servingTemperature: String?
+    var tastingNotes: String?
+    var varietal: String?
+
     enum CodingKeys: String, CodingKey {
         case id
         case producerId = "producer_id"
@@ -19,6 +28,13 @@ struct Wine: Identifiable, Codable, Hashable {
         case createdAt = "created_at"
         case producer = "producers"
         case vintages
+        case wineType = "wine_type"
+        case color
+        case style
+        case foodPairings = "food_pairings"
+        case servingTemperature = "serving_temperature"
+        case tastingNotes = "tasting_notes"
+        case varietal
     }
 
     init(id: UUID = UUID(), name: String, producerId: UUID?, isNV: Bool = false, createdAt: Date = Date()) {
@@ -29,6 +45,13 @@ struct Wine: Identifiable, Codable, Hashable {
         self.createdAt = createdAt
         self.producer = nil
         self.vintages = nil
+        self.wineType = nil
+        self.color = nil
+        self.style = nil
+        self.foodPairings = nil
+        self.servingTemperature = nil
+        self.tastingNotes = nil
+        self.varietal = nil
     }
 }
 

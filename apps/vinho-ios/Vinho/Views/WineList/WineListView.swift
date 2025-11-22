@@ -600,18 +600,37 @@ class WineListViewModel: ObservableObject {
 
         // Convert to WineWithDetails format
         wines = dataService.wines.map { wine in
-            WineWithDetails(
+            // Parse wine type from enriched data
+            var wineType: WineType = .red
+            if let typeString = wine.wineType?.lowercased() {
+                switch typeString {
+                case "white": wineType = .white
+                case "rosé", "rose": wineType = .rose
+                case "sparkling": wineType = .sparkling
+                case "dessert", "fortified": wineType = .dessert
+                default: wineType = .red
+                }
+            } else if wine.isNV {
+                wineType = .sparkling
+            }
+
+            return WineWithDetails(
                 id: wine.id,
                 name: wine.name,
                 producer: wine.producer?.name ?? "Unknown",
                 year: wine.vintages?.first?.year,
-                region: nil, // You can add region from producer if available
-                varietal: nil, // You can add from wine_varietals if needed
-                price: nil, // Add price field to database if needed
-                averageRating: nil, // Calculate from tastings if needed
+                region: wine.producer?.region?.name,
+                varietal: wine.varietal,
+                price: nil,
+                averageRating: nil,
                 imageUrl: nil,
-                type: wine.isNV ? .sparkling : .red, // Default, you can improve this
-                description: nil // Will be loaded from wine's tasting_notes when available
+                type: wineType,
+                description: wine.tastingNotes,
+                servingTemperature: wine.servingTemperature,
+                foodPairings: wine.foodPairings,
+                style: wine.style,
+                color: wine.color,
+                vintageId: wine.vintages?.first?.id
             )
         }
         isLoading = false
@@ -672,13 +691,18 @@ enum WineType: String, CaseIterable {
 struct WineWithDetails: Identifiable {
     let id: UUID  // Wine ID from database
     var name: String
-    let producer: String
+    var producer: String
     let year: Int?
     let region: String?
-    let varietal: String?
+    var varietal: String?
     let price: Double?
     let averageRating: Double?
     let imageUrl: String?
-    let type: WineType
+    var type: WineType
     var description: String?  // Wine description from tasting_notes
+    var servingTemperature: String?
+    var foodPairings: [String]?
+    var style: String?
+    var color: String?
+    var vintageId: UUID?  // For varietal storage
 }

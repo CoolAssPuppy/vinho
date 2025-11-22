@@ -524,13 +524,41 @@ struct TastingNoteDetailView: View {
         isSaving = true
 
         Task {
-            // TODO: Call DataService to update the tasting note
-            // For now, just simulate a save
-            try? await Task.sleep(nanoseconds: 500_000_000)
+            do {
+                let client = SupabaseManager.shared.client
 
-            await MainActor.run {
-                isSaving = false
-                hapticManager.success()
+                struct TastingUpdate: Encodable {
+                    let verdict: Int?
+                    let notes: String?
+                    let updated_at: Date
+                }
+
+                let updateData = TastingUpdate(
+                    verdict: editedRating > 0 ? editedRating : nil,
+                    notes: editedNotes.isEmpty ? nil : editedNotes,
+                    updated_at: Date()
+                )
+
+                try await client
+                    .from("tastings")
+                    .update(updateData)
+                    .eq("id", value: note.id.uuidString)
+                    .execute()
+
+                // Notify other views that tasting data changed
+                NotificationCenter.default.post(name: NSNotification.Name("TastingDataChanged"), object: nil)
+                NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.success()
+                }
+            } catch {
+                print("Error saving tasting changes: \(error)")
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.error()
+                }
             }
         }
     }

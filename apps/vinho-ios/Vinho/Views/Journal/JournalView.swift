@@ -164,6 +164,16 @@ struct JournalView: View {
                 await loadPendingWines()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TastingDataChanged"))) { _ in
+            Task {
+                await viewModel.refreshNotes()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WineDataChanged"))) { _ in
+            Task {
+                await viewModel.refreshNotes()
+            }
+        }
     }
     
     

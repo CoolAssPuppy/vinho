@@ -27,7 +27,7 @@ class DataService: ObservableObject {
         do {
             let response: [Wine] = try await client
                 .from("wines")
-                .select("*, producers!producer_id(*)")
+                .select("*, producers!producer_id(*, regions(*)), vintages(*)")
                 .execute()
                 .value
 

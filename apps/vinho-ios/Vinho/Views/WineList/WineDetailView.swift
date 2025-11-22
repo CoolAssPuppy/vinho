@@ -1,9 +1,10 @@
 import SwiftUI
 import MapKit
+import Supabase
 
 /// Sophisticated wine detail view with immersive design
 struct WineDetailView: View {
-    var wine: WineWithDetails
+    let initialWine: WineWithDetails
     var fromTasting: Bool = false // Track if navigated from a tasting to prevent circular nav
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
@@ -16,12 +17,32 @@ struct WineDetailView: View {
     @State private var selectedTasting: TastingNoteWithWine?
     @State private var showingTastingDetail = false
 
+    // Wine state that can be updated
+    @State private var wine: WineWithDetails
+
     // Inline editing states
     @State private var editedName: String = ""
     @State private var editedDescription: String = ""
+    @State private var editedProducer: String = ""
     @State private var isEditingName = false
     @State private var isEditingDescription = false
+    @State private var isEditingProducer = false
     @State private var isSaving = false
+
+    // Wine details editing
+    @State private var editedVarietal: String = ""
+    @State private var editedServingTemp: String = ""
+    @State private var editedStyle: String = ""
+    @State private var isEditingVarietal = false
+    @State private var isEditingServingTemp = false
+    @State private var isEditingStyle = false
+    @State private var isEnrichingWithAI = false
+
+    init(wine: WineWithDetails, fromTasting: Bool = false) {
+        self.initialWine = wine
+        self.fromTasting = fromTasting
+        self._wine = State(initialValue: wine)
+    }
     
     var body: some View {
         NavigationView {
@@ -219,12 +240,48 @@ struct WineDetailView: View {
     
     var wineHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Producer
-            Text(wine.producer)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.vinoAccent)
-                .textCase(.uppercase)
-                .tracking(1.2)
+            // Producer (Editable)
+            if isEditingProducer {
+                HStack {
+                    TextField("Producer Name", text: $editedProducer)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.vinoAccent)
+                        .textCase(.uppercase)
+                        .tracking(1.2)
+                        .textFieldStyle(.plain)
+                        .onSubmit {
+                            saveProducerName()
+                        }
+
+                    Button {
+                        saveProducerName()
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.vinoSuccess)
+                    }
+
+                    Button {
+                        hapticManager.lightImpact()
+                        isEditingProducer = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.vinoTextSecondary)
+                    }
+                }
+            } else {
+                Text(wine.producer)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.vinoAccent)
+                    .textCase(.uppercase)
+                    .tracking(1.2)
+                    .onTapGesture {
+                        hapticManager.lightImpact()
+                        editedProducer = wine.producer
+                        isEditingProducer = true
+                    }
+            }
 
             // Wine Name (Editable)
             VStack(alignment: .leading, spacing: 8) {
@@ -420,19 +477,95 @@ struct WineDetailView: View {
     
     var detailsTab: some View {
         VStack(alignment: .leading, spacing: 16) {
-            InfoRow(label: "Varietal", value: wine.varietal ?? "Blend")
-            InfoRow(label: "Alcohol", value: "13.5% ABV")
-            InfoRow(label: "Serving Temp", value: "16-18°C")
-            InfoRow(label: "Decant", value: "30 minutes")
-            
-            Text("About This Wine")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(.vinoText)
-                .padding(.top, 8)
-            
-            Text("This exceptional vintage showcases the terroir's unique characteristics, with careful vineyard management and traditional winemaking techniques creating a wine of remarkable complexity and elegance.")
+            // Editable Varietal
+            EditableInfoRow(
+                label: "Varietal",
+                value: wine.varietal ?? "Tap to add",
+                isEditing: $isEditingVarietal,
+                editedValue: $editedVarietal,
+                placeholder: "e.g., Pinot Noir, Chardonnay"
+            ) {
+                saveWineField(field: "varietal", value: editedVarietal)
+            } onTap: {
+                editedVarietal = wine.varietal ?? ""
+                isEditingVarietal = true
+            }
+
+            // Editable Style
+            EditableInfoRow(
+                label: "Style",
+                value: wine.style ?? "Tap to add",
+                isEditing: $isEditingStyle,
+                editedValue: $editedStyle,
+                placeholder: "e.g., Dry, Semi-dry, Sweet"
+            ) {
+                saveWineField(field: "style", value: editedStyle)
+            } onTap: {
+                editedStyle = wine.style ?? ""
+                isEditingStyle = true
+            }
+
+            // Editable Serving Temperature
+            EditableInfoRow(
+                label: "Serving Temp",
+                value: wine.servingTemperature ?? "Tap to add",
+                isEditing: $isEditingServingTemp,
+                editedValue: $editedServingTemp,
+                placeholder: "e.g., 16-18°C"
+            ) {
+                saveWineField(field: "serving_temperature", value: editedServingTemp)
+            } onTap: {
+                editedServingTemp = wine.servingTemperature ?? ""
+                isEditingServingTemp = true
+            }
+
+            // About This Wine section with AI button
+            HStack {
+                Text("About This Wine")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.vinoText)
+
+                Spacer()
+
+                // AI Enrichment Button
+                Button {
+                    hapticManager.mediumImpact()
+                    Task {
+                        await enrichWineWithAI()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        if isEnrichingWithAI {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        Text(isEnrichingWithAI ? "Enriching..." : "AI Fill")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.purple, Color.blue],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(Capsule())
+                }
+                .disabled(isEnrichingWithAI)
+            }
+            .padding(.top, 8)
+
+            // Description (tapping edits in the header section)
+            Text(wine.description ?? "Tap the AI Fill button to generate wine details based on the producer and wine name.")
                 .font(.system(size: 14))
-                .foregroundColor(.vinoTextSecondary)
+                .foregroundColor(wine.description == nil ? .vinoTextTertiary : .vinoTextSecondary)
                 .lineSpacing(4)
         }
         .padding(16)
@@ -496,22 +629,39 @@ struct WineDetailView: View {
             Text("Perfect Pairings")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.vinoText)
-            
-            ForEach(["Grilled ribeye steak", "Lamb rack with herbs", "Aged hard cheeses", "Dark chocolate"], id: \.self) { pairing in
-                HStack(spacing: 12) {
-                    Image(systemName: "fork.knife")
-                        .font(.system(size: 16))
-                        .foregroundColor(.vinoAccent)
-                    Text(pairing)
-                        .font(.system(size: 14))
-                        .foregroundColor(.vinoText)
-                    Spacer()
+
+            if let pairings = wine.foodPairings, !pairings.isEmpty {
+                ForEach(pairings, id: \.self) { pairing in
+                    HStack(spacing: 12) {
+                        Image(systemName: "fork.knife")
+                            .font(.system(size: 16))
+                            .foregroundColor(.vinoAccent)
+                        Text(pairing)
+                            .font(.system(size: 14))
+                            .foregroundColor(.vinoText)
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.vinoDarkSecondary)
+                    )
                 }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.vinoDarkSecondary)
-                )
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 32))
+                        .foregroundColor(.vinoTextTertiary)
+                    Text("No pairings available")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.vinoTextSecondary)
+                    Text("Tap the AI Fill button in the Details tab to generate food pairings.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.vinoTextTertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
             }
         }
         .padding(16)
@@ -621,6 +771,91 @@ struct WineDetailView: View {
     }
 
     // MARK: - Save Functions
+    private func saveProducerName() {
+        guard !editedProducer.isEmpty else {
+            isEditingProducer = false
+            return
+        }
+
+        Task {
+            isSaving = true
+            hapticManager.mediumImpact()
+
+            do {
+                let client = SupabaseManager.shared.client
+
+                // First, try to find an existing producer with this name
+                struct ProducerRow: Decodable {
+                    let id: UUID
+                    let name: String
+                }
+
+                let existingProducers: [ProducerRow] = try await client
+                    .from("producers")
+                    .select("id, name")
+                    .ilike("name", pattern: editedProducer)
+                    .limit(1)
+                    .execute()
+                    .value
+
+                let producerId: UUID
+
+                if let existingProducer = existingProducers.first {
+                    // Use existing producer
+                    producerId = existingProducer.id
+                } else {
+                    // Create new producer
+                    struct NewProducer: Encodable {
+                        let name: String
+                    }
+                    struct CreatedProducer: Decodable {
+                        let id: UUID
+                    }
+
+                    let created: [CreatedProducer] = try await client
+                        .from("producers")
+                        .insert(NewProducer(name: editedProducer))
+                        .select("id")
+                        .execute()
+                        .value
+
+                    guard let newProducer = created.first else {
+                        throw NSError(domain: "Producer", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create producer"])
+                    }
+                    producerId = newProducer.id
+                }
+
+                // Update the wine to point to this producer
+                struct WineProducerUpdate: Encodable {
+                    let producer_id: UUID
+                }
+
+                try await client
+                    .from("wines")
+                    .update(WineProducerUpdate(producer_id: producerId))
+                    .eq("id", value: wine.id.uuidString)
+                    .execute()
+
+                // Update local state
+                await MainActor.run {
+                    wine.producer = editedProducer
+                    isEditingProducer = false
+                    isSaving = false
+                    hapticManager.success()
+
+                    // Post notification to refresh other views
+                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                }
+            } catch {
+                print("Error updating producer: \(error)")
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.error()
+                }
+            }
+        }
+    }
+
     private func saveWineName() {
         guard !editedName.isEmpty else {
             isEditingName = false
@@ -638,11 +873,11 @@ struct WineDetailView: View {
                     description: nil
                 )
 
-                // Update local state
+                // Update local state - this updates the @State wine so UI refreshes
                 await MainActor.run {
-                    var updatedWine = wine
-                    updatedWine.name = editedName
+                    wine.name = editedName
                     isEditingName = false
+                    isSaving = false
                     hapticManager.success()
 
                     // Post notification to refresh wine list
@@ -650,10 +885,11 @@ struct WineDetailView: View {
                 }
             } catch {
                 print("Error updating wine name: \(error)")
-                hapticManager.error()
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.error()
+                }
             }
-
-            isSaving = false
         }
     }
 
@@ -669,11 +905,11 @@ struct WineDetailView: View {
                     description: editedDescription.isEmpty ? nil : editedDescription
                 )
 
-                // Update local state
+                // Update local state - this updates the @State wine so UI refreshes
                 await MainActor.run {
-                    var updatedWine = wine
-                    updatedWine.description = editedDescription.isEmpty ? nil : editedDescription
+                    wine.description = editedDescription.isEmpty ? nil : editedDescription
                     isEditingDescription = false
+                    isSaving = false
                     hapticManager.success()
 
                     // Post notification to refresh wine list
@@ -681,10 +917,231 @@ struct WineDetailView: View {
                 }
             } catch {
                 print("Error updating wine description: \(error)")
-                hapticManager.error()
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.error()
+                }
+            }
+        }
+    }
+
+    private func saveWineField(field: String, value: String) {
+        Task {
+            isSaving = true
+            hapticManager.mediumImpact()
+
+            do {
+                let client = SupabaseManager.shared.client
+
+                struct WineFieldUpdate: Encodable {
+                    var varietal: String?
+                    var style: String?
+                    var serving_temperature: String?
+
+                    enum CodingKeys: String, CodingKey {
+                        case varietal, style, serving_temperature
+                    }
+
+                    func encode(to encoder: Encoder) throws {
+                        var container = encoder.container(keyedBy: CodingKeys.self)
+                        if let v = varietal { try container.encode(v, forKey: .varietal) }
+                        if let s = style { try container.encode(s, forKey: .style) }
+                        if let st = serving_temperature { try container.encode(st, forKey: .serving_temperature) }
+                    }
+                }
+
+                var updateData = WineFieldUpdate()
+                let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                switch field {
+                case "varietal":
+                    updateData.varietal = trimmedValue.isEmpty ? nil : trimmedValue
+                case "style":
+                    updateData.style = trimmedValue.isEmpty ? nil : trimmedValue
+                case "serving_temperature":
+                    updateData.serving_temperature = trimmedValue.isEmpty ? nil : trimmedValue
+                default:
+                    break
+                }
+
+                try await client
+                    .from("wines")
+                    .update(updateData)
+                    .eq("id", value: wine.id.uuidString)
+                    .execute()
+
+                await MainActor.run {
+                    // Update local state
+                    switch field {
+                    case "varietal":
+                        wine.varietal = trimmedValue.isEmpty ? nil : trimmedValue
+                        isEditingVarietal = false
+                    case "style":
+                        wine.style = trimmedValue.isEmpty ? nil : trimmedValue
+                        isEditingStyle = false
+                    case "serving_temperature":
+                        wine.servingTemperature = trimmedValue.isEmpty ? nil : trimmedValue
+                        isEditingServingTemp = false
+                    default:
+                        break
+                    }
+                    isSaving = false
+                    hapticManager.success()
+                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                }
+            } catch {
+                print("Error updating wine field \(field): \(error)")
+                await MainActor.run {
+                    isSaving = false
+                    hapticManager.error()
+                }
+            }
+        }
+    }
+
+    private func enrichWineWithAI() async {
+        isEnrichingWithAI = true
+
+        do {
+            let client = SupabaseManager.shared.client
+
+            // Prepare the request body
+            struct EnrichRequest: Encodable {
+                let action: String
+                let wine_id: String
+                let vintage_id: String?
+                let producer: String
+                let wine_name: String
+                let year: Int?
+                let region: String?
+                let overwrite: Bool
             }
 
-            isSaving = false
+            // Define response type before the call
+            struct EnrichmentData: Decodable {
+                let wine_type: String?
+                let color: String?
+                let style: String?
+                let food_pairings: [String]?
+                let serving_temperature: String?
+                let tasting_notes: String?
+                let varietals: [String]?
+            }
+
+            struct EnrichResponse: Decodable {
+                let success: Bool
+                let enrichment: EnrichmentData?
+            }
+
+            let requestBody = EnrichRequest(
+                action: "enrich-single",
+                wine_id: wine.id.uuidString,
+                vintage_id: wine.vintageId?.uuidString,
+                producer: wine.producer,
+                wine_name: wine.name,
+                year: wine.year,
+                region: wine.region,
+                overwrite: true
+            )
+
+            let enrichResponse: EnrichResponse = try await client.functions.invoke(
+                "enrich-wines",
+                options: FunctionInvokeOptions(body: requestBody)
+            )
+
+            if enrichResponse.success, let enrichment = enrichResponse.enrichment {
+                await MainActor.run {
+                    // Update local wine state with enriched data
+                    if let wineType = enrichment.wine_type {
+                        wine.type = WineType(rawValue: wineType) ?? wine.type
+                    }
+                    if let style = enrichment.style {
+                        wine.style = style
+                    }
+                    if let servingTemp = enrichment.serving_temperature {
+                        wine.servingTemperature = servingTemp
+                    }
+                    if let foodPairings = enrichment.food_pairings {
+                        wine.foodPairings = foodPairings
+                    }
+                    if let tastingNotes = enrichment.tasting_notes {
+                        wine.description = tastingNotes
+                    }
+                    if let varietals = enrichment.varietals, !varietals.isEmpty {
+                        wine.varietal = varietals.joined(separator: ", ")
+                    }
+                    if let color = enrichment.color {
+                        wine.color = color
+                    }
+
+                    isEnrichingWithAI = false
+                    hapticManager.success()
+                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                }
+            } else {
+                throw NSError(domain: "Enrichment", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to enrich wine"])
+            }
+        } catch {
+            print("Error enriching wine with AI: \(error)")
+            await MainActor.run {
+                isEnrichingWithAI = false
+                hapticManager.error()
+            }
+        }
+    }
+}
+
+// MARK: - Editable Info Row Component
+struct EditableInfoRow: View {
+    let label: String
+    let value: String
+    @Binding var isEditing: Bool
+    @Binding var editedValue: String
+    let placeholder: String
+    let onSave: () -> Void
+    let onTap: () -> Void
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.vinoTextSecondary)
+                .frame(width: 100, alignment: .leading)
+
+            if isEditing {
+                HStack {
+                    TextField(placeholder, text: $editedValue)
+                        .font(.system(size: 14))
+                        .foregroundColor(.vinoText)
+                        .textFieldStyle(.plain)
+                        .onSubmit {
+                            onSave()
+                        }
+
+                    Button {
+                        onSave()
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.vinoSuccess)
+                    }
+
+                    Button {
+                        isEditing = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.vinoTextSecondary)
+                    }
+                }
+            } else {
+                Text(value)
+                    .font(.system(size: 14))
+                    .foregroundColor(value == "Tap to add" ? .vinoTextTertiary : .vinoText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onTap()
+                    }
+            }
         }
     }
 }

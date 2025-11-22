@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Star, MapPin } from "lucide-react";
+import { Star, MapPin, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +35,13 @@ interface TastingNoteFormProps {
   wineId?: string;
   wineName?: string;
   wineDescription?: string | null;
+  producerName?: string;
+  wineVarietal?: string | null;
+  wineStyle?: string | null;
+  wineServingTemp?: string | null;
+  wineFoodPairings?: string[] | null;
+  wineRegion?: string | null;
+  wineYear?: number | null;
   onSave?: () => void;
   onDelete?: () => void;
   onCancel?: () => void;
@@ -58,6 +65,13 @@ export function TastingNoteForm({
   wineId,
   wineName = "",
   wineDescription = null,
+  producerName = "",
+  wineVarietal = null,
+  wineStyle = null,
+  wineServingTemp = null,
+  wineFoodPairings = null,
+  wineRegion = null,
+  wineYear = null,
   onSave,
   onDelete,
   onCancel,
@@ -87,9 +101,22 @@ export function TastingNoteForm({
   // Wine editing states
   const [editedWineName, setEditedWineName] = useState(wineName);
   const [editedWineDescription, setEditedWineDescription] = useState(wineDescription || "");
+  const [editedProducerName, setEditedProducerName] = useState(producerName);
   const [isEditingWineName, setIsEditingWineName] = useState(false);
   const [isEditingWineDescription, setIsEditingWineDescription] = useState(false);
+  const [isEditingProducer, setIsEditingProducer] = useState(false);
   const [isSavingWine, setIsSavingWine] = useState(false);
+
+  // Wine details editing states
+  const [editedVarietal, setEditedVarietal] = useState(wineVarietal || "");
+  const [editedStyle, setEditedStyle] = useState(wineStyle || "");
+  const [editedServingTemp, setEditedServingTemp] = useState(wineServingTemp || "");
+  const [currentFoodPairings, setCurrentFoodPairings] = useState<string[]>(wineFoodPairings || []);
+  const [currentDescription, setCurrentDescription] = useState(wineDescription || "");
+  const [isEditingVarietal, setIsEditingVarietal] = useState(false);
+  const [isEditingStyle, setIsEditingStyle] = useState(false);
+  const [isEditingServingTemp, setIsEditingServingTemp] = useState(false);
+  const [isEnrichingWithAI, setIsEnrichingWithAI] = useState(false);
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -222,6 +249,163 @@ export function TastingNoteForm({
     }
   };
 
+  const handleSaveProducer = async () => {
+    if (!wineId || !editedProducerName.trim()) {
+      setIsEditingProducer(false);
+      return;
+    }
+
+    setIsSavingWine(true);
+
+    try {
+      // First, try to find an existing producer with this name
+      const { data: existingProducers } = await supabase
+        .from("producers")
+        .select("id, name")
+        .ilike("name", editedProducerName.trim())
+        .limit(1);
+
+      let producerId: string;
+
+      if (existingProducers && existingProducers.length > 0) {
+        // Use existing producer
+        producerId = existingProducers[0].id;
+      } else {
+        // Create new producer
+        const { data: newProducer, error: createError } = await supabase
+          .from("producers")
+          .insert({ name: editedProducerName.trim() })
+          .select("id")
+          .single();
+
+        if (createError || !newProducer) {
+          throw new Error("Failed to create producer");
+        }
+        producerId = newProducer.id;
+      }
+
+      // Update the wine to point to this producer
+      const { error: updateError } = await supabase
+        .from("wines")
+        .update({ producer_id: producerId })
+        .eq("id", wineId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setIsEditingProducer(false);
+    } catch (error) {
+      console.error("Error updating producer:", error);
+      alert("Failed to update producer. Please try again.");
+    } finally {
+      setIsSavingWine(false);
+    }
+  };
+
+  const handleSaveWineField = async (field: string, value: string) => {
+    if (!wineId) return;
+
+    setIsSavingWine(true);
+    try {
+      const updateData: Record<string, string | null> = {};
+      updateData[field] = value.trim() || null;
+
+      const { error } = await supabase
+        .from("wines")
+        .update(updateData)
+        .eq("id", wineId);
+
+      if (error) throw error;
+
+      // Update local state
+      switch (field) {
+        case "varietal":
+          setEditedVarietal(value);
+          setIsEditingVarietal(false);
+          break;
+        case "style":
+          setEditedStyle(value);
+          setIsEditingStyle(false);
+          break;
+        case "serving_temperature":
+          setEditedServingTemp(value);
+          setIsEditingServingTemp(false);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error updating wine ${field}:`, error);
+      alert(`Failed to update wine ${field}. Please try again.`);
+    } finally {
+      setIsSavingWine(false);
+    }
+  };
+
+  const handleEnrichWithAI = async () => {
+    if (!wineId) return;
+
+    setIsEnrichingWithAI(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/enrich-wines`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: "enrich-single",
+            wine_id: wineId,
+            vintage_id: vintageId,
+            producer: editedProducerName || producerName,
+            wine_name: editedWineName || wineName,
+            year: wineYear,
+            region: wineRegion,
+            overwrite: true,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to enrich wine");
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.enrichment) {
+        const enrichment = result.enrichment;
+        // Update local state with enriched data
+        if (enrichment.varietals && enrichment.varietals.length > 0) {
+          setEditedVarietal(enrichment.varietals.join(", "));
+        }
+        if (enrichment.style) {
+          setEditedStyle(enrichment.style);
+        }
+        if (enrichment.serving_temperature) {
+          setEditedServingTemp(enrichment.serving_temperature);
+        }
+        if (enrichment.food_pairings) {
+          setCurrentFoodPairings(enrichment.food_pairings);
+        }
+        if (enrichment.tasting_notes) {
+          setCurrentDescription(enrichment.tasting_notes);
+          setEditedWineDescription(enrichment.tasting_notes);
+        }
+      }
+    } catch (error) {
+      console.error("Error enriching wine with AI:", error);
+      alert("Failed to enrich wine with AI. Please try again.");
+    } finally {
+      setIsEnrichingWithAI(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center p-8">Loading...</div>;
   }
@@ -298,6 +482,57 @@ export function TastingNoteForm({
           )}
         </div>
 
+        {/* Producer */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Producer</Label>
+          {isEditingProducer ? (
+            <div className="flex gap-2">
+              <Input
+                value={editedProducerName}
+                onChange={(e) => setEditedProducerName(e.target.value)}
+                className="flex-1"
+                placeholder="Producer name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveProducer();
+                  } else if (e.key === "Escape") {
+                    setIsEditingProducer(false);
+                    setEditedProducerName(producerName);
+                  }
+                }}
+                autoFocus
+                disabled={isSavingWine}
+              />
+              <Button
+                size="sm"
+                onClick={handleSaveProducer}
+                disabled={isSavingWine || !editedProducerName.trim()}
+              >
+                Save
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setIsEditingProducer(false);
+                  setEditedProducerName(producerName);
+                }}
+                disabled={isSavingWine}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <div
+              className="p-2 rounded cursor-pointer hover:bg-muted transition-colors"
+              onClick={() => setIsEditingProducer(true)}
+            >
+              <p className="font-medium text-primary">{producerName || "Tap to add producer"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Click to edit</p>
+            </div>
+          )}
+        </div>
+
         {/* Wine Description */}
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Wine Description</Label>
@@ -337,9 +572,201 @@ export function TastingNoteForm({
               onClick={() => setIsEditingWineDescription(true)}
             >
               <p className="text-sm whitespace-pre-wrap">
-                {wineDescription || "Tap to add wine description"}
+                {currentDescription || "Tap to add wine description"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Click to edit</p>
+            </div>
+          )}
+        </div>
+
+        {/* Wine Details Section */}
+        <div className="border-t border-border pt-4 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-semibold text-foreground">Wine Details</h4>
+            <Button
+              size="sm"
+              onClick={handleEnrichWithAI}
+              disabled={isEnrichingWithAI || isSavingWine}
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+            >
+              {isEnrichingWithAI ? (
+                <>
+                  <span className="animate-spin mr-2">...</span>
+                  Enriching...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Fill
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Varietal */}
+          <div className="space-y-2 mb-3">
+            <Label className="text-xs text-muted-foreground">Varietal</Label>
+            {isEditingVarietal ? (
+              <div className="flex gap-2">
+                <Input
+                  value={editedVarietal}
+                  onChange={(e) => setEditedVarietal(e.target.value)}
+                  className="flex-1"
+                  placeholder="e.g., Pinot Noir, Chardonnay"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSaveWineField("varietal", editedVarietal);
+                    } else if (e.key === "Escape") {
+                      setIsEditingVarietal(false);
+                      setEditedVarietal(wineVarietal || "");
+                    }
+                  }}
+                  autoFocus
+                  disabled={isSavingWine}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => handleSaveWineField("varietal", editedVarietal)}
+                  disabled={isSavingWine}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditingVarietal(false);
+                    setEditedVarietal(wineVarietal || "");
+                  }}
+                  disabled={isSavingWine}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div
+                className="p-2 rounded cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => setIsEditingVarietal(true)}
+              >
+                <p className="text-sm">{editedVarietal || "Tap to add varietal"}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Style */}
+          <div className="space-y-2 mb-3">
+            <Label className="text-xs text-muted-foreground">Style</Label>
+            {isEditingStyle ? (
+              <div className="flex gap-2">
+                <Input
+                  value={editedStyle}
+                  onChange={(e) => setEditedStyle(e.target.value)}
+                  className="flex-1"
+                  placeholder="e.g., Dry, Semi-dry, Sweet"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSaveWineField("style", editedStyle);
+                    } else if (e.key === "Escape") {
+                      setIsEditingStyle(false);
+                      setEditedStyle(wineStyle || "");
+                    }
+                  }}
+                  autoFocus
+                  disabled={isSavingWine}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => handleSaveWineField("style", editedStyle)}
+                  disabled={isSavingWine}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditingStyle(false);
+                    setEditedStyle(wineStyle || "");
+                  }}
+                  disabled={isSavingWine}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div
+                className="p-2 rounded cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => setIsEditingStyle(true)}
+              >
+                <p className="text-sm">{editedStyle || "Tap to add style"}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Serving Temperature */}
+          <div className="space-y-2 mb-3">
+            <Label className="text-xs text-muted-foreground">Serving Temperature</Label>
+            {isEditingServingTemp ? (
+              <div className="flex gap-2">
+                <Input
+                  value={editedServingTemp}
+                  onChange={(e) => setEditedServingTemp(e.target.value)}
+                  className="flex-1"
+                  placeholder="e.g., 16-18 C"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSaveWineField("serving_temperature", editedServingTemp);
+                    } else if (e.key === "Escape") {
+                      setIsEditingServingTemp(false);
+                      setEditedServingTemp(wineServingTemp || "");
+                    }
+                  }}
+                  autoFocus
+                  disabled={isSavingWine}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => handleSaveWineField("serving_temperature", editedServingTemp)}
+                  disabled={isSavingWine}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditingServingTemp(false);
+                    setEditedServingTemp(wineServingTemp || "");
+                  }}
+                  disabled={isSavingWine}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div
+                className="p-2 rounded cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => setIsEditingServingTemp(true)}
+              >
+                <p className="text-sm">{editedServingTemp || "Tap to add serving temp"}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Food Pairings (Read-only, populated by AI) */}
+          {currentFoodPairings.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Food Pairings</Label>
+              <div className="flex flex-wrap gap-2">
+                {currentFoodPairings.map((pairing, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 text-xs rounded-full bg-muted text-muted-foreground"
+                  >
+                    {pairing}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
