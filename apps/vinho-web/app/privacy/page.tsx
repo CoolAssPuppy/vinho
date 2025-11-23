@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-2xl font-semibold text-vino-text mb-3">Changes to This Policy</h2>
             <p>
-              We may update this policy occasionally. If we make significant changes, we'll notify you via email.
+              We may update this policy occasionally. If we make significant changes, we will notify you via email.
             </p>
           </section>
 

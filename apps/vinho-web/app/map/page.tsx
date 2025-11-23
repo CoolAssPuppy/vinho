@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/table";
 import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogContentNoX } from "@/components/ui/dialog-no-x";
-import { TastingNoteForm } from "@/components/tasting/tasting-note-form";
+import { TastingNoteForm } from "@/components/tasting/TastingNoteForm";
 
 // Dynamically import map component to avoid SSR issues with Leaflet
 const WineMap = dynamic(() => import("@/components/map/WineMap"), {

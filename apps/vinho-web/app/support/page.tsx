@@ -1,4 +1,4 @@
-import { Mail, Github, Book } from "lucide-react";
+import { Mail, Book } from "lucide-react";
 import Link from "next/link";
 
 export default function SupportPage() {
@@ -12,10 +12,10 @@ export default function SupportPage() {
             <h2 className="text-2xl font-semibold text-vino-text mb-4">About Vinho</h2>
             <p className="mb-4">
               Vinho is a free, open-source wine tracking app built for fun and shared with the community.
-              We created it because we love wine and wanted a simple way to remember what we've tasted.
+              We created it because we love wine and wanted a simple way to remember what we have tasted.
             </p>
             <p>
-              Since this is freeware, we don't offer formal customer support. However, we do our best to keep things running smoothly!
+              Since this is freeware, we do not offer formal customer support. However, we do our best to keep things running smoothly!
             </p>
           </section>
 
@@ -26,7 +26,7 @@ export default function SupportPage() {
               <div className="bg-vino-dark-secondary p-5 rounded-lg border border-vino-border">
                 <h3 className="font-semibold text-vino-text mb-2">How do I import from Vivino?</h3>
                 <p>
-                  Go to your Profile, then the "Import from Vivino" tab. You'll need to export your Vivino data first from their website.
+                  Go to your Profile, then the Import from Vivino tab. You will need to export your Vivino data first from their website.
                 </p>
               </div>
 
@@ -65,7 +65,7 @@ export default function SupportPage() {
                 <Mail className="h-8 w-8 text-vino-accent mb-3" />
                 <h3 className="font-semibold text-vino-text mb-2">Email Us</h3>
                 <p className="mb-3">
-                  For questions or feedback, send us an email. We'll respond when we can!
+                  For questions or feedback, send us an email. We will respond when we can!
                 </p>
                 <a
                   href="mailto:support@vinho.app"
