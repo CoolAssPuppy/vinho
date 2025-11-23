@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      embedding_jobs_queue: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          idempotency_key: string | null
+          input_image_url: string | null
+          input_text: string | null
+          job_type: string
+          priority: number
+          processed_at: string | null
+          retry_count: number
+          scan_id: string | null
+          status: string
+          vintage_id: string | null
+          wine_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          input_image_url?: string | null
+          input_text?: string | null
+          job_type: string
+          priority?: number
+          processed_at?: string | null
+          retry_count?: number
+          scan_id?: string | null
+          status?: string
+          vintage_id?: string | null
+          wine_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          input_image_url?: string | null
+          input_text?: string | null
+          job_type?: string
+          priority?: number
+          processed_at?: string | null
+          retry_count?: number
+          scan_id?: string | null
+          status?: string
+          vintage_id?: string | null
+          wine_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embedding_jobs_queue_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embedding_jobs_queue_vintage_id_fkey"
+            columns: ["vintage_id"]
+            isOneToOne: false
+            referencedRelation: "vintages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embedding_jobs_queue_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grape_varietals: {
         Row: {
           created_at: string | null
@@ -31,6 +104,73 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      label_embeddings: {
+        Row: {
+          created_at: string
+          embedding_model: string
+          embedding_version: number
+          id: string
+          image_quality_score: number | null
+          label_embedding: string | null
+          ocr_confidence: number | null
+          ocr_text: string | null
+          source_image_url: string | null
+          source_scan_id: string | null
+          vintage_id: string | null
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding_model?: string
+          embedding_version?: number
+          id?: string
+          image_quality_score?: number | null
+          label_embedding?: string | null
+          ocr_confidence?: number | null
+          ocr_text?: string | null
+          source_image_url?: string | null
+          source_scan_id?: string | null
+          vintage_id?: string | null
+          wine_id: string
+        }
+        Update: {
+          created_at?: string
+          embedding_model?: string
+          embedding_version?: number
+          id?: string
+          image_quality_score?: number | null
+          label_embedding?: string | null
+          ocr_confidence?: number | null
+          ocr_text?: string | null
+          source_image_url?: string | null
+          source_scan_id?: string | null
+          vintage_id?: string | null
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "label_embeddings_source_scan_id_fkey"
+            columns: ["source_scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_embeddings_vintage_id_fkey"
+            columns: ["vintage_id"]
+            isOneToOne: false
+            referencedRelation: "vintages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "label_embeddings_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       photos: {
         Row: {
@@ -195,33 +335,42 @@ export type Database = {
       scans: {
         Row: {
           confidence: number | null
+          contributed_to_embeddings: boolean
           created_at: string | null
           id: string
           image_path: string
+          match_method: string | null
           matched_vintage_id: string | null
           ocr_text: string | null
           scan_image_url: string | null
           user_id: string | null
+          vector_similarity: number | null
         }
         Insert: {
           confidence?: number | null
+          contributed_to_embeddings?: boolean
           created_at?: string | null
           id?: string
           image_path: string
+          match_method?: string | null
           matched_vintage_id?: string | null
           ocr_text?: string | null
           scan_image_url?: string | null
           user_id?: string | null
+          vector_similarity?: number | null
         }
         Update: {
           confidence?: number | null
+          contributed_to_embeddings?: boolean
           created_at?: string | null
           id?: string
           image_path?: string
+          match_method?: string | null
           matched_vintage_id?: string | null
           ocr_text?: string | null
           scan_image_url?: string | null
           user_id?: string | null
+          vector_similarity?: number | null
         }
         Relationships: [
           {
@@ -426,6 +575,50 @@ export type Database = {
           },
         ]
       }
+      wine_embeddings: {
+        Row: {
+          created_at: string
+          data_completeness_score: number
+          embedding_model: string
+          embedding_version: number
+          id: string
+          identity_embedding: string | null
+          identity_text: string
+          updated_at: string
+          wine_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_completeness_score?: number
+          embedding_model?: string
+          embedding_version?: number
+          id?: string
+          identity_embedding?: string | null
+          identity_text: string
+          updated_at?: string
+          wine_id: string
+        }
+        Update: {
+          created_at?: string
+          data_completeness_score?: number
+          embedding_model?: string
+          embedding_version?: number
+          id?: string
+          identity_embedding?: string | null
+          identity_text?: string
+          updated_at?: string
+          wine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_embeddings_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wine_recommendations_cache: {
         Row: {
           based_on_wines: Json
@@ -503,6 +696,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_nv: boolean | null
+          is_vectorized: boolean
           name: string
           producer_id: string | null
           serving_temperature: string | null
@@ -518,6 +712,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_nv?: boolean | null
+          is_vectorized?: boolean
           name: string
           producer_id?: string | null
           serving_temperature?: string | null
@@ -533,6 +728,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_nv?: boolean | null
+          is_vectorized?: boolean
           name?: string
           producer_id?: string | null
           serving_temperature?: string | null
@@ -687,6 +883,24 @@ export type Database = {
       }
     }
     Views: {
+      embedding_stats: {
+        Row: {
+          avg_vector_similarity: number | null
+          completed_jobs: number | null
+          estimated_savings_usd: number | null
+          failed_jobs: number | null
+          openai_vision_matches: number | null
+          pending_jobs: number | null
+          processing_jobs: number | null
+          total_identity_embeddings: number | null
+          total_label_embeddings: number | null
+          total_wines: number | null
+          vector_identity_matches: number | null
+          vector_label_matches: number | null
+          vectorized_wines: number | null
+        }
+        Relationships: []
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -811,87 +1025,209 @@ export type Database = {
       }
     }
     Functions: {
-      search_tastings_text: {
-        Args: {
-          query: string
-          match_count?: number
-          user_id_filter?: string
-        }
-        Returns: {
-          tasting_id: string
-          notes: string | null
-          verdict: number | null
-          location_name: string | null
-          wine_name: string | null
-          producer_name: string | null
-          vintage_year: number | null
-          image_url: string | null
-        }[]
-      }
-      search_tastings_vector: {
-        Args: {
-          query_embedding: string
-          match_count?: number
-          user_id_filter?: string
-        }
-        Returns: {
-          tasting_id: string
-          similarity: number
-          notes: string | null
-          verdict: number | null
-          location_name: string | null
-          wine_name: string | null
-          producer_name: string | null
-          vintage_year: number | null
-          image_url: string | null
-        }[]
-      }
-      get_invite_by_code: {
-        Args: {
-          code: string
-        }
-        Returns: Json
-      }
-      get_sharing_connections_with_profiles: {
-        Args: Record<string, never>
+      claim_embedding_jobs: {
+        Args: { p_job_type: string; p_limit?: number }
         Returns: {
           id: string
-          sharer_id: string
-          viewer_id: string
+          input_image_url: string
+          input_text: string
+          job_type: string
+          retry_count: number
+          scan_id: string
+          vintage_id: string
+          wine_id: string
+        }[]
+      }
+      claim_enrichment_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          country: string
+          existing_varietals: string[]
+          id: string
+          producer_name: string
+          region: string
+          user_id: string
+          vintage_id: string
+          wine_id: string
+          wine_name: string
+          year: number
+        }[]
+      }
+      claim_wines_added_jobs: {
+        Args: { p_limit: number }
+        Returns: {
+          id: string
+          idempotency_key: string
+          image_url: string
+          ocr_text: string
+          processed_data: Json
+          retry_count: number
+          scan_id: string
           status: string
+          user_id: string
+        }[]
+      }
+      claim_wines_added_queue_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          idempotency_key: string
+          image_url: string
+          ocr_text: string
+          retry_count: number
+          scan_id: string
+          user_id: string
+        }[]
+      }
+      generate_invite_code: { Args: never; Returns: string }
+      generate_tasting_search_text: {
+        Args: { tasting_id: string }
+        Returns: string
+      }
+      generate_wine_identity_text: {
+        Args: { p_wine_id: string }
+        Returns: string
+      }
+      get_invite_by_code: { Args: { code: string }; Returns: Json }
+      get_or_create_vintage_for_wine: {
+        Args: { p_wine_id: string; p_year?: number }
+        Returns: string
+      }
+      get_sharing_connections_with_profiles: {
+        Args: never
+        Returns: {
+          accepted_at: string
           created_at: string
-          updated_at: string
-          accepted_at: string | null
+          id: string
+          sharer_id: string
           sharer_profile: Json
+          status: string
+          updated_at: string
+          viewer_id: string
           viewer_profile: Json
         }[]
       }
       get_tastings_with_sharing: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          detailed_notes: string
+          id: string
+          image_url: string
+          is_shared: boolean
+          location_address: string
+          location_city: string
+          location_latitude: number
+          location_longitude: number
+          location_name: string
+          notes: string
+          sharer_first_name: string
+          sharer_id: string
+          sharer_last_name: string
+          tasted_at: string
+          updated_at: string
+          user_id: string
+          verdict: number
+          vintage_id: string
+        }[]
+      }
+      invoke_generate_embeddings: {
+        Args: { p_job_type?: string; p_limit?: number }
+        Returns: number
+      }
+      invoke_wine_processor: { Args: never; Returns: undefined }
+      match_wine_by_identity: {
         Args: {
-          p_limit?: number
-          p_offset?: number
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
         }
         Returns: {
-          id: string
-          user_id: string
-          vintage_id: string
-          verdict: number | null
-          notes: string | null
-          detailed_notes: string | null
-          tasted_at: string | null
-          created_at: string
-          updated_at: string
-          image_url: string | null
-          location_name: string | null
-          location_address: string | null
-          location_city: string | null
-          location_latitude: number | null
-          location_longitude: number | null
-          is_shared: boolean | null
-          sharer_id: string | null
-          sharer_first_name: string | null
-          sharer_last_name: string | null
+          data_completeness: number
+          producer_name: string
+          similarity: number
+          wine_id: string
+          wine_name: string
         }[]
+      }
+      match_wine_by_label: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          producer_name: string
+          similarity: number
+          vintage_id: string
+          vintage_year: number
+          wine_id: string
+          wine_name: string
+        }[]
+      }
+      match_wine_hybrid: {
+        Args: {
+          p_identity_embedding?: string
+          p_identity_weight?: number
+          p_label_embedding?: string
+          p_label_weight?: number
+          p_match_count?: number
+          p_match_threshold?: number
+        }
+        Returns: {
+          combined_score: number
+          identity_similarity: number
+          label_similarity: number
+          match_source: string
+          producer_name: string
+          vintage_id: string
+          wine_id: string
+          wine_name: string
+        }[]
+      }
+      refresh_user_profile_stats: { Args: never; Returns: undefined }
+      refresh_user_wine_stats: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      search_tastings_text: {
+        Args: { match_count?: number; query: string; user_id_filter?: string }
+        Returns: {
+          image_url: string
+          location_name: string
+          notes: string
+          producer_name: string
+          tasting_id: string
+          verdict: number
+          vintage_year: number
+          wine_name: string
+        }[]
+      }
+      search_tastings_vector: {
+        Args: {
+          match_count?: number
+          query_embedding: string
+          user_id_filter?: string
+        }
+        Returns: {
+          image_url: string
+          location_name: string
+          notes: string
+          producer_name: string
+          similarity: number
+          tasting_id: string
+          verdict: number
+          vintage_year: number
+          wine_name: string
+        }[]
+      }
+      update_user_producer_stats: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      update_user_region_stats: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {

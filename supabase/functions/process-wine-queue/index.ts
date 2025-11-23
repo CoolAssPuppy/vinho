@@ -17,6 +17,237 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
+// Initialize Supabase's built-in embedding model for vector matching
+const embeddingModel = new Supabase.ai.Session("gte-small");
+
+// Vector matching configuration
+const VECTOR_MATCH_THRESHOLD = 0.90; // High confidence required for auto-match
+const VECTOR_MATCH_MIN_COMPLETENESS = 0.5; // Require at least 50% data completeness
+
+// ============================================================================
+// VECTOR MATCHING FUNCTIONS
+// ============================================================================
+
+interface VectorMatchResult {
+  matched: boolean;
+  wineId?: string;
+  wineName?: string;
+  producerName?: string;
+  similarity?: number;
+}
+
+/**
+ * Generate text embedding using Supabase's built-in gte-small model
+ */
+async function generateTextEmbedding(text: string): Promise<number[]> {
+  const output = await embeddingModel.run(text, {
+    mean_pool: true,
+    normalize: true,
+  });
+  return Array.from(output.data);
+}
+
+/**
+ * Build a search query from OCR text or extracted wine data
+ * This creates a text similar to our identity text format for matching
+ */
+function buildSearchQuery(ocrText: string | null, extractedData?: ExtractedWineData): string {
+  // If we have extracted data, use it for better matching
+  if (extractedData) {
+    const parts: string[] = [];
+    parts.push(extractedData.producer || "Unknown Producer");
+    parts.push(extractedData.wine_name || "Unknown Wine");
+
+    if (extractedData.region) {
+      let regionPart = extractedData.region;
+      if (extractedData.country) {
+        regionPart += ", " + extractedData.country;
+      }
+      parts.push(regionPart);
+    } else if (extractedData.country) {
+      parts.push(extractedData.country);
+    }
+
+    if (extractedData.varietals && extractedData.varietals.length > 0) {
+      parts.push(extractedData.varietals.join(", "));
+    }
+
+    return parts.join(" | ");
+  }
+
+  // Fall back to cleaned OCR text
+  if (ocrText && ocrText.length > 10) {
+    // Clean up OCR text - remove excessive whitespace and normalize
+    return ocrText
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 500); // Limit length
+  }
+
+  return "";
+}
+
+/**
+ * Attempt to match wine using vector search
+ * Returns match info if a high-confidence match is found
+ */
+async function attemptVectorMatch(
+  ocrText: string | null,
+  extractedData?: ExtractedWineData
+): Promise<VectorMatchResult> {
+  // Build search query
+  const searchQuery = buildSearchQuery(ocrText, extractedData);
+
+  if (!searchQuery || searchQuery.length < 10) {
+    console.log("Insufficient data for vector matching");
+    return { matched: false };
+  }
+
+  try {
+    console.log(`Attempting vector match with query: "${searchQuery.substring(0, 100)}..."`);
+
+    // Generate embedding from search query
+    const embedding = await generateTextEmbedding(searchQuery);
+
+    // Search for matches using our stored function
+    const { data: matches, error } = await supabase.rpc("match_wine_by_identity", {
+      query_embedding: JSON.stringify(embedding),
+      match_threshold: VECTOR_MATCH_THRESHOLD - 0.05, // Slightly lower for initial search
+      match_count: 3,
+    });
+
+    if (error) {
+      console.error("Vector search error:", error);
+      return { matched: false };
+    }
+
+    if (!matches || matches.length === 0) {
+      console.log("No vector matches found");
+      return { matched: false };
+    }
+
+    const bestMatch = matches[0];
+    console.log(
+      `Best match: "${bestMatch.producer_name} - ${bestMatch.wine_name}" ` +
+      `(similarity: ${bestMatch.similarity.toFixed(3)}, completeness: ${bestMatch.data_completeness})`
+    );
+
+    // High confidence match - both similarity and data completeness must meet thresholds
+    if (
+      bestMatch.similarity >= VECTOR_MATCH_THRESHOLD &&
+      bestMatch.data_completeness >= VECTOR_MATCH_MIN_COMPLETENESS
+    ) {
+      console.log(`Vector match found: ${bestMatch.wine_name} (${bestMatch.similarity.toFixed(3)})`);
+      return {
+        matched: true,
+        wineId: bestMatch.wine_id,
+        wineName: bestMatch.wine_name,
+        producerName: bestMatch.producer_name,
+        similarity: bestMatch.similarity,
+      };
+    }
+
+    console.log(
+      `Match below threshold (need similarity >= ${VECTOR_MATCH_THRESHOLD} and completeness >= ${VECTOR_MATCH_MIN_COMPLETENESS})`
+    );
+    return { matched: false };
+  } catch (error) {
+    console.error("Vector match error:", error);
+    return { matched: false };
+  }
+}
+
+/**
+ * Queue a wine for embedding generation
+ */
+async function queueEmbeddingGeneration(
+  wineId: string,
+  scanId: string | null,
+  priority: number = 1
+): Promise<void> {
+  // Get the identity text for this wine
+  const { data: identityText, error: textError } = await supabase.rpc(
+    "generate_wine_identity_text",
+    { p_wine_id: wineId }
+  );
+
+  if (textError || !identityText) {
+    console.error(`Failed to generate identity text for wine ${wineId}:`, textError);
+    return;
+  }
+
+  // Create idempotency key to prevent duplicate jobs
+  const idempotencyKey = `identity_${wineId}`;
+
+  const { error } = await supabase.from("embedding_jobs_queue").upsert(
+    {
+      job_type: "wine_identity",
+      wine_id: wineId,
+      scan_id: scanId,
+      input_text: identityText,
+      priority,
+      idempotency_key: idempotencyKey,
+      status: "pending",
+    },
+    {
+      onConflict: "idempotency_key",
+      ignoreDuplicates: true,
+    }
+  );
+
+  if (error && !error.message.includes("duplicate")) {
+    console.error(`Failed to queue embedding job for wine ${wineId}:`, error);
+  } else {
+    console.log(`Queued embedding generation for wine ${wineId}`);
+  }
+}
+
+/**
+ * Create a tasting record for a vector-matched wine
+ */
+async function createTastingFromVectorMatch(
+  job: WineQueueItem,
+  wineId: string,
+  vintageId: string,
+  similarity: number
+): Promise<void> {
+  // Get scan date
+  let scanDate: string | null = null;
+  if (job.scan_id) {
+    const { data: scan } = await supabase
+      .from("scans")
+      .select("created_at")
+      .eq("id", job.scan_id)
+      .single();
+
+    if (scan?.created_at) {
+      scanDate = scan.created_at.split("T")[0];
+    }
+  }
+
+  const tastedAtDate = scanDate || new Date().toISOString().split("T")[0];
+
+  // Create tasting record
+  const { error: tastingError } = await supabase.from("tastings").insert({
+    user_id: job.user_id,
+    vintage_id: vintageId,
+    verdict: null,
+    notes: `Wine identified via vector matching (${(similarity * 100).toFixed(1)}% confidence). Scanned on ${new Date(tastedAtDate).toLocaleDateString()}.`,
+    tasted_at: tastedAtDate,
+    image_url: job.image_url,
+  });
+
+  if (tastingError) {
+    console.error(`Failed to create tasting for vector match:`, tastingError);
+  } else {
+    console.log(`Created tasting for vector-matched wine ${wineId}`);
+  }
+}
+
+// ============================================================================
+// END VECTOR MATCHING FUNCTIONS
+// ============================================================================
+
 // Define types
 interface WineQueueItem {
   id: string;
@@ -610,7 +841,7 @@ async function handleFailure(job: WineQueueItem, error: Error): Promise<void> {
 // Process a single job
 async function processJob(
   job: WineQueueItem,
-): Promise<{ ok: boolean; reused?: boolean }> {
+): Promise<{ ok: boolean; reused?: boolean; matchMethod?: string }> {
   try {
     // Compute idempotency key if not present
     if (!job.idempotency_key) {
@@ -639,6 +870,73 @@ async function processJob(
       }
     }
 
+    // =========================================================================
+    // STEP 1: Attempt vector match with OCR text first (before OpenAI)
+    // This can save significant costs if we already have this wine
+    // =========================================================================
+    const vectorMatch = await attemptVectorMatch(job.ocr_text);
+
+    if (vectorMatch.matched && vectorMatch.wineId) {
+      console.log(`Vector match successful - skipping OpenAI extraction`);
+
+      // Get or create vintage for matched wine
+      // We don't have year info from vector match, so we'll use null (NV)
+      // The user can correct this if needed
+      const { data: vintageData, error: vintageError } = await supabase.rpc(
+        "get_or_create_vintage_for_wine",
+        { p_wine_id: vectorMatch.wineId, p_year: null }
+      );
+
+      if (vintageError || !vintageData) {
+        console.error("Failed to get/create vintage for vector match:", vintageError);
+        // Fall through to OpenAI extraction
+      } else {
+        const vintageId = vintageData;
+
+        // Update scan with match info
+        if (job.scan_id) {
+          await supabase
+            .from("scans")
+            .update({
+              matched_vintage_id: vintageId,
+              confidence: vectorMatch.similarity,
+              match_method: "vector_identity",
+              vector_similarity: vectorMatch.similarity,
+            })
+            .eq("id", job.scan_id);
+        }
+
+        // Create tasting record
+        await createTastingFromVectorMatch(
+          job,
+          vectorMatch.wineId,
+          vintageId,
+          vectorMatch.similarity!
+        );
+
+        // Mark job as completed with match info
+        await markCompleted(job.id, {
+          producer: vectorMatch.producerName || "Unknown",
+          wine_name: vectorMatch.wineName || "Unknown",
+          year: null,
+          country: null,
+          region: null,
+          varietals: [],
+          abv_percent: null,
+          confidence: vectorMatch.similarity || 0.9,
+          match_method: "vector_identity",
+        } as ExtractedWineData);
+
+        console.log(`Successfully processed job ${job.id} via vector match`);
+        return { ok: true, matchMethod: "vector_identity" };
+      }
+    }
+
+    // =========================================================================
+    // STEP 2: No vector match - proceed with OpenAI extraction
+    // =========================================================================
+    console.log("No vector match - proceeding with OpenAI extraction");
+
     // Extract wine data with OpenAI
     let result = await extractWithOpenAI(job.image_url, job.ocr_text);
 
@@ -647,6 +945,73 @@ async function processJob(
       console.log(`Low confidence (${result.confidence}), escalating to GPT-4`);
       result = await extractWithOpenAI(job.image_url, job.ocr_text, true);
     }
+
+    // =========================================================================
+    // STEP 3: Try vector match again with extracted data (more accurate)
+    // =========================================================================
+    const postExtractionMatch = await attemptVectorMatch(job.ocr_text, result);
+
+    if (postExtractionMatch.matched && postExtractionMatch.wineId) {
+      console.log(`Post-extraction vector match found - using existing wine`);
+
+      // Get or create vintage for matched wine with the extracted year
+      const { data: vintageData } = await supabase.rpc(
+        "get_or_create_vintage_for_wine",
+        { p_wine_id: postExtractionMatch.wineId, p_year: result.year }
+      );
+
+      if (vintageData) {
+        const vintageId = vintageData;
+
+        // Update vintage with ABV if we have it
+        if (result.abv_percent) {
+          await supabase
+            .from("vintages")
+            .update({ abv: result.abv_percent })
+            .eq("id", vintageId);
+        }
+
+        // Update varietals if we have them
+        if (result.varietals && result.varietals.length > 0) {
+          await upsertVarietals(vintageId, result.varietals);
+        }
+
+        // Update scan with match info
+        if (job.scan_id) {
+          await supabase
+            .from("scans")
+            .update({
+              matched_vintage_id: vintageId,
+              confidence: postExtractionMatch.similarity,
+              match_method: "vector_identity",
+              vector_similarity: postExtractionMatch.similarity,
+            })
+            .eq("id", job.scan_id);
+        }
+
+        // Create tasting record
+        await createTastingFromVectorMatch(
+          job,
+          postExtractionMatch.wineId,
+          vintageId,
+          postExtractionMatch.similarity!
+        );
+
+        // Mark job completed
+        await markCompleted(job.id, {
+          ...result,
+          match_method: "vector_identity",
+        } as ExtractedWineData);
+
+        console.log(`Successfully processed job ${job.id} via post-extraction vector match`);
+        return { ok: true, matchMethod: "vector_identity" };
+      }
+    }
+
+    // =========================================================================
+    // STEP 4: No vector match - create new wine records
+    // =========================================================================
+    console.log("No vector match after extraction - creating new wine records");
 
     // Enrich missing data with knowledge base
     const hasIncompleteData =
@@ -708,12 +1073,14 @@ async function processJob(
         scanDate = scan.created_at.split("T")[0];
       }
 
-      // Update scan with matched vintage
+      // Update scan with matched vintage and mark as OpenAI processed
       await supabase
         .from("scans")
         .update({
           matched_vintage_id: vintageId,
           confidence: result.confidence,
+          match_method: "openai_vision",
+          contributed_to_embeddings: true,
         })
         .eq("id", job.scan_id);
     }
@@ -733,7 +1100,7 @@ async function processJob(
 
     if (tastingError) {
       console.error(
-        `⚠️ WARNING: Failed to create tasting for user ${job.user_id}, vintage ${vintageId}`,
+        `Warning: Failed to create tasting for user ${job.user_id}, vintage ${vintageId}`,
       );
       console.error("Tasting error details:", JSON.stringify(tastingError, null, 2));
       console.error("Tasting data attempted:", {
@@ -742,10 +1109,10 @@ async function processJob(
         tasted_at: tastedAtDate,
         image_url: job.image_url,
       });
-      console.error("⚠️ Wine data has been saved. User can add tasting notes manually.");
+      console.error("Wine data has been saved. User can add tasting notes manually.");
       // Don't throw - the wine data is saved, user can add notes manually
     } else {
-      console.log(`✅ Created tasting for vintage ${vintageId}`);
+      console.log(`Created tasting for vintage ${vintageId}`);
     }
 
     // Queue wine for enrichment
@@ -772,11 +1139,17 @@ async function processJob(
       console.log(`Queued enrichment for vintage ${vintageId}`);
     }
 
+    // =========================================================================
+    // STEP 5: Queue new wine for embedding generation
+    // This builds our vector database for future matches
+    // =========================================================================
+    await queueEmbeddingGeneration(wineId, job.scan_id, 1);
+
     // Mark job as completed
     await markCompleted(job.id, result);
 
-    console.log(`Successfully processed job ${job.id}`);
-    return { ok: true };
+    console.log(`Successfully processed job ${job.id} via OpenAI`);
+    return { ok: true, matchMethod: "openai_vision" };
   } catch (error) {
     console.error(`Error processing job ${job.id}:`, error);
     await handleFailure(job, error);
@@ -830,19 +1203,29 @@ Deno.serve(async (req: Request) => {
       jobs.map((job: WineQueueItem) => processJob(job)),
     );
 
-    // Count successes and failures
+    // Count successes, failures, and match methods
     const processed = results.filter(
       (r) => r.status === "fulfilled" && r.value.ok,
     ).length;
     const failed = results.length - processed;
 
+    // Track match methods for analytics
+    const vectorMatches = results.filter(
+      (r) => r.status === "fulfilled" && r.value.ok && r.value.matchMethod === "vector_identity"
+    ).length;
+    const openaiMatches = results.filter(
+      (r) => r.status === "fulfilled" && r.value.ok && r.value.matchMethod === "openai_vision"
+    ).length;
+
     const response = {
       processed,
       failed,
       total: jobs.length,
+      vector_matches: vectorMatches,
+      openai_matches: openaiMatches,
     };
 
-    console.log(`Processed ${processed} jobs, ${failed} failed`);
+    console.log(`Processed ${processed} jobs (${vectorMatches} vector, ${openaiMatches} OpenAI), ${failed} failed`);
 
     return new Response(JSON.stringify(response), {
       status: 200,
