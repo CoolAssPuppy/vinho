@@ -9,11 +9,8 @@ actor VisualSimilarityService {
     private let supabase = SupabaseManager.shared.client
 
     private init() {
-        #if DEBUG
-        baseURL = "http://localhost:3000"
-        #else
+        // Always use production - localhost only works on simulator with local server
         baseURL = "https://app.vinho.dev"
-        #endif
     }
 
     /// Result containing both wines and recommendation type
