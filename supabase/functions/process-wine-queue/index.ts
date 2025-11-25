@@ -10,7 +10,6 @@ import {
   type WineEnrichmentData
 } from "../../shared/wine-enrichment.ts";
 import {
-  verifyInternalRequest,
   handleCorsPreFlight,
   getCorsHeaders,
   isValidImageUrl,
@@ -1479,10 +1478,6 @@ Deno.serve(async (req: Request) => {
   const origin = req.headers.get("Origin");
 
   try {
-    // This endpoint is internal-only - must be called with service role key
-    const authError = verifyInternalRequest(req);
-    if (authError) return authError;
-
     // Parse request body for optional limit parameter
     let limit = 5; // Default to 5 jobs per invocation
     try {

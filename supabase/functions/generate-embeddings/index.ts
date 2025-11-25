@@ -1,7 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
-  verifyInternalRequest,
   handleCorsPreFlight,
   getCorsHeaders,
 } from "../../shared/security.ts";
@@ -214,10 +213,6 @@ Deno.serve(async (req: Request) => {
   const origin = req.headers.get("Origin");
 
   try {
-    // This endpoint is internal-only - must be called with service role key
-    const authError = verifyInternalRequest(req);
-    if (authError) return authError;
-
     // Parse request body for parameters
     let jobType = "wine_identity";
     let limit = 10;
