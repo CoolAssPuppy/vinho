@@ -29,7 +29,25 @@ async function generateTextEmbedding(text: string): Promise<number[]> {
     mean_pool: true,
     normalize: true,
   });
-  return Array.from(output.data);
+
+  // Handle different possible output formats from Supabase AI
+  if (output === null || output === undefined) {
+    throw new Error("Embedding model returned null or undefined");
+  }
+
+  // If output is directly iterable (Float32Array or Array)
+  if (ArrayBuffer.isView(output) || Array.isArray(output)) {
+    return Array.from(output as ArrayLike<number>);
+  }
+
+  // If output has a data property
+  if (typeof output === "object" && "data" in output && output.data) {
+    return Array.from(output.data as ArrayLike<number>);
+  }
+
+  // Log the actual output for debugging
+  console.error("Unexpected embedding output format:", typeof output, JSON.stringify(output).substring(0, 200));
+  throw new Error(`Unexpected embedding output format: ${typeof output}`);
 }
 
 /**

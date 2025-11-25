@@ -13,6 +13,7 @@ import {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
+const JINA_API_KEY = Deno.env.get("JINA_API_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
@@ -24,6 +25,13 @@ const embeddingModel = new Supabase.ai.Session("gte-small");
 const VECTOR_MATCH_THRESHOLD = 0.90; // High confidence required for auto-match
 const VECTOR_MATCH_MIN_COMPLETENESS = 0.5; // Require at least 50% data completeness
 
+// Visual embedding configuration (Jina CLIP + Vector Buckets)
+const JINA_API_URL = "https://api.jina.ai/v1/embeddings";
+const JINA_MODEL = "jina-clip-v1";
+const VECTOR_BUCKET = "wine-labels";
+const VECTOR_INDEX = "visual-embeddings";
+const VISUAL_MATCH_THRESHOLD = 0.92; // High threshold for visual matches
+
 // ============================================================================
 // VECTOR MATCHING FUNCTIONS
 // ============================================================================
@@ -34,6 +42,16 @@ interface VectorMatchResult {
   wineName?: string;
   producerName?: string;
   similarity?: number;
+  matchMethod?: string;
+}
+
+interface VisualMatchResult {
+  matched: boolean;
+  wineId?: string;
+  wineName?: string;
+  producerName?: string;
+  similarity?: number;
+  vintageId?: string;
 }
 
 /**
@@ -154,6 +172,215 @@ async function attemptVectorMatch(
   } catch (error) {
     console.error("Vector match error:", error);
     return { matched: false };
+  }
+}
+
+// ============================================================================
+// VISUAL EMBEDDING FUNCTIONS (Jina CLIP + Vector Buckets)
+// ============================================================================
+
+/**
+ * Generate image embedding using Jina CLIP v1
+ * Returns a 768-dimensional vector
+ */
+async function generateVisualEmbedding(imageUrl: string): Promise<number[] | null> {
+  if (!JINA_API_KEY) {
+    console.log("JINA_API_KEY not configured - skipping visual matching");
+    return null;
+  }
+
+  try {
+    const response = await fetch(JINA_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${JINA_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: JINA_MODEL,
+        input: [{ image: imageUrl }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Jina API error:", response.status, errorText);
+      return null;
+    }
+
+    const result = await response.json();
+
+    if (!result.data || result.data.length === 0) {
+      console.error("No embedding returned from Jina API");
+      return null;
+    }
+
+    console.log(`Generated visual embedding with ${result.data[0].embedding.length} dimensions`);
+    return result.data[0].embedding;
+  } catch (error) {
+    console.error("Failed to generate visual embedding:", error);
+    return null;
+  }
+}
+
+/**
+ * Search for similar images in Vector Bucket
+ */
+async function searchVisualMatches(
+  embedding: number[],
+  topK: number = 5
+): Promise<Array<{ key: string; similarity: number; metadata: Record<string, unknown> }>> {
+  try {
+    const index = supabase.storage.vectors
+      .from(VECTOR_BUCKET)
+      .index(VECTOR_INDEX);
+
+    const { data, error } = await index.queryVectors({
+      queryVector: { float32: embedding },
+      topK,
+      returnDistance: true,
+      returnMetadata: true,
+    });
+
+    if (error) {
+      console.error("Vector search error:", error);
+      return [];
+    }
+
+    if (!data?.vectors) {
+      return [];
+    }
+
+    // Convert distance to similarity (cosine: similarity = 1 - distance)
+    return data.vectors.map((v: { key: string; distance?: number; metadata?: Record<string, unknown> }) => ({
+      key: v.key,
+      similarity: 1 - (v.distance || 0),
+      metadata: v.metadata || {},
+    }));
+  } catch (error) {
+    console.error("Visual search error:", error);
+    return [];
+  }
+}
+
+/**
+ * Attempt to match wine using visual embeddings (image similarity)
+ * This uses Jina CLIP to generate image embeddings and searches Vector Buckets
+ */
+async function attemptVisualMatch(imageUrl: string): Promise<VisualMatchResult> {
+  // Generate embedding from the scanned image
+  const embedding = await generateVisualEmbedding(imageUrl);
+
+  if (!embedding) {
+    return { matched: false };
+  }
+
+  try {
+    console.log("Searching for visual matches in Vector Bucket...");
+
+    // Search for similar images
+    const matches = await searchVisualMatches(embedding, 3);
+
+    if (matches.length === 0) {
+      console.log("No visual matches found in Vector Bucket");
+      return { matched: false };
+    }
+
+    const bestMatch = matches[0];
+    console.log(
+      `Best visual match: key="${bestMatch.key}" ` +
+      `(similarity: ${bestMatch.similarity.toFixed(3)})`
+    );
+
+    // Only accept high-confidence visual matches
+    if (bestMatch.similarity >= VISUAL_MATCH_THRESHOLD) {
+      const metadata = bestMatch.metadata as Record<string, string>;
+      const wineId = metadata.wine_id;
+
+      if (!wineId) {
+        console.log("Visual match found but no wine_id in metadata");
+        return { matched: false };
+      }
+
+      // Get wine details
+      const { data: wine } = await supabase
+        .from("wines")
+        .select("id, name, producer:producers(name)")
+        .eq("id", wineId)
+        .single();
+
+      if (!wine) {
+        console.log(`Wine ${wineId} not found in database`);
+        return { matched: false };
+      }
+
+      console.log(
+        `Visual match found: ${(wine.producer as { name: string })?.name} - ${wine.name} ` +
+        `(${(bestMatch.similarity * 100).toFixed(1)}% similarity)`
+      );
+
+      return {
+        matched: true,
+        wineId: wine.id,
+        wineName: wine.name,
+        producerName: (wine.producer as { name: string })?.name,
+        similarity: bestMatch.similarity,
+        vintageId: metadata.vintage_id,
+      };
+    }
+
+    console.log(`Visual match below threshold (need >= ${VISUAL_MATCH_THRESHOLD})`);
+    return { matched: false };
+  } catch (error) {
+    console.error("Visual match error:", error);
+    return { matched: false };
+  }
+}
+
+/**
+ * Store visual embedding for a new wine in Vector Bucket
+ * This calls the generate-visual-embedding edge function
+ */
+async function storeVisualEmbedding(
+  imageUrl: string,
+  wineId: string,
+  vintageId: string | null,
+  scanId: string | null,
+  producerName: string,
+  wineName: string
+): Promise<void> {
+  try {
+    // Call the generate-visual-embedding edge function
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/generate-visual-embedding`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          wine_id: wineId,
+          vintage_id: vintageId,
+          scan_id: scanId,
+          producer_name: producerName,
+          wine_name: wineName,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to store visual embedding:", response.status, errorText);
+      return;
+    }
+
+    const result = await response.json();
+    console.log(`Stored visual embedding for wine ${wineId}: key=${result.key}`);
+  } catch (error) {
+    console.error("Error storing visual embedding:", error);
+    // Don't fail the main job if visual embedding fails
   }
 }
 
@@ -871,13 +1098,71 @@ async function processJob(
     }
 
     // =========================================================================
-    // STEP 1: Attempt vector match with OCR text first (before OpenAI)
+    // STEP 1: Attempt visual match first (image similarity via CLIP)
+    // This is the most accurate match method for wine labels
+    // =========================================================================
+    const visualMatch = await attemptVisualMatch(job.image_url);
+
+    if (visualMatch.matched && visualMatch.wineId) {
+      console.log(`Visual match successful - skipping OpenAI extraction`);
+
+      // Get or create vintage for matched wine
+      let vintageId = visualMatch.vintageId;
+      if (!vintageId) {
+        const { data: vintageData } = await supabase.rpc(
+          "get_or_create_vintage_for_wine",
+          { p_wine_id: visualMatch.wineId, p_year: null }
+        );
+        vintageId = vintageData;
+      }
+
+      if (vintageId) {
+        // Update scan with match info
+        if (job.scan_id) {
+          await supabase
+            .from("scans")
+            .update({
+              matched_vintage_id: vintageId,
+              confidence: visualMatch.similarity,
+              match_method: "visual_embedding",
+              vector_similarity: visualMatch.similarity,
+            })
+            .eq("id", job.scan_id);
+        }
+
+        // Create tasting record
+        await createTastingFromVectorMatch(
+          job,
+          visualMatch.wineId,
+          vintageId,
+          visualMatch.similarity!
+        );
+
+        // Mark job as completed with match info
+        await markCompleted(job.id, {
+          producer: visualMatch.producerName || "Unknown",
+          wine_name: visualMatch.wineName || "Unknown",
+          year: null,
+          country: null,
+          region: null,
+          varietals: [],
+          abv_percent: null,
+          confidence: visualMatch.similarity || 0.95,
+        } as ExtractedWineData);
+
+        console.log(`Successfully processed job ${job.id} via visual match`);
+        return { ok: true, matchMethod: "visual_embedding" };
+      }
+    }
+
+    // =========================================================================
+    // STEP 2: Attempt text vector match with OCR text (before OpenAI)
     // This can save significant costs if we already have this wine
     // =========================================================================
     const vectorMatch = await attemptVectorMatch(job.ocr_text);
 
     if (vectorMatch.matched && vectorMatch.wineId) {
-      console.log(`Vector match successful - skipping OpenAI extraction`);
+      console.log(`Text vector match successful - skipping OpenAI extraction`);
 
       // Get or create vintage for matched wine
       // We don't have year info from vector match, so we'll use null (NV)
@@ -933,7 +1218,7 @@ async function processJob(
     }
 
     // =========================================================================
-    // STEP 2: No vector match - proceed with OpenAI extraction
+    // STEP 3: No vector match - proceed with OpenAI extraction
     // =========================================================================
     console.log("No vector match - proceeding with OpenAI extraction");
 
@@ -947,7 +1232,7 @@ async function processJob(
     }
 
     // =========================================================================
-    // STEP 3: Try vector match again with extracted data (more accurate)
+    // STEP 4: Try vector match again with extracted data (more accurate)
     // =========================================================================
     const postExtractionMatch = await attemptVectorMatch(job.ocr_text, result);
 
@@ -1009,7 +1294,7 @@ async function processJob(
     }
 
     // =========================================================================
-    // STEP 4: No vector match - create new wine records
+    // STEP 5: No vector match - create new wine records
     // =========================================================================
     console.log("No vector match after extraction - creating new wine records");
 
@@ -1140,10 +1425,20 @@ async function processJob(
     }
 
     // =========================================================================
-    // STEP 5: Queue new wine for embedding generation
+    // STEP 6: Queue new wine for embedding generation and store visual embedding
     // This builds our vector database for future matches
     // =========================================================================
     await queueEmbeddingGeneration(wineId, job.scan_id, 1);
+
+    // Store visual embedding in Vector Bucket for future image matching
+    await storeVisualEmbedding(
+      job.image_url,
+      wineId,
+      vintageId,
+      job.scan_id,
+      result.producer,
+      result.wine_name
+    );
 
     // Mark job as completed
     await markCompleted(job.id, result);
@@ -1210,6 +1505,9 @@ Deno.serve(async (req: Request) => {
     const failed = results.length - processed;
 
     // Track match methods for analytics
+    const visualMatches = results.filter(
+      (r) => r.status === "fulfilled" && r.value.ok && r.value.matchMethod === "visual_embedding"
+    ).length;
     const vectorMatches = results.filter(
       (r) => r.status === "fulfilled" && r.value.ok && r.value.matchMethod === "vector_identity"
     ).length;
@@ -1221,11 +1519,12 @@ Deno.serve(async (req: Request) => {
       processed,
       failed,
       total: jobs.length,
+      visual_matches: visualMatches,
       vector_matches: vectorMatches,
       openai_matches: openaiMatches,
     };
 
-    console.log(`Processed ${processed} jobs (${vectorMatches} vector, ${openaiMatches} OpenAI), ${failed} failed`);
+    console.log(`Processed ${processed} jobs (${visualMatches} visual, ${vectorMatches} vector, ${openaiMatches} OpenAI), ${failed} failed`);
 
     return new Response(JSON.stringify(response), {
       status: 200,
