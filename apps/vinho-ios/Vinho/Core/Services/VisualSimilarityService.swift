@@ -9,8 +9,7 @@ actor VisualSimilarityService {
     private let supabase = SupabaseManager.shared.client
 
     private init() {
-        // Always use production - localhost only works on simulator with local server
-        baseURL = "https://app.vinho.dev"
+        baseURL = "https://www.vinho.dev"
     }
 
     /// Result containing both wines and recommendation type

@@ -4,9 +4,8 @@
 
 // CORS configuration - restrict to allowed origins
 const ALLOWED_ORIGINS = [
-  "https://app.vinho.dev",
-  "https://vinho.dev",
   "https://www.vinho.dev",
+  "https://vinho.dev",
   "http://localhost:3000",
   "http://localhost:3001",
 ];

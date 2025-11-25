@@ -35,7 +35,7 @@ serve(async (req) => {
 
     // Generate invite links using the code (works for both existing users and new signups)
     const deepLink = `vinho://invite/${invite_code}`
-    const webLink = `https://app.vinho.dev/invite/${invite_code}`
+    const webLink = `https://www.vinho.dev/invite/${invite_code}`
 
     // Beautiful HTML email template
     const htmlContent = `

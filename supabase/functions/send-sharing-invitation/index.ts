@@ -167,7 +167,7 @@ serve(async (req) => {
 
     // Send invitation email
     const deepLink = `vinho://invite/${inviteCode}`
-    const webLink = `https://app.vinho.dev/invite/${inviteCode}`
+    const webLink = `https://www.vinho.dev/invite/${inviteCode}`
 
     const htmlContent = `
 <!DOCTYPE html>

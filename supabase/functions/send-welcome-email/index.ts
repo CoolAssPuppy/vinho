@@ -63,11 +63,11 @@ serve(async (req) => {
     <h3 style="color:#92400e;font-size:18px;font-weight:600;margin:0 0 12px 0">🔄 Coming from Vivino?</h3>
     <p style="color:#78350f;font-size:14px;margin:0 0 16px 0;line-height:1.5">If you already have a Vivino account, it's easy to migrate your entire wine collection to Vinho! Simply log in to the web app and use the import feature to bring over all your tastings and notes.</p>
     <div style="text-align:center;margin:16px 0">
-      <a href="https://app.vinho.dev/profile" style="display:inline-block;background:#C4161C;color:#fff;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:600;font-size:17px;box-shadow:0 4px 12px rgba(196,22,28,0.3)">Import from Vivino</a>
+      <a href="https://www.vinho.dev/profile" style="display:inline-block;background:#C4161C;color:#fff;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:600;font-size:17px;box-shadow:0 4px 12px rgba(196,22,28,0.3)">Import from Vivino</a>
     </div>
   </div>
   <div style="text-align:center;margin:32px 0">
-    <a href="https://app.vinho.dev/scan" style="display:inline-block;background:#C4161C;color:#fff;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:600;font-size:17px;box-shadow:0 4px 12px rgba(196,22,28,0.3)">Scan Your First Wine</a>
+    <a href="https://www.vinho.dev/scan" style="display:inline-block;background:#C4161C;color:#fff;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:600;font-size:17px;box-shadow:0 4px 12px rgba(196,22,28,0.3)">Scan Your First Wine</a>
   </div>
   <div style="text-align:center;color:#9ca3af;font-size:13px;margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb">
     <p>Questions? We're here to help!<br><a href="https://vinho.dev" style="color:#C4161C;text-decoration:none">Learn more</a> · <a href="https://vinho.dev/privacy" style="color:#C4161C;text-decoration:none">Privacy</a></p>
