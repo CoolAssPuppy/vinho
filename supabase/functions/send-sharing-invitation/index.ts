@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import {
+  handleCorsPreFlight,
+  getCorsHeaders,
+  escapeHtml,
+} from "../../shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@emails.vinho.dev'
@@ -18,14 +23,10 @@ interface InvitationResponse {
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    })
-  }
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
+
+  const origin = req.headers.get("Origin");
 
   try {
     // Get authenticated user
@@ -59,9 +60,9 @@ serve(async (req) => {
 
     // Validate email
     if (!viewer_email || !viewer_email.includes('@')) {
-      return Response.json(
-        { success: false, error: 'Valid email address is required' } as InvitationResponse,
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Valid email address is required' } as InvitationResponse),
+        { status: 400, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       )
     }
 
@@ -83,10 +84,13 @@ serve(async (req) => {
     if (existingConnection) {
       // Handle existing connection based on status
       if (existingConnection.status === 'accepted') {
-        return Response.json({
-          success: false,
-          error: 'Already sharing with this person'
-        } as InvitationResponse)
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Already sharing with this person'
+          } as InvitationResponse),
+          { headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
+        )
       }
 
       // Generate new invite code
@@ -152,9 +156,14 @@ serve(async (req) => {
       .eq('id', user.id)
       .single()
 
-    const sharerName = profile
+    const sharerNameRaw = profile
       ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'A Vinho user'
       : 'A Vinho user'
+
+    // XSS protection - escape user-provided content for HTML
+    const sharerName = escapeHtml(sharerNameRaw)
+    const safeViewerEmail = escapeHtml(viewer_email)
+    const safeUserEmail = escapeHtml(user.email || '')
 
     // Send invitation email
     const deepLink = `vinho://invite/${inviteCode}`
@@ -352,7 +361,7 @@ serve(async (req) => {
 
     <div class="footer">
       <p>
-        This invitation was sent to ${viewer_email} by ${user.email}
+        This invitation was sent to ${safeViewerEmail} by ${safeUserEmail}
         <br>
         <a href="https://vinho.dev">Learn more about Vinho</a> ·
         <a href="https://vinho.dev/privacy">Privacy Policy</a>
@@ -364,18 +373,18 @@ serve(async (req) => {
     `
 
     const textContent = `
-${sharerName} has invited you to join Vinho and view their wine tastings!
+${sharerNameRaw} has invited you to join Vinho and view their wine tastings!
 
 Sign up or log in to:
-• View their detailed tasting notes and ratings
-• Explore wine regions and producers together
-• Get inspired by their wine recommendations
+- View their detailed tasting notes and ratings
+- Explore wine regions and producers together
+- Get inspired by their wine recommendations
 
 Get Started: ${webLink}
 
 Or open in the Vinho app: ${deepLink}
 
-This invitation was sent to ${viewer_email} by ${user.email}
+This invitation was sent to ${viewer_email} by ${user.email || ''}
 Learn more: https://vinho.dev
     `
 
@@ -401,21 +410,24 @@ Learn more: https://vinho.dev
       // Don't fail the invitation if email fails
     }
 
-    return Response.json({
-      success: true,
-      connection_id: connectionId,
-      invite_code: inviteCode,
-      action: action
-    } as InvitationResponse)
+    return new Response(
+      JSON.stringify({
+        success: true,
+        connection_id: connectionId,
+        invite_code: inviteCode,
+        action: action
+      } as InvitationResponse),
+      { headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
+    )
 
   } catch (error) {
     console.error('Error sending invitation:', error)
-    return Response.json(
-      {
+    return new Response(
+      JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
-      } as InvitationResponse,
-      { status: 500 }
+      } as InvitationResponse),
+      { status: 500, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
     )
   }
 })

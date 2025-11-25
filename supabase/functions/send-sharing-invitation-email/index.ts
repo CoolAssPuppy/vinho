@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import {
+  verifyInternalRequest,
+  handleCorsPreFlight,
+  getCorsHeaders,
+  escapeHtml,
+} from "../../shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@emails.vinho.dev'
@@ -13,17 +18,20 @@ interface EmailRequest {
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    })
-  }
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
+
+  const origin = req.headers.get("Origin");
 
   try {
+    // This endpoint is internal-only - must be called with service role key
+    const authError = verifyInternalRequest(req);
+    if (authError) return authError;
+
     const { viewer_email, sharer_name, sharer_email, invite_code }: EmailRequest = await req.json()
+
+    // Escape user-provided content to prevent XSS in emails
+    const safeSharerName = escapeHtml(sharer_name);
 
     // Generate invite links using the code (works for both existing users and new signups)
     const deepLink = `vinho://invite/${invite_code}`
@@ -169,7 +177,7 @@ serve(async (req) => {
       <div class="wine-icon">🍷</div>
       <h1>Join Vinho and Connect!</h1>
       <p class="message">
-        <span class="highlight">${sharer_name}</span> wants to share their wine journey with you on Vinho.
+        <span class="highlight">${safeSharerName}</span> wants to share their wine journey with you on Vinho.
         <br><br>
         Sign up (or log in) to view their tasting notes, ratings, and discover new wines together.
       </p>
@@ -189,7 +197,7 @@ serve(async (req) => {
       <li class="feature-item">
         <span class="feature-icon">📝</span>
         <span class="feature-text">
-          <strong>View Tastings:</strong> See detailed tasting notes and ratings from ${sharer_name}'s wine collection
+          <strong>View Tastings:</strong> See detailed tasting notes and ratings from ${safeSharerName}'s wine collection
         </span>
       </li>
       <li class="feature-item">
@@ -220,7 +228,7 @@ serve(async (req) => {
     `
 
     const textContent = `
-${sharer_name} has invited you to join Vinho and view their wine tastings!
+${safeSharerName} has invited you to join Vinho and view their wine tastings!
 
 Sign up or log in to:
 • View their detailed tasting notes and ratings
@@ -245,7 +253,7 @@ Learn more: https://vinho.dev
       body: JSON.stringify({
         from: `Vinho <${RESEND_FROM_EMAIL}>`,
         to: [viewer_email],
-        subject: `${sharer_name} invited you to share wine tastings on Vinho`,
+        subject: `${safeSharerName} invited you to share wine tastings on Vinho`,
         html: htmlContent,
         text: textContent,
       }),
@@ -262,8 +270,8 @@ Learn more: https://vinho.dev
       JSON.stringify({ success: true, email_id: data.id }),
       {
         headers: {
+          ...getCorsHeaders(origin),
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
         },
         status: 200
       },
@@ -278,8 +286,8 @@ Learn more: https://vinho.dev
       }),
       {
         headers: {
+          ...getCorsHeaders(origin),
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
         },
         status: 500
       },

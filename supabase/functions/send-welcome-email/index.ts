@@ -1,4 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import {
+  verifyInternalRequest,
+  handleCorsPreFlight,
+  getCorsHeaders,
+  escapeHtml,
+} from "../../shared/security.ts";
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@emails.vinho.dev'
@@ -9,26 +15,28 @@ interface WelcomeEmailRequest {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    })
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
+
+  const origin = req.headers.get("Origin");
 
   try {
+    // This endpoint is internal-only - must be called with service role key
+    const authError = verifyInternalRequest(req);
+    if (authError) return authError;
+
     const { email, name }: WelcomeEmailRequest = await req.json()
 
     if (!email) {
-      return Response.json(
-        { success: false, error: 'Email is required' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Email is required' }),
+        { status: 400, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
       )
     }
 
-    const displayName = name || 'Wine Lover'
+    // Escape user-provided content to prevent XSS in emails
+    const displayName = escapeHtml(name) || 'Wine Lover'
 
     const htmlContent = `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fafafa">
@@ -84,12 +92,21 @@ serve(async (req) => {
     if (!emailRes.ok) {
       const errorData = await emailRes.json()
       console.error('Resend API error:', errorData)
-      return Response.json({ success: false, error: 'Failed to send email' }, { status: 500 })
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to send email' }),
+        { status: 500, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
+      )
     }
 
-    return Response.json({ success: true })
+    return new Response(
+      JSON.stringify({ success: true }),
+      { status: 200, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
+    )
   } catch (error) {
     console.error('Error sending welcome email:', error)
-    return Response.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
+    return new Response(
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' } }
+    )
   }
 })

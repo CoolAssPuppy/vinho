@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import {
+  handleCorsPreFlight,
+  getCorsHeaders,
+} from "../../shared/security.ts";
 
 interface AcceptInviteRequest {
   code: string
@@ -14,14 +18,10 @@ interface AcceptInviteResponse {
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    })
-  }
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
+
+  const origin = req.headers.get("Origin");
 
   try {
     // Get authenticated user
@@ -42,9 +42,9 @@ serve(async (req) => {
 
     const { data: { user } } = await supabaseClient.auth.getUser()
     if (!user) {
-      return Response.json(
-        { success: false, error: 'Not authenticated' } as AcceptInviteResponse,
-        { status: 401 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Not authenticated' } as AcceptInviteResponse),
+        { status: 401, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       )
     }
 
@@ -58,9 +58,9 @@ serve(async (req) => {
 
     // Validate code
     if (!code) {
-      return Response.json(
-        { success: false, error: 'Invite code is required' } as AcceptInviteResponse,
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invite code is required' } as AcceptInviteResponse),
+        { status: 400, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       )
     }
 
@@ -77,17 +77,17 @@ serve(async (req) => {
     const invite = invites?.[0]
 
     if (!invite) {
-      return Response.json(
-        { success: false, error: 'Invalid or expired invite code' } as AcceptInviteResponse,
-        { status: 404 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid or expired invite code' } as AcceptInviteResponse),
+        { status: 404, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       )
     }
 
     // Prevent self-invitation
     if (invite.sharer_id === user.id) {
-      return Response.json(
-        { success: false, error: 'Cannot accept your own invitation' } as AcceptInviteResponse,
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ success: false, error: 'Cannot accept your own invitation' } as AcceptInviteResponse),
+        { status: 400, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       )
     }
 
@@ -153,20 +153,23 @@ serve(async (req) => {
     // TODO: Send welcome/connection notification email here
     // This is a great place to add notifications in the future
 
-    return Response.json({
-      success: true,
-      connection_id: invite.id,
-      sharer_id: invite.sharer_id
-    } as AcceptInviteResponse)
+    return new Response(
+      JSON.stringify({
+        success: true,
+        connection_id: invite.id,
+        sharer_id: invite.sharer_id
+      } as AcceptInviteResponse),
+      { headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
+    )
 
   } catch (error) {
     console.error('Error accepting invite:', error)
-    return Response.json(
-      {
+    return new Response(
+      JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
-      } as AcceptInviteResponse,
-      { status: 500 }
+      } as AcceptInviteResponse),
+      { status: 500, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
     )
   }
 })

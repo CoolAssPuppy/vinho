@@ -1,5 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.84.0";
+import {
+  verifyInternalRequest,
+  handleCorsPreFlight,
+  getCorsHeaders,
+  isValidImageUrl,
+} from "../../shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -145,20 +151,39 @@ async function searchSimilarImages(
  * Main handler - generates and stores visual embeddings
  */
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
+
+  const origin = req.headers.get("Origin");
+
   try {
+    // This endpoint is internal-only - must be called with service role key
+    const authError = verifyInternalRequest(req);
+    if (authError) return authError;
+
     const body: VisualEmbeddingRequest = await req.json();
 
     if (!body.image_url) {
       return new Response(
         JSON.stringify({ error: "image_url is required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate image URL to prevent SSRF
+    if (!isValidImageUrl(body.image_url)) {
+      console.error(`Rejected invalid image URL: ${body.image_url}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid image URL - must be HTTPS from trusted domain" }),
+        { status: 400, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       );
     }
 
     if (!body.wine_id) {
       return new Response(
         JSON.stringify({ error: "wine_id is required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       );
     }
 
@@ -169,7 +194,7 @@ Deno.serve(async (req: Request) => {
     if (!JINA_API_KEY) {
       return new Response(
         JSON.stringify({ error: "JINA_API_KEY not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } }
       );
     }
 
@@ -228,7 +253,7 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -237,7 +262,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
       }
     );
   }

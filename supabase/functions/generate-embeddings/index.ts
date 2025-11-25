@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {
+  verifyInternalRequest,
+  handleCorsPreFlight,
+  getCorsHeaders,
+} from "../../shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -202,7 +207,17 @@ async function markJobFailed(
  * Main handler - processes embedding jobs from the queue
  */
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
+
+  const origin = req.headers.get("Origin");
+
   try {
+    // This endpoint is internal-only - must be called with service role key
+    const authError = verifyInternalRequest(req);
+    if (authError) return authError;
+
     // Parse request body for parameters
     let jobType = "wine_identity";
     let limit = 10;
@@ -234,7 +249,7 @@ Deno.serve(async (req: Request) => {
       console.error("Error claiming jobs:", claimError);
       return new Response(JSON.stringify({ error: claimError.message }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
       });
     }
 
@@ -244,7 +259,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ processed: 0, failed: 0, total: 0, message: "No jobs to process" }),
         {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
         }
       );
     }
@@ -286,6 +301,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
+        ...getCorsHeaders(origin),
         "Content-Type": "application/json",
         Connection: "keep-alive",
       },
@@ -294,7 +310,7 @@ Deno.serve(async (req: Request) => {
     console.error("Error in generate-embeddings:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
     });
   }
 });

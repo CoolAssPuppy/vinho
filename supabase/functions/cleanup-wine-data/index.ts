@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {
+  verifyAdminRequest,
+  handleCorsPreFlight,
+  getCorsHeaders,
+} from "../../shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -19,17 +24,16 @@ interface CleanupStats {
 
 // Main cleanup handler
 Deno.serve(async (req: Request) => {
-  try {
-    // Check for authorization header with admin key
-    const authHeader = req.headers.get("authorization");
-    const adminKey = Deno.env.get("CLEANUP_ADMIN_KEY");
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
 
-    if (adminKey && authHeader !== `Bearer ${adminKey}`) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+  const origin = req.headers.get("Origin");
+
+  try {
+    // Verify admin key - this will fail if CLEANUP_ADMIN_KEY is not set
+    const authError = verifyAdminRequest(req, "CLEANUP_ADMIN_KEY");
+    if (authError) return authError;
 
     // Parse request for optional user_id filter
     let userId: string | null = null;
@@ -247,6 +251,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
+        ...getCorsHeaders(origin),
         "Content-Type": "application/json",
         Connection: "keep-alive",
       },
@@ -255,7 +260,7 @@ Deno.serve(async (req: Request) => {
     console.error("Error in cleanup-wine-data:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
     });
   }
 });

@@ -8,6 +8,11 @@ import {
   type WineData,
   type WineEnrichmentData
 } from "../../shared/wine-enrichment.ts";
+import {
+  verifyInternalRequest,
+  handleCorsPreFlight,
+  getCorsHeaders,
+} from "../../shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -131,17 +136,16 @@ async function processEnrichmentJob(job: EnrichmentJob): Promise<{ ok: boolean }
 
 // Main handler
 Deno.serve(async (req: Request) => {
-  try {
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers":
-        "authorization, x-client-info, apikey, content-type",
-    };
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
 
-    // Handle CORS preflight requests
-    if (req.method === "OPTIONS") {
-      return new Response("ok", { headers: corsHeaders });
-    }
+  const origin = req.headers.get("Origin");
+
+  try {
+    // This endpoint is internal-only - must be called with service role key
+    const authError = verifyInternalRequest(req);
+    if (authError) return authError;
 
     // Parse request body for optional parameters
     let limit = 5; // Default to 5 jobs per invocation
@@ -177,7 +181,7 @@ Deno.serve(async (req: Request) => {
             message: "No pending enrichment jobs",
             processed: 0,
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } },
         );
       }
 
@@ -203,19 +207,19 @@ Deno.serve(async (req: Request) => {
           failed,
           message: `Processed ${processed} enrichment jobs, ${failed} failed`,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } },
       );
     }
 
     return new Response(
       JSON.stringify({ error: "Invalid action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 400, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error in process-enrichment-queue:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      { status: 500, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } },
     );
   }
 });

@@ -9,6 +9,12 @@ import {
   type WineData,
   type WineEnrichmentData
 } from "../../shared/wine-enrichment.ts";
+import {
+  verifyInternalRequest,
+  handleCorsPreFlight,
+  getCorsHeaders,
+  isValidImageUrl,
+} from "../../shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -186,6 +192,12 @@ async function attemptVectorMatch(
 async function generateVisualEmbedding(imageUrl: string): Promise<number[] | null> {
   if (!JINA_API_KEY) {
     console.log("JINA_API_KEY not configured - skipping visual matching");
+    return null;
+  }
+
+  // SSRF protection - validate image URL before sending to external API
+  if (!isValidImageUrl(imageUrl)) {
+    console.error(`Rejected invalid image URL for visual embedding: ${imageUrl}`);
     return null;
   }
 
@@ -636,6 +648,12 @@ async function extractWithOpenAI(
   ocrText: string | null,
   useGpt4: boolean = false,
 ): Promise<ExtractedWineData> {
+  // SSRF protection - validate image URL before sending to external API
+  if (!isValidImageUrl(imageUrl)) {
+    console.error(`Rejected invalid image URL for OpenAI extraction: ${imageUrl}`);
+    throw new Error("Invalid image URL - must be HTTPS from trusted domain");
+  }
+
   const model = useGpt4 ? "gpt-4o" : "gpt-4o-mini";
 
   const prompts = getPrompt('WINE_LABEL_EXTRACTION', ocrText);
@@ -1454,7 +1472,17 @@ async function processJob(
 
 // Main handler
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  const corsResponse = handleCorsPreFlight(req);
+  if (corsResponse) return corsResponse;
+
+  const origin = req.headers.get("Origin");
+
   try {
+    // This endpoint is internal-only - must be called with service role key
+    const authError = verifyInternalRequest(req);
+    if (authError) return authError;
+
     // Parse request body for optional limit parameter
     let limit = 5; // Default to 5 jobs per invocation
     try {
@@ -1476,7 +1504,7 @@ Deno.serve(async (req: Request) => {
       console.error("Error claiming jobs:", claimError);
       return new Response(JSON.stringify({ error: claimError.message }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
       });
     }
 
@@ -1486,7 +1514,7 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ processed: 0, failed: 0, total: 0 }),
         {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
         },
       );
     }
@@ -1529,6 +1557,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
+        ...getCorsHeaders(origin),
         "Content-Type": "application/json",
         Connection: "keep-alive",
       },
@@ -1537,7 +1566,7 @@ Deno.serve(async (req: Request) => {
     console.error("Error in process-wine-queue:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
     });
   }
 });
