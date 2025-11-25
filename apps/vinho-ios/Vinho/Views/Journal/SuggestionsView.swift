@@ -300,6 +300,9 @@ struct SuggestionsView: View {
                 .background(LinearGradient.vinoGradient)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+
+            YouMightLikeSection(hasTastings: !tastings.isEmpty)
+                .padding(.top, 8)
         }
     }
 
@@ -345,6 +348,9 @@ struct SuggestionsView: View {
             ForEach(recommendations) { recommendation in
                 WineRecommendationCard(recommendation: recommendation)
             }
+
+            YouMightLikeSection(hasTastings: !tastings.isEmpty)
+                .padding(.top, 8)
         }
     }
 

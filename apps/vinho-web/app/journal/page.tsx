@@ -25,6 +25,7 @@ import { SearchBar } from "@/components/journal/SearchBar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import type { Tasting } from "@/lib/types/shared";
+import { YouMightLike } from "@/components/suggestions/YouMightLike";
 
 type WineRecommendation = {
   restaurant_name: string;
@@ -338,6 +339,8 @@ function SuggestionsTab({ tastings, supabase }: SuggestionsTabProps) {
           </CardContent>
         </Card>
       ) : null}
+
+      <YouMightLike hasTastings={tastings.length > 0} />
     </div>
   );
 }
