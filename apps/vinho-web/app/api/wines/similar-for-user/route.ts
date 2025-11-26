@@ -52,10 +52,6 @@ interface VectorQueryResult {
 }
 
 interface VectorIndex {
-  getVector: (key: string) => Promise<{
-    data: { data?: { float32?: number[] } } | null;
-    error: Error | null;
-  }>;
   queryVectors: (params: {
     queryVector: { float32: number[] };
     topK: number;
@@ -243,33 +239,41 @@ export async function GET(request: NextRequest) {
     const candidateWines = new Map<string, SimilarWine>();
 
     for (const sourceWine of sourceWines) {
-      const vectorKey = `wine_${sourceWine.id}`;
-      console.log("[similar-for-user] Getting vector for key:", vectorKey);
+      console.log("[similar-for-user] Getting embedding for wine:", sourceWine.id);
 
-      let vectorData, vectorError;
+      // Fetch embedding from database (getVectors doesn't return float32 data)
+      const { data: embedRow, error: embedError } = await vectorSupabase
+        .from("label_embeddings")
+        .select("label_embedding")
+        .eq("wine_id", sourceWine.id)
+        .eq("embedding_model", "jina-clip-v1")
+        .single();
+
+      if (embedError || !embedRow?.label_embedding) {
+        console.log("[similar-for-user] No embedding for wine", sourceWine.id, ":", embedError?.message);
+        continue;
+      }
+
+      // Vector type comes back as a string like "[0.1,0.2,...]" - parse it
+      let embedding: number[];
       try {
-        const result = await index.getVector(vectorKey);
-        vectorData = result.data;
-        vectorError = result.error;
-      } catch (err) {
-        console.error("[similar-for-user] Vector fetch threw:", err);
+        if (typeof embedRow.label_embedding === "string") {
+          embedding = JSON.parse(embedRow.label_embedding);
+        } else if (Array.isArray(embedRow.label_embedding)) {
+          embedding = embedRow.label_embedding;
+        } else {
+          console.log("[similar-for-user] Unknown embedding format for", sourceWine.id);
+          continue;
+        }
+      } catch {
+        console.log("[similar-for-user] Failed to parse embedding for", sourceWine.id);
         continue;
       }
 
-      if (vectorError) {
-        console.log("[similar-for-user] Vector error for", vectorKey, ":", vectorError);
-        continue;
-      }
-
-      if (!vectorData?.data?.float32) {
-        console.log("[similar-for-user] No float32 data for", vectorKey);
-        continue;
-      }
-
-      console.log("[similar-for-user] Got vector for", vectorKey, "- dimensions:", vectorData.data.float32.length);
+      console.log("[similar-for-user] Got embedding for", sourceWine.id, "- dimensions:", embedding.length);
 
       const { data: searchResults, error: searchError } = await index.queryVectors({
-        queryVector: { float32: vectorData.data.float32 },
+        queryVector: { float32: embedding },
         topK: limit + tastedWineIds.size + 5,
         returnDistance: true,
         returnMetadata: true,
