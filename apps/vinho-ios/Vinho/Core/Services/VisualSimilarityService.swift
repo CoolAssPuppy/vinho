@@ -69,7 +69,13 @@ actor VisualSimilarityService {
             throw SimilarityError.notAuthenticated
         default:
             if let responseStr = String(data: data, encoding: .utf8) {
-                print("[SimilarityService] Error response: \(responseStr)")
+                print("[SimilarityService] Error response (\(httpResponse.statusCode)): \(responseStr)")
+                // Try to parse error details
+                if let jsonData = responseStr.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+                   let details = json["details"] as? String {
+                    print("[SimilarityService] Error details: \(details)")
+                }
             }
             throw SimilarityError.serverError(httpResponse.statusCode)
         }

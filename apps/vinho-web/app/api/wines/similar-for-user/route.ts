@@ -204,21 +204,58 @@ export async function GET(request: NextRequest) {
 
     // Query vector bucket for similar wines using service role client
     // Vector operations require elevated permissions
-    const serviceSupabase = getServiceRoleSupabase();
-    const storage = serviceSupabase.storage as unknown as StorageWithVectors;
-    const index = storage.vectors.from(VECTOR_BUCKET).index(VECTOR_INDEX);
+    let serviceSupabase;
+    try {
+      serviceSupabase = getServiceRoleSupabase();
+      console.log("[similar-for-user] Service role client created");
+    } catch (err) {
+      console.error("[similar-for-user] Failed to create service role client:", err);
+      return NextResponse.json(
+        { error: "Service configuration error" },
+        { status: 500 }
+      );
+    }
 
+    const storage = serviceSupabase.storage as unknown as StorageWithVectors;
+
+    if (!storage?.vectors) {
+      console.error("[similar-for-user] Vectors API not available on storage client");
+      return NextResponse.json(
+        { error: "Vector storage not available" },
+        { status: 500 }
+      );
+    }
+
+    const index = storage.vectors.from(VECTOR_BUCKET).index(VECTOR_INDEX);
     console.log("[similar-for-user] Querying vectors for", sourceWines.length, "source wines");
 
     const candidateWines = new Map<string, SimilarWine>();
 
     for (const sourceWine of sourceWines) {
       const vectorKey = `wine_${sourceWine.id}`;
-      const { data: vectorData, error: vectorError } = await index.getVector(vectorKey);
+      console.log("[similar-for-user] Getting vector for key:", vectorKey);
 
-      if (vectorError || !vectorData?.data?.float32) {
+      let vectorData, vectorError;
+      try {
+        const result = await index.getVector(vectorKey);
+        vectorData = result.data;
+        vectorError = result.error;
+      } catch (err) {
+        console.error("[similar-for-user] Vector fetch threw:", err);
         continue;
       }
+
+      if (vectorError) {
+        console.log("[similar-for-user] Vector error for", vectorKey, ":", vectorError);
+        continue;
+      }
+
+      if (!vectorData?.data?.float32) {
+        console.log("[similar-for-user] No float32 data for", vectorKey);
+        continue;
+      }
+
+      console.log("[similar-for-user] Got vector for", vectorKey, "- dimensions:", vectorData.data.float32.length);
 
       const { data: searchResults, error: searchError } = await index.queryVectors({
         queryVector: { float32: vectorData.data.float32 },
@@ -309,9 +346,15 @@ export async function GET(request: NextRequest) {
       recommendation_type: recommendationType,
     });
   } catch (error) {
-    console.error("Similar wines for user error:", error);
+    console.error("[similar-for-user] Caught error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("[similar-for-user] Error details:", { message: errorMessage, stack: errorStack });
     return NextResponse.json(
-      { error: "Failed to find similar wines" },
+      {
+        error: "Failed to find similar wines",
+        details: errorMessage,
+      },
       { status: 500 }
     );
   }
