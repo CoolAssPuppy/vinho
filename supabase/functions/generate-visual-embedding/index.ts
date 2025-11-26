@@ -8,10 +8,10 @@ import {
 } from "../../shared/security.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
 const JINA_API_KEY = Deno.env.get("JINA_API_KEY")!;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, VINHO_SERVICE_ROLE_KEY);
 
 // Jina CLIP API configuration
 const JINA_API_URL = "https://api.jina.ai/v1/embeddings";

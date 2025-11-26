@@ -41,7 +41,7 @@ async function getAuthenticatedSupabase(request: NextRequest) {
 function getServiceRoleSupabase() {
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.VINHO_SERVICE_ROLE_KEY!
   );
 }
 
@@ -202,21 +202,22 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Query vector bucket for similar wines using service role client
-    // Vector operations require elevated permissions
-    let serviceSupabase;
-    try {
-      serviceSupabase = getServiceRoleSupabase();
-      console.log("[similar-for-user] Service role client created");
-    } catch (err) {
-      console.error("[similar-for-user] Failed to create service role client:", err);
+    // Query vector bucket for similar wines
+    // Service role is required for vector bucket access
+    const serviceRoleKey = process.env.VINHO_SERVICE_ROLE_KEY;
+
+    if (!serviceRoleKey) {
+      console.error("[similar-for-user] VINHO_SERVICE_ROLE_KEY not configured");
       return NextResponse.json(
-        { error: "Service configuration error" },
-        { status: 500 }
+        { error: "Recommendations service not configured" },
+        { status: 503 }
       );
     }
 
-    const storage = serviceSupabase.storage as unknown as StorageWithVectors;
+    console.log("[similar-for-user] Using service role client for vectors");
+    const vectorSupabase = getServiceRoleSupabase();
+
+    const storage = vectorSupabase.storage as unknown as StorageWithVectors;
 
     if (!storage?.vectors) {
       console.error("[similar-for-user] Vectors API not available on storage client");

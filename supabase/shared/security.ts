@@ -48,7 +48,7 @@ export function isServiceRoleRequest(req: Request): boolean {
   if (!authHeader) return false;
 
   const token = authHeader.replace("Bearer ", "");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceRoleKey = Deno.env.get("VINHO_SERVICE_ROLE_KEY");
 
   // Direct comparison with service role key
   if (token === serviceRoleKey) return true;
