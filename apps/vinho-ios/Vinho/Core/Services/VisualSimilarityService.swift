@@ -92,6 +92,7 @@ struct SimilarWine: Codable, Identifiable {
     let imageUrl: String?
     let region: String?
     let country: String?
+    let lastTasted: String?
 
     var id: String { wineId }
 
@@ -105,6 +106,39 @@ struct SimilarWine: Codable, Identifiable {
         return "\(region), \(country)"
     }
 
+    var lastTastedFormatted: String? {
+        guard let lastTasted = lastTasted else { return nil }
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        // Try with fractional seconds first
+        if let date = isoFormatter.date(from: lastTasted) {
+            return formatDate(date)
+        }
+
+        // Try without fractional seconds
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        if let date = isoFormatter.date(from: lastTasted) {
+            return formatDate(date)
+        }
+
+        // Try simple date format (YYYY-MM-DD)
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        if let date = dateFormatter.date(from: lastTasted) {
+            return formatDate(date)
+        }
+
+        return nil
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
     enum CodingKeys: String, CodingKey {
         case wineId = "wine_id"
         case wineName = "wine_name"
@@ -113,6 +147,7 @@ struct SimilarWine: Codable, Identifiable {
         case imageUrl = "image_url"
         case region
         case country
+        case lastTasted = "last_tasted"
     }
 }
 
@@ -123,9 +158,9 @@ enum RecommendationType: String, Codable {
 
     var title: String {
         switch self {
-        case .personalized: return "You Might Like These"
-        case .yourFavorites: return "Similar to Your Favorites"
-        case .none: return "Recommendations"
+        case .personalized: return "Suggestions"
+        case .yourFavorites: return "Suggestions"
+        case .none: return "Suggestions"
         }
     }
 

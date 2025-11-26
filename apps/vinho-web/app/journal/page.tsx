@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Wine,
   Camera,
   BookOpen,
   MapPin,
   Loader2,
-  Utensils,
-  Star,
-  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,319 +24,13 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import type { Tasting } from "@/lib/types/shared";
 import { YouMightLike } from "@/components/suggestions/YouMightLike";
 
-type WineRecommendation = {
-  restaurant_name: string;
-  city: string;
-  wine_recommendation: string;
-  price_point?: string;
-};
-
 type SuggestionsTabProps = {
   tastings: Tasting[];
-  supabase: ReturnType<typeof createBrowserClient<Database>>;
 };
 
-function SuggestionsTab({ tastings, supabase }: SuggestionsTabProps) {
-  const [userLocation, setUserLocation] = useState<string | null>(null);
-  const [recommendations, setRecommendations] = useState<WineRecommendation[]>(
-    [],
-  );
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] =
-    useState(false);
-  const [_locationError, setLocationError] = useState<string | null>(null);
-  const [manualLocation, setManualLocation] = useState<string>("");
-  const [showManualInput, setShowManualInput] = useState(false);
-
-  const getUserLocation = useCallback(async () => {
-    setIsLoadingLocation(true);
-    setLocationError(null);
-
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by this browser");
-      setIsLoadingLocation(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-
-          // Use a free reverse geocoding service that doesn't require API key
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            const city =
-              data.address?.city ||
-              data.address?.town ||
-              data.address?.village ||
-              data.address?.municipality ||
-              data.address?.county ||
-              "your location";
-            setUserLocation(city);
-          } else {
-            // Fallback to a simple location string
-            setUserLocation("your area");
-          }
-        } catch {
-          // If geocoding fails, just use a generic location
-          setUserLocation("your area");
-        }
-        setIsLoadingLocation(false);
-      },
-      (_error) => {
-        // When geolocation fails, show manual input instead of error
-        setShowManualInput(true);
-        setIsLoadingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      },
-    );
-  }, []);
-
-  useEffect(() => {
-    getUserLocation();
-  }, [getUserLocation]);
-
-  const getWineRecommendations = async () => {
-    if (!userLocation || tastings.length === 0) return;
-
-    setIsLoadingRecommendations(true);
-
-    try {
-      // Get the 10 most recent 4 and 5 star wines
-      const highRatedWines = tastings
-        .filter((t) => t.verdict && t.verdict >= 4)
-        .slice(0, 10)
-        .map((t) => ({
-          producer: t.vintage.wine.producer.name,
-          wine: t.vintage.wine.name,
-          year: t.vintage.year,
-          rating: t.verdict,
-        }));
-
-      if (highRatedWines.length === 0) {
-        setRecommendations([]);
-        setIsLoadingRecommendations(false);
-        return;
-      }
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("User not authenticated");
-      }
-
-      const response = await supabase.functions.invoke("wine-recommendations", {
-        body: {
-          wines: highRatedWines,
-          city: userLocation,
-        },
-      });
-
-      if (response.error) {
-        throw new Error(
-          response.error.message || "Failed to get recommendations",
-        );
-      }
-
-      if (response.data) {
-        setRecommendations(response.data.recommendations || []);
-      }
-    } catch (_error) {
-      console.error("Error getting wine recommendations:", _error);
-    }
-
-    setIsLoadingRecommendations(false);
-  };
-
-  const highRatedCount = tastings.filter(
-    (t) => t.verdict && t.verdict >= 4,
-  ).length;
-
-  if (isLoadingLocation) {
-    return (
-      <Card>
-        <CardContent className="p-12">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
-            <p className="text-muted-foreground">Getting your location...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (showManualInput && !userLocation) {
-    return (
-      <Card>
-        <CardContent className="p-12">
-          <div className="text-center space-y-4">
-            <MapPin className="h-16 w-16 mx-auto text-blue-400" />
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Enter Your Location</h3>
-              <p className="text-muted-foreground">
-                Enter your current location to find restaurants near you:
-              </p>
-              <div className="flex gap-2 max-w-md mx-auto">
-                <input
-                  type="text"
-                  value={manualLocation}
-                  onChange={(e) => setManualLocation(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && manualLocation.trim()) {
-                      setUserLocation(manualLocation.trim());
-                      setShowManualInput(false);
-                    }
-                  }}
-                  placeholder="e.g. San Francisco, New York, London"
-                  className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  autoFocus
-                />
-                <Button
-                  onClick={() => {
-                    if (manualLocation.trim()) {
-                      setUserLocation(manualLocation.trim());
-                      setShowManualInput(false);
-                    }
-                  }}
-                  disabled={!manualLocation.trim()}
-                >
-                  Set Location
-                </Button>
-              </div>
-              <button
-                onClick={() => {
-                  setShowManualInput(false);
-                  getUserLocation();
-                }}
-                className="text-sm text-muted-foreground hover:text-primary underline"
-              >
-                Try automatic detection again
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (highRatedCount < 3) {
-    return (
-      <Card>
-        <CardContent className="p-12">
-          <div className="text-center space-y-4">
-            <Star className="h-16 w-16 mx-auto text-yellow-400" />
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">More Tastings Needed</h3>
-              <p className="text-muted-foreground">
-                Rate at least 3 wines with 4 or 5 stars to get personalized
-                restaurant recommendations in {userLocation}.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Current 4-5 star wines: {highRatedCount}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+function SuggestionsTab({ tastings }: SuggestionsTabProps) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">
-            Wine Suggestions for {userLocation}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Based on your {highRatedCount} highly-rated wines
-          </p>
-        </div>
-        <Button
-          onClick={getWineRecommendations}
-          disabled={isLoadingRecommendations}
-          className="bg-primary hover:bg-primary/90"
-        >
-          {isLoadingRecommendations ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Finding Wines...
-            </>
-          ) : (
-            <>
-              <Utensils className="mr-2 h-4 w-4" />
-              Get Recommendations
-            </>
-          )}
-        </Button>
-      </div>
-
-      {recommendations.length > 0 ? (
-        <div className="grid gap-4">
-          {recommendations.map((rec, index) => (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Utensils className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold">{rec.restaurant_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {rec.city}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <p className="font-medium text-sm">
-                      {rec.wine_recommendation}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    {rec.price_point && (
-                      <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                        <DollarSign className="h-4 w-4" />
-                        <span>{rec.price_point}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : !isLoadingRecommendations ? (
-        <Card className="border-dashed">
-          <CardContent className="p-12">
-            <div className="text-center space-y-4">
-              <Utensils className="h-16 w-16 mx-auto text-primary/30" />
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">
-                  Ready for Recommendations
-                </h3>
-                <p className="text-muted-foreground">
-                  Click &quot;Get Recommendations&quot; to discover wines similar to your
-                  favorites at restaurants in {userLocation}.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
       <YouMightLike hasTastings={tastings.length > 0} />
     </div>
   );
@@ -745,7 +436,7 @@ export default function JournalPage() {
           </TabsContent>
 
           <TabsContent value="suggestions" className="space-y-6">
-            <SuggestionsTab tastings={tastings} supabase={supabase} />
+            <SuggestionsTab tastings={tastings} />
           </TabsContent>
         </Tabs>
 

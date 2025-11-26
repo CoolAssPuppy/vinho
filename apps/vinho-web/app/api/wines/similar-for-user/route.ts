@@ -84,6 +84,7 @@ interface SimilarWine {
   region?: string;
   country?: string;
   source_wine_id: string;
+  last_tasted?: string;
 }
 
 interface SourceWine {
@@ -129,6 +130,7 @@ export async function GET(request: NextRequest) {
       .select(`
         verdict,
         image_url,
+        tasted_at,
         vintage:vintage_id (
           wine:wine_id (id, name, producer:producer_id (name))
         )
@@ -154,8 +156,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Extract wine IDs and separate by rating
+    // Extract wine IDs and track last tasted dates
     const tastedWineIds = new Set<string>();
+    const wineLastTasted = new Map<string, string>();
     const highRatedWines: SourceWine[] = [];
     const allWines: SourceWine[] = [];
 
@@ -164,6 +167,13 @@ export async function GET(request: NextRequest) {
       if (!vintage?.wine?.id) continue;
 
       const wineId = vintage.wine.id;
+
+      // Track the most recent tasting date for each wine
+      const tastedAt = (tasting as unknown as { tasted_at?: string }).tasted_at;
+      if (tastedAt && (!wineLastTasted.has(wineId) || tastedAt > wineLastTasted.get(wineId)!)) {
+        wineLastTasted.set(wineId, tastedAt);
+      }
+
       if (tastedWineIds.has(wineId)) continue;
 
       tastedWineIds.add(wineId);
@@ -269,11 +279,15 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
+      // Build a set of source wine IDs to exclude (don't recommend the exact source wines)
+      const sourceWineIds = new Set(sourceWines.map(sw => sw.id));
+
       for (const vector of searchResults.vectors) {
         const metadata = vector.metadata as Record<string, string> | undefined;
         const wineId = metadata?.wine_id;
 
-        if (!wineId || tastedWineIds.has(wineId)) {
+        // Only exclude the exact source wines, not all tasted wines
+        if (!wineId || sourceWineIds.has(wineId)) {
           continue;
         }
 
@@ -291,6 +305,7 @@ export async function GET(request: NextRequest) {
             similarity,
             image_url: metadata?.image_url,
             source_wine_id: sourceWine.id,
+            last_tasted: wineLastTasted.get(wineId),
           });
         }
       }
@@ -337,6 +352,7 @@ export async function GET(request: NextRequest) {
         region: producer?.region?.name,
         country: producer?.region?.country,
         source_wine_id: wine.source_wine_id,
+        last_tasted: wine.last_tasted,
       };
     });
 

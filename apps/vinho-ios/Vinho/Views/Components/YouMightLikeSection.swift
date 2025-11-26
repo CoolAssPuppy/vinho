@@ -135,7 +135,7 @@ struct YouMightLikeSection: View {
                 GridItem(.flexible(), spacing: 12)
             ], spacing: 12) {
                 ForEach(wines) { wine in
-                    SimilarWineCard(wine: wine)
+                    SimilarWineCardWithNav(wine: wine)
                 }
             }
         }
@@ -159,6 +159,40 @@ struct YouMightLikeSection: View {
 
         isLoading = false
         print("[YouMightLike] Fetch complete - isLoading: \(isLoading), hasLoaded: \(hasLoaded), error: \(errorMessage ?? "none")")
+    }
+}
+
+// MARK: - Wine Card with Navigation
+
+private struct SimilarWineCardWithNav: View {
+    let wine: SimilarWine
+
+    var body: some View {
+        if let uuid = UUID(uuidString: wine.wineId) {
+            NavigationLink(destination: WineDetailView(wine: WineWithDetails(
+                id: uuid,
+                name: wine.wineName,
+                producer: wine.producerName,
+                year: nil,
+                region: wine.region,
+                varietal: nil,
+                price: nil,
+                averageRating: nil,
+                imageUrl: wine.imageUrl,
+                type: .red,
+                description: nil,
+                servingTemperature: nil,
+                foodPairings: nil,
+                style: nil,
+                color: nil,
+                vintageId: nil
+            ))) {
+                SimilarWineCard(wine: wine)
+            }
+            .buttonStyle(PlainButtonStyle())
+        } else {
+            SimilarWineCard(wine: wine)
+        }
     }
 }
 
@@ -248,6 +282,13 @@ private struct SimilarWineCard: View {
                 Text(location)
                     .font(.system(size: 10))
                     .foregroundColor(light ? .white.opacity(0.6) : .vinoTextTertiary)
+                    .lineLimit(1)
+            }
+
+            if let lastTasted = wine.lastTastedFormatted {
+                Text("Last tasted: \(lastTasted)")
+                    .font(.system(size: 10))
+                    .foregroundColor(light ? .white.opacity(0.7) : .vinoAccent)
                     .lineLimit(1)
             }
 

@@ -5,6 +5,7 @@ import { Loader2, Sparkles, Wine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 
 interface SimilarWine {
   wine_id: string;
@@ -14,6 +15,7 @@ interface SimilarWine {
   image_url?: string;
   region?: string;
   country?: string;
+  last_tasted?: string;
 }
 
 type RecommendationType = "personalized" | "your_favorites" | "none";
@@ -64,9 +66,7 @@ export function YouMightLike({ hasTastings }: YouMightLikeProps) {
     return null;
   }
 
-  const sectionTitle = recommendationType === "personalized"
-    ? "You Might Like These"
-    : "Similar to Your Favorites";
+  const sectionTitle = "Suggestions";
 
   const sectionSubtitle = recommendationType === "personalized"
     ? "Based on your top-rated wines"
@@ -149,32 +149,34 @@ function WineCard({ wine }: { wine: SimilarWine }) {
   const matchPercent = Math.round(wine.similarity * 100);
 
   return (
-    <Card className="group hover:border-primary/50 transition-all overflow-hidden">
-      <CardContent className="p-0">
-        {wine.image_url ? (
-          <div className="relative aspect-[3/4] bg-muted">
-            <Image
-              src={wine.image_url}
-              alt={wine.wine_name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 50vw, 33vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <WineInfo wine={wine} matchPercent={matchPercent} light />
+    <Link href={`/wines/${wine.wine_id}`}>
+      <Card className="group hover:border-primary/50 transition-all overflow-hidden cursor-pointer">
+        <CardContent className="p-0">
+          {wine.image_url ? (
+            <div className="relative aspect-[3/4] bg-muted">
+              <Image
+                src={wine.image_url}
+                alt={wine.wine_name}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 33vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <WineInfo wine={wine} matchPercent={matchPercent} light />
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="p-4 space-y-3">
-            <div className="aspect-square max-w-[60px] mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-              <Wine className="h-6 w-6 text-primary" />
+          ) : (
+            <div className="p-4 space-y-3">
+              <div className="aspect-square max-w-[60px] mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                <Wine className="h-6 w-6 text-primary" />
+              </div>
+              <WineInfo wine={wine} matchPercent={matchPercent} />
             </div>
-            <WineInfo wine={wine} matchPercent={matchPercent} />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -184,9 +186,23 @@ interface WineInfoProps {
   light?: boolean;
 }
 
+function formatLastTasted(isoDate: string): string {
+  try {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return isoDate;
+  }
+}
+
 function WineInfo({ wine, matchPercent, light }: WineInfoProps) {
   const textColor = light ? "text-white" : "text-foreground";
   const mutedColor = light ? "text-white/70" : "text-muted-foreground";
+  const accentColor = light ? "text-white/80" : "text-primary";
 
   return (
     <div className="space-y-1">
@@ -198,6 +214,11 @@ function WineInfo({ wine, matchPercent, light }: WineInfoProps) {
         <p className={`text-xs ${mutedColor}`}>
           {wine.region}
           {wine.country && `, ${wine.country}`}
+        </p>
+      )}
+      {wine.last_tasted && (
+        <p className={`text-xs ${accentColor}`}>
+          Last tasted: {formatLastTasted(wine.last_tasted)}
         </p>
       )}
       <div className="flex items-center gap-1 pt-1">
