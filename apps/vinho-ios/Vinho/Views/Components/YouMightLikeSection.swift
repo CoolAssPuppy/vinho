@@ -22,10 +22,17 @@ struct YouMightLikeSection: View {
                 emptyView
             } else if !wines.isEmpty {
                 contentView
+            } else {
+                // Initial state before loading starts
+                loadingView
             }
         }
         .task {
-            guard hasTastings && !hasLoaded else { return }
+            print("[YouMightLike] Task started - hasTastings: \(hasTastings), hasLoaded: \(hasLoaded)")
+            guard hasTastings && !hasLoaded else {
+                print("[YouMightLike] Task guard failed - skipping fetch")
+                return
+            }
             await fetchSimilarWines()
         }
     }
@@ -135,19 +142,23 @@ struct YouMightLikeSection: View {
     }
 
     private func fetchSimilarWines() async {
+        print("[YouMightLike] Starting fetch...")
         isLoading = true
         errorMessage = nil
 
         do {
             let result = try await VisualSimilarityService.shared.fetchSimilarWines()
+            print("[YouMightLike] Fetch succeeded - got \(result.wines.count) wines, type: \(result.recommendationType)")
             wines = result.wines
             recommendationType = result.recommendationType
             hasLoaded = true
         } catch {
+            print("[YouMightLike] Fetch failed: \(error)")
             errorMessage = error.localizedDescription
         }
 
         isLoading = false
+        print("[YouMightLike] Fetch complete - isLoading: \(isLoading), hasLoaded: \(hasLoaded), error: \(errorMessage ?? "none")")
     }
 }
 

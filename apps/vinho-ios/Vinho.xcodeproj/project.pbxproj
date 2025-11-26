@@ -12,7 +12,7 @@
 		1A65D1C1D26BAD6445D7639E /* ProfileSubViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A27E917BF1FA98E3754F275 /* ProfileSubViews.swift */; };
 		2B153EC92E7CA8643DAB1D7C /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 973411BA5C1ADCC5C1AD5777 /* Lottie */; };
 		2F2CA0560561E0BBA17BCBED /* YouMightLikeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A331AA87284FC2BD57DC72B4 /* YouMightLikeSection.swift */; };
-		2PAJHRT8FS1XSV0MHU8TGWPS /* SharedUsersToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3P5PEBDM5YDLD8171XPX0DTX /* SharedUsersToggleView.swift */; };
+		2PAJHRT8FS1XSV0MHU8TGWPS /* Vinho/Features/Profile/Views/SharedUsersToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3P5PEBDM5YDLD8171XPX0DTX /* Vinho/Features/Profile/Views/SharedUsersToggleView.swift */; };
 		3299AD7BD31BB010C3C95D33 /* VinoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F35B623A39A4E69CF7377EBF /* VinoApp.swift */; };
 		349D67EA1FFD622BAE858A9B /* DataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B148593675AB8A0C77F55433 /* DataService.swift */; };
 		38138BE828B613092B1F1921 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D4E98265B16E5F972A19092 /* FeedView.swift */; };
@@ -52,19 +52,19 @@
 		F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */; };
 		N31BG9GXAK1Y5OJXCQ0XJ1P8 /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = U112QBPIWS8JARF38QPXHVHZ /* DeepLinkHandler.swift */; };
 		QM4XKQQ35U9PDL0CXGYB2MHQ /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AGT2IDEK52GIA8JMWCO0EH /* Sharing.swift */; };
-		S604V0NPFTYJWF3BFM1W3A6U /* SharingManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A93MEQI9OB9PS2ES7GARVT2 /* SharingManagementView.swift */; };
+		S604V0NPFTYJWF3BFM1W3A6U /* Vinho/Features/Profile/Views/SharingManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A93MEQI9OB9PS2ES7GARVT2 /* Vinho/Features/Profile/Views/SharingManagementView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		02C9057D8AF0972213CD07D5 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
 		05AGT2IDEK52GIA8JMWCO0EH /* Sharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
 		0ED3A4C8D422066807A4A7F2 /* Config.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.local.xcconfig; sourceTree = "<group>"; };
-		1A93MEQI9OB9PS2ES7GARVT2 /* SharingManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vinho/Features/Profile/Views/SharingManagementView.swift; sourceTree = SOURCE_ROOT; };
+		1A93MEQI9OB9PS2ES7GARVT2 /* Vinho/Features/Profile/Views/SharingManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vinho/Features/Profile/Views/SharingManagementView.swift; sourceTree = SOURCE_ROOT; };
 		1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		22AD192CA1ACFC90988C8864 /* SuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsView.swift; sourceTree = "<group>"; };
 		24ACE8A61FC77F5216858D38 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		26EA17E6CF360D78D73F9084 /* LegalViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalViews.swift; sourceTree = "<group>"; };
-		3P5PEBDM5YDLD8171XPX0DTX /* SharedUsersToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vinho/Features/Profile/Views/SharedUsersToggleView.swift; sourceTree = SOURCE_ROOT; };
+		3P5PEBDM5YDLD8171XPX0DTX /* Vinho/Features/Profile/Views/SharedUsersToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vinho/Features/Profile/Views/SharedUsersToggleView.swift; sourceTree = SOURCE_ROOT; };
 		424DB00EBA1869AA2305A38A /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
 		43B8DC0D1788C5BB4A3A4126 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4C5FF736994778CE20D63418 /* Wine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wine.swift; sourceTree = "<group>"; };
@@ -134,8 +134,8 @@
 			isa = PBXGroup;
 			children = (
 				AADC32950C12BBEE23AA069C /* ProfileView.swift */,
-				3P5PEBDM5YDLD8171XPX0DTX /* SharedUsersToggleView.swift */,
-				1A93MEQI9OB9PS2ES7GARVT2 /* SharingManagementView.swift */,
+				3P5PEBDM5YDLD8171XPX0DTX /* Vinho/Features/Profile/Views/SharedUsersToggleView.swift */,
+				1A93MEQI9OB9PS2ES7GARVT2 /* Vinho/Features/Profile/Views/SharingManagementView.swift */,
 				B7612EC30B456A179E23623B /* SubViews */,
 			);
 			path = Profile;
@@ -384,7 +384,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2610;
 			};
 			buildConfigurationList = DE5EE164ABFF77322EFFC317 /* Build configuration list for PBXProject "Vinho" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -488,8 +488,8 @@
 				N31BG9GXAK1Y5OJXCQ0XJ1P8 /* DeepLinkHandler.swift in Sources */,
 				7DSJ31BKAF49DTUBA1IS03PD /* SharingService.swift in Sources */,
 				QM4XKQQ35U9PDL0CXGYB2MHQ /* Sharing.swift in Sources */,
-				2PAJHRT8FS1XSV0MHU8TGWPS /* SharedUsersToggleView.swift in Sources */,
-				S604V0NPFTYJWF3BFM1W3A6U /* SharingManagementView.swift in Sources */,
+				2PAJHRT8FS1XSV0MHU8TGWPS /* Vinho/Features/Profile/Views/SharedUsersToggleView.swift in Sources */,
+				S604V0NPFTYJWF3BFM1W3A6U /* Vinho/Features/Profile/Views/SharingManagementView.swift in Sources */,
 				476BF5A6B631D0ED8DE48701 /* VisualSimilarityService.swift in Sources */,
 				2F2CA0560561E0BBA17BCBED /* YouMightLikeSection.swift in Sources */,
 			);
@@ -502,6 +502,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -536,7 +537,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 955GSY56UT;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -581,6 +582,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -615,7 +617,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 955GSY56UT;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -657,7 +659,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 955GSY56UT;
 				INFOPLIST_FILE = Vinho/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -680,7 +681,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 955GSY56UT;
 				INFOPLIST_FILE = Vinho/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				LD_RUNPATH_SEARCH_PATHS = (

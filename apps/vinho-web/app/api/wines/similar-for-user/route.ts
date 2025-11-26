@@ -1,8 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 const VECTOR_BUCKET = "wine-labels";
 const VECTOR_INDEX = "visual-embeddings";
+
+/**
+ * Create a Supabase client that works for both:
+ * 1. Web clients using cookies
+ * 2. iOS/mobile clients using Bearer token
+ */
+async function getAuthenticatedSupabase(request: NextRequest) {
+  // Check for Bearer token first (mobile clients)
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.substring(7);
+    const supabase = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+    return supabase;
+  }
+
+  // Fall back to cookie-based auth (web clients)
+  return createServerSupabase();
+}
 
 interface VectorQueryResult {
   key: string;
@@ -67,7 +97,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 20);
     const threshold = parseFloat(searchParams.get("threshold") || "0.60");
 
-    const supabase = await createServerSupabase();
+    const supabase = await getAuthenticatedSupabase(request);
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

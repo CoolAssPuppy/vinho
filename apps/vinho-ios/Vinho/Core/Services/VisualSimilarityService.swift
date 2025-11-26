@@ -6,10 +6,13 @@ actor VisualSimilarityService {
     static let shared = VisualSimilarityService()
 
     private let baseURL: String
-    private let supabase = SupabaseManager.shared.client
 
     private init() {
         baseURL = "https://www.vinho.dev"
+    }
+
+    private var supabase: SupabaseClient {
+        SupabaseManager.shared.client
     }
 
     /// Result containing both wines and recommendation type
@@ -20,13 +23,22 @@ actor VisualSimilarityService {
 
     /// Fetches wines visually similar to the user's wines
     func fetchSimilarWines(limit: Int = 6) async throws -> SimilarWinesResult {
-        guard let session = try? await supabase.auth.session else {
+        print("[SimilarityService] Starting fetch...")
+
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+            print("[SimilarityService] Got auth session for user: \(session.user.id)")
+        } catch {
+            print("[SimilarityService] Auth error: \(error)")
             throw SimilarityError.notAuthenticated
         }
 
         guard let url = URL(string: "\(baseURL)/api/wines/similar-for-user?limit=\(limit)") else {
+            print("[SimilarityService] Invalid URL: \(baseURL)/api/wines/similar-for-user")
             throw SimilarityError.invalidURL
         }
+        print("[SimilarityService] Calling: \(url)")
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -36,19 +48,29 @@ actor VisualSimilarityService {
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
+            print("[SimilarityService] Invalid response type")
             throw SimilarityError.invalidResponse
         }
+        print("[SimilarityService] Got response: \(httpResponse.statusCode)")
 
         switch httpResponse.statusCode {
         case 200:
+            if let responseStr = String(data: data, encoding: .utf8) {
+                print("[SimilarityService] Response data: \(responseStr.prefix(500))")
+            }
             let result = try JSONDecoder().decode(SimilarWinesResponse.self, from: data)
+            print("[SimilarityService] Decoded \(result.similarWines.count) wines")
             return SimilarWinesResult(
                 wines: result.similarWines,
                 recommendationType: result.recommendationType ?? .yourFavorites
             )
         case 401:
+            print("[SimilarityService] 401 Unauthorized")
             throw SimilarityError.notAuthenticated
         default:
+            if let responseStr = String(data: data, encoding: .utf8) {
+                print("[SimilarityService] Error response: \(responseStr)")
+            }
             throw SimilarityError.serverError(httpResponse.statusCode)
         }
     }
