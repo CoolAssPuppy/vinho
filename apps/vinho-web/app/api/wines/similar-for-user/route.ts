@@ -34,6 +34,17 @@ async function getAuthenticatedSupabase(request: NextRequest) {
   return createServerSupabase();
 }
 
+/**
+ * Create a service role client for vector operations
+ * Vector bucket access requires elevated permissions
+ */
+function getServiceRoleSupabase() {
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
 interface VectorQueryResult {
   key: string;
   distance?: number;
@@ -98,11 +109,19 @@ export async function GET(request: NextRequest) {
     const threshold = parseFloat(searchParams.get("threshold") || "0.60");
 
     const supabase = await getAuthenticatedSupabase(request);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Auth error:", authError);
+      return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
+    }
 
     if (!user) {
+      console.error("No user found in session");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    console.log("[similar-for-user] User authenticated:", user.id);
 
     // Get ALL user's wines (not just highly-rated)
     const { data: allTastings, error: tastingsError } = await supabase
@@ -183,9 +202,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Query vector bucket for similar wines
-    const storage = supabase.storage as unknown as StorageWithVectors;
+    // Query vector bucket for similar wines using service role client
+    // Vector operations require elevated permissions
+    const serviceSupabase = getServiceRoleSupabase();
+    const storage = serviceSupabase.storage as unknown as StorageWithVectors;
     const index = storage.vectors.from(VECTOR_BUCKET).index(VECTOR_INDEX);
+
+    console.log("[similar-for-user] Querying vectors for", sourceWines.length, "source wines");
 
     const candidateWines = new Map<string, SimilarWine>();
 
