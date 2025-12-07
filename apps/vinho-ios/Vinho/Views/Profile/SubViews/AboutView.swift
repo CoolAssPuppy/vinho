@@ -56,11 +56,11 @@ struct AboutView: View {
 
                     // Team
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Built with ❤️ in San Francisco")
+                        Text("Built with love in Lisbon")
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.vinoText)
 
-                        Text("Vinho is crafted by a team of wine enthusiasts and technologists who share a passion for making wine discovery delightful and accessible.")
+                        Text("Vinho is built by Prashant, the author of the definitive and best-selling book about technical marketing: Picks and Shovels, Marketing to Developers During the AI Gold Rush")
                             .font(.system(size: 15))
                             .foregroundColor(.vinoTextSecondary)
                             .lineSpacing(4)
@@ -73,29 +73,38 @@ struct AboutView: View {
                             .foregroundColor(.vinoText)
 
                         VStack(alignment: .leading, spacing: 12) {
-                            Link(destination: URL(string: "https://vinho.app")!) {
+                            Link(destination: URL(string: "https://vinho.dev")!) {
                                 HStack {
                                     Image(systemName: "globe")
                                         .foregroundColor(.vinoAccent)
-                                    Text("vinho.app")
+                                    Text("vinho.dev")
                                         .foregroundColor(.vinoAccent)
                                 }
                             }
 
-                            Link(destination: URL(string: "mailto:hello@vinho.app")!) {
+                            Link(destination: URL(string: "mailto:hello@strategicnerds.com")!) {
                                 HStack {
                                     Image(systemName: "envelope.fill")
                                         .foregroundColor(.vinoAccent)
-                                    Text("hello@vinho.app")
+                                    Text("hello@strategicnerds.com")
                                         .foregroundColor(.vinoAccent)
                                 }
                             }
 
-                            Link(destination: URL(string: "https://twitter.com/vinhoapp")!) {
+                            Link(destination: URL(string: "https://www.picksandshovels.dev")!) {
                                 HStack {
-                                    Image(systemName: "bird.fill")
+                                    Image(systemName: "book.fill")
                                         .foregroundColor(.vinoAccent)
-                                    Text("@vinhoapp")
+                                    Text("picksandshovels.dev")
+                                        .foregroundColor(.vinoAccent)
+                                }
+                            }
+
+                            Link(destination: URL(string: "https://www.strategicnerds.com")!) {
+                                HStack {
+                                    Image(systemName: "doc.richtext")
+                                        .foregroundColor(.vinoAccent)
+                                    Text("strategicnerds.com")
                                         .foregroundColor(.vinoAccent)
                                 }
                             }

@@ -8,7 +8,6 @@ struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
     @State private var showingImagePicker = false
     @State private var showingEditProfile = false
-    @State private var showingSettings = false
     @State private var showingVivinoImport = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var navigationPath = NavigationPath()
@@ -18,11 +17,7 @@ struct ProfileView: View {
         case privacySecurity
         case winePreferences
         case sharing
-        case helpCenter
-        case contactUs
         case about
-        case terms
-        case privacyPolicy
     }
 
     var body: some View {
@@ -38,10 +33,7 @@ struct ProfileView: View {
                         
                         // Stats Overview
                         statsOverview
-                        
-                        // Quick Actions
-                        quickActions
-                        
+
                         // Menu Sections
                         menuSections
                         
@@ -73,32 +65,9 @@ struct ProfileView: View {
                 case .sharing:
                     SharingManagementView()
                         .environmentObject(hapticManager)
-                case .helpCenter:
-                    HelpCenterView()
-                        .environmentObject(hapticManager)
-                case .contactUs:
-                    ContactUsView()
-                        .environmentObject(hapticManager)
                 case .about:
                     AboutView()
                         .environmentObject(hapticManager)
-                case .terms:
-                    TermsView()
-                        .environmentObject(hapticManager)
-                case .privacyPolicy:
-                    PrivacyPolicyView()
-                        .environmentObject(hapticManager)
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        hapticManager.lightImpact()
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundColor(.vinoAccent)
-                    }
                 }
             }
         }
@@ -110,10 +79,6 @@ struct ProfileView: View {
         .sheet(isPresented: $showingEditProfile) {
             EditProfileView()
                 .environmentObject(authManager)
-                .environmentObject(hapticManager)
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
                 .environmentObject(hapticManager)
         }
         .sheet(isPresented: $showingVivinoImport) {
@@ -279,40 +244,6 @@ struct ProfileView: View {
         )
     }
     
-    var quickActions: some View {
-        HStack(spacing: 12) {
-            QuickActionCard(
-                title: "Favorites",
-                icon: "heart.fill",
-                color: .vinoError,
-                count: viewModel.favorites
-            ) {
-                hapticManager.lightImpact()
-                // Navigate to favorites
-            }
-            
-            QuickActionCard(
-                title: "Wishlist",
-                icon: "bookmark.fill",
-                color: .vinoAccent,
-                count: viewModel.wishlist
-            ) {
-                hapticManager.lightImpact()
-                // Navigate to wishlist
-            }
-            
-            QuickActionCard(
-                title: "Cellar",
-                icon: "archivebox.fill",
-                color: .vinoPrimary,
-                count: viewModel.cellar
-            ) {
-                hapticManager.lightImpact()
-                // Navigate to cellar
-            }
-        }
-    }
-    
     var menuSections: some View {
         VStack(spacing: 16) {
             // Account Section
@@ -342,28 +273,7 @@ struct ProfileView: View {
                     showingVivinoImport = true
                 }
             }
-            
-            // Support Section
-            MenuSection(title: "Support") {
-                MenuRow(icon: "questionmark.circle.fill", title: "Help Center", showChevron: true) {
-                    hapticManager.lightImpact()
-                    navigationPath.append(Destination.helpCenter)
-                }
 
-                MenuRow(icon: "envelope.fill", title: "Contact Us", showChevron: true) {
-                    hapticManager.lightImpact()
-                    navigationPath.append(Destination.contactUs)
-                }
-
-                MenuRow(icon: "star.fill", title: "Rate App", showChevron: false) {
-                    hapticManager.lightImpact()
-                    // Open App Store for rating
-                    if let url = URL(string: "https://apps.apple.com/app/id1234567890?action=write-review") {
-                        UIApplication.shared.open(url)
-                    }
-                }
-            }
-            
             // About Section
             MenuSection(title: "About") {
                 MenuRow(icon: "info.circle.fill", title: "About Vinho", showChevron: true) {
@@ -371,14 +281,25 @@ struct ProfileView: View {
                     navigationPath.append(Destination.about)
                 }
 
-                MenuRow(icon: "doc.text.fill", title: "Terms of Service", showChevron: true) {
+                MenuRow(icon: "star.fill", title: "Rate App", showChevron: false) {
                     hapticManager.lightImpact()
-                    navigationPath.append(Destination.terms)
+                    if let url = URL(string: "https://apps.apple.com/app/id1234567890?action=write-review") {
+                        UIApplication.shared.open(url)
+                    }
                 }
 
-                MenuRow(icon: "hand.raised.fill", title: "Privacy Policy", showChevron: true) {
+                MenuRow(icon: "doc.text.fill", title: "Terms of Service", showChevron: false) {
                     hapticManager.lightImpact()
-                    navigationPath.append(Destination.privacyPolicy)
+                    if let url = URL(string: "https://www.strategicnerds.com/terms") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+
+                MenuRow(icon: "hand.raised.fill", title: "Privacy Policy", showChevron: false) {
+                    hapticManager.lightImpact()
+                    if let url = URL(string: "https://www.strategicnerds.com/privacy") {
+                        UIApplication.shared.open(url)
+                    }
                 }
             }
         }
@@ -445,48 +366,6 @@ struct StatItem: View {
                 .foregroundColor(.vinoTextSecondary)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct QuickActionCard: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let count: Int
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(color.opacity(0.15))
-                        .frame(width: 50, height: 50)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 22))
-                        .foregroundColor(color)
-                }
-                
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.vinoText)
-                
-                Text("\(count)")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.vinoText)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.vinoDarkSecondary)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.vinoBorder, lineWidth: 1)
-                    )
-            )
-        }
     }
 }
 
@@ -651,90 +530,6 @@ struct EditProfileView: View {
             )
             isLoading = false
             dismiss()
-        }
-    }
-}
-
-// MARK: - Settings View
-struct SettingsView: View {
-    @EnvironmentObject var hapticManager: HapticManager
-    @Environment(\.dismiss) private var dismiss
-    @AppStorage("hapticFeedback") private var hapticEnabled = true
-    @AppStorage("soundEffects") private var soundEnabled = true
-    @AppStorage("notifications") private var notificationsEnabled = true
-    
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color.vinoDark.ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // App Settings
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("App Settings")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.vinoText)
-                            
-                            Toggle("Haptic Feedback", isOn: $hapticEnabled)
-                                .onChange(of: hapticEnabled) { _, newValue in
-                                    hapticManager.isEnabled = newValue
-                                    if newValue { hapticManager.lightImpact() }
-                                }
-                            
-                            Toggle("Sound Effects", isOn: $soundEnabled)
-                            
-                            Toggle("Push Notifications", isOn: $notificationsEnabled)
-                        }
-                        .padding(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color.vinoDarkSecondary)
-                        )
-                        
-                        // App Info
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("App Information")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.vinoText)
-                            
-                            HStack {
-                                Text("Version")
-                                    .foregroundColor(.vinoTextSecondary)
-                                Spacer()
-                                Text("1.0.0")
-                                    .foregroundColor(.vinoText)
-                            }
-                            
-                            HStack {
-                                Text("Build")
-                                    .foregroundColor(.vinoTextSecondary)
-                                Spacer()
-                                Text("100")
-                                    .foregroundColor(.vinoText)
-                            }
-                        }
-                        .padding(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color.vinoDarkSecondary)
-                        )
-                    }
-                    .padding(20)
-                }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        hapticManager.lightImpact()
-                        dismiss()
-                    }
-                    .foregroundColor(.vinoAccent)
-                    .fontWeight(.medium)
-                }
-            }
         }
     }
 }
@@ -911,9 +706,6 @@ class ProfileViewModel: ObservableObject {
     @Published var winesScanned = 0
     @Published var tastingNotes = 0
     @Published var regions = 0
-    @Published var favorites = 0
-    @Published var wishlist = 0
-    @Published var cellar = 0
 
     init() {
         Task {
@@ -922,18 +714,12 @@ class ProfileViewModel: ObservableObject {
     }
 
     func loadStats() async {
-        // Use the unified StatsService
         let statsService = StatsService.shared
         if let stats = await statsService.fetchUserStats() {
             await MainActor.run {
                 self.winesScanned = stats.uniqueWines
                 self.tastingNotes = stats.totalTastings
                 self.regions = stats.uniqueRegions
-                self.favorites = stats.favorites
-
-                // Mock wishlist and cellar for now (not in the view yet)
-                self.wishlist = max(0, stats.uniqueWines / 3)
-                self.cellar = max(0, stats.uniqueWines / 4)
             }
         }
     }

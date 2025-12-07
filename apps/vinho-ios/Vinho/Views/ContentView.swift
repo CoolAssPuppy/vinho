@@ -20,6 +20,18 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
     }
 
+    private var profileInitial: String {
+        if let fullName = authManager.userProfile?.fullName,
+           let firstChar = fullName.first {
+            return String(firstChar).uppercased()
+        }
+        if let email = authManager.user?.email,
+           let firstChar = email.first {
+            return String(firstChar).uppercased()
+        }
+        return "V"
+    }
+
     var mainView: some View {
         NavigationStack {
             ZStack {
@@ -57,23 +69,27 @@ struct ContentView: View {
                         hapticManager.lightImpact()
                         showingProfile.toggle()
                     } label: {
-                        if let user = authManager.user {
+                        if let avatarUrl = authManager.userProfile?.avatarUrl,
+                           let url = URL(string: avatarUrl) {
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Circle()
+                                    .fill(Color.vinoDarkSecondary)
+                                    .shimmer()
+                            }
+                            .frame(width: 32, height: 32)
+                            .clipShape(Circle())
+                        } else {
                             Circle()
                                 .fill(LinearGradient.vinoGradient)
                                 .frame(width: 32, height: 32)
                                 .overlay(
-                                    Text(user.email?.prefix(1).uppercased() ?? "V")
+                                    Text(profileInitial)
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.white)
-                                )
-                        } else {
-                            Circle()
-                                .fill(Color.vinoDarkSecondary)
-                                .frame(width: 32, height: 32)
-                                .overlay(
-                                    Image(systemName: "person.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.vinoTextSecondary)
                                 )
                         }
                     }

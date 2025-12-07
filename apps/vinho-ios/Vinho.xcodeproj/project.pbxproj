@@ -21,8 +21,6 @@
 		4558B4AAD211568905B60DBD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90C8394DD2C607793EEF947A /* ContentView.swift */; };
 		476BF5A6B631D0ED8DE48701 /* VisualSimilarityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E96D9819698B84B248AE0645 /* VisualSimilarityService.swift */; };
 		477CD43304B4A9062FDA7911 /* SuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AD192CA1ACFC90988C8864 /* SuggestionsView.swift */; };
-		4C352AF74C76A0B106E22357 /* ContactUsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F49D7A5F5DD6F829E31C878 /* ContactUsView.swift */; };
-		4E122A283AF33EF9AB45C2B9 /* HelpCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF7B97A07201B9F3C04DC8A /* HelpCenterView.swift */; };
 		5C06A4568DEE8645D0E19F3D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = E2FCDDA193BCB2EEF7F9D294 /* Supabase */; };
 		62881F7E464BCF773C5F0646 /* PersonalInformationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67CE2111EFCEAA5471D5E3D /* PersonalInformationView.swift */; };
 		6A260EC6AE91F6BCDA66B3A6 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502BA12366C095B71BC59DC7 /* Colors.swift */; };
@@ -33,7 +31,6 @@
 		8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76EC39A8B54340E597E5A1C /* WineDetailView.swift */; };
 		8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */; };
 		941BDD7A62A6BB225FA38720 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8380926523C07A9EB6D6FF80 /* AboutView.swift */; };
-		9E4345E9AC2409591D402624 /* LegalViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26EA17E6CF360D78D73F9084 /* LegalViews.swift */; };
 		A77BA238986CD22951701155 /* DopplerSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = 74DCD174C09D3D93E28BEB64 /* DopplerSecrets.plist */; };
 		A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACE8A61FC77F5216858D38 /* ThemeManager.swift */; };
 		AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */; };
@@ -63,7 +60,6 @@
 		1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		22AD192CA1ACFC90988C8864 /* SuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsView.swift; sourceTree = "<group>"; };
 		24ACE8A61FC77F5216858D38 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
-		26EA17E6CF360D78D73F9084 /* LegalViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalViews.swift; sourceTree = "<group>"; };
 		3P5PEBDM5YDLD8171XPX0DTX /* Vinho/Features/Profile/Views/SharedUsersToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vinho/Features/Profile/Views/SharedUsersToggleView.swift; sourceTree = SOURCE_ROOT; };
 		424DB00EBA1869AA2305A38A /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
 		43B8DC0D1788C5BB4A3A4126 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -73,7 +69,6 @@
 		56CXGTLJK99C4PG3S40E7TZ1 /* SharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingService.swift; sourceTree = "<group>"; };
 		5D4E98265B16E5F972A19092 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		5F381A633A953D96111A3722 /* Vinho.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vinho.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5F49D7A5F5DD6F829E31C878 /* ContactUsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactUsView.swift; sourceTree = "<group>"; };
 		606B033C31499FD7E913B4BA /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteDetailView.swift; sourceTree = "<group>"; };
 		6781C9995199363EC644A617 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
@@ -96,7 +91,6 @@
 		D22C09944462C17A161DFE8D /* TastingNoteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteEditorView.swift; sourceTree = "<group>"; };
 		D67CE2111EFCEAA5471D5E3D /* PersonalInformationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalInformationView.swift; sourceTree = "<group>"; };
 		D76EC39A8B54340E597E5A1C /* WineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineDetailView.swift; sourceTree = "<group>"; };
-		DBF7B97A07201B9F3C04DC8A /* HelpCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpCenterView.swift; sourceTree = "<group>"; };
 		E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.xcconfig.template; sourceTree = "<group>"; };
 		E7623913BA99093EBB4AB0B6 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		E96D9819698B84B248AE0645 /* VisualSimilarityService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VisualSimilarityService.swift; sourceTree = "<group>"; };
@@ -249,9 +243,6 @@
 			isa = PBXGroup;
 			children = (
 				8380926523C07A9EB6D6FF80 /* AboutView.swift */,
-				5F49D7A5F5DD6F829E31C878 /* ContactUsView.swift */,
-				DBF7B97A07201B9F3C04DC8A /* HelpCenterView.swift */,
-				26EA17E6CF360D78D73F9084 /* LegalViews.swift */,
 				1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */,
 				D67CE2111EFCEAA5471D5E3D /* PersonalInformationView.swift */,
 				7A27E917BF1FA98E3754F275 /* ProfileSubViews.swift */,
@@ -456,15 +447,12 @@
 				E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */,
 				3DA6839B39CE325E23CA89F5 /* AuthenticationView.swift in Sources */,
 				6A260EC6AE91F6BCDA66B3A6 /* Colors.swift in Sources */,
-				4C352AF74C76A0B106E22357 /* ContactUsView.swift in Sources */,
 				4558B4AAD211568905B60DBD /* ContentView.swift in Sources */,
 				349D67EA1FFD622BAE858A9B /* DataService.swift in Sources */,
 				F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */,
 				38138BE828B613092B1F1921 /* FeedView.swift in Sources */,
 				C82DB8F44EC2F17E16B1AC74 /* HapticManager.swift in Sources */,
-				4E122A283AF33EF9AB45C2B9 /* HelpCenterView.swift in Sources */,
 				C0348ACC34903A81CF748F9F /* JournalView.swift in Sources */,
-				9E4345E9AC2409591D402624 /* LegalViews.swift in Sources */,
 				72F3A047DDFBDC0CE0472531 /* MapView.swift in Sources */,
 				D3BB06606878BCD99DE22F0A /* NotificationsView.swift in Sources */,
 				62881F7E464BCF773C5F0646 /* PersonalInformationView.swift in Sources */,
