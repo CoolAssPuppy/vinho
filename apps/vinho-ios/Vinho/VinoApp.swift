@@ -21,7 +21,12 @@ struct VinoApp: App {
                 .environmentObject(hapticManager)
                 .environmentObject(deepLinkHandler)
                 .onOpenURL { url in
-                    deepLinkHandler.handle(url: url)
+                    Task {
+                        let handledAuth = await authManager.handleIncomingURL(url)
+                        if !handledAuth {
+                            deepLinkHandler.handle(url: url)
+                        }
+                    }
                 }
                 .task {
                     await authManager.checkSession()

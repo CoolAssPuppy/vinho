@@ -6,10 +6,16 @@ import SwiftUI
 @MainActor
 class AuthManager: ObservableObject {
     @Published var user: User?
-    @Published var userProfile: UserProfile?
-    @Published var isAuthenticated = false
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+@Published var userProfile: UserProfile?
+@Published var isAuthenticated = false
+@Published var isLoading = false
+@Published var errorMessage: String?
+
+    private var apiBaseURL: URL {
+        SecretsManager.shared.url(for: "VINHO_WEB_BASE_URL") ??
+        SecretsManager.shared.url(for: "VINHO_API_BASE_URL") ??
+        URL(string: "https://vinho.dev")!
+    }
 
     private var cancellables = Set<AnyCancellable>()
     let client = SupabaseManager.shared.client
@@ -95,6 +101,66 @@ class AuthManager: ObservableObject {
         isLoading = false
     }
 
+    func signInWithOAuth(provider: Provider) async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let redirectURL = URL(string: "vinho://auth-callback")
+            let scopes: String?
+
+            switch provider {
+            case .google:
+                scopes = "email profile"
+            case .facebook:
+                scopes = "email public_profile"
+            case .apple:
+                scopes = "name email"
+            default:
+                scopes = nil
+            }
+
+            let session = try await client.auth.signInWithOAuth(
+                provider: provider,
+                redirectTo: redirectURL,
+                scopes: scopes
+            )
+
+            self.user = session.user
+            self.isAuthenticated = true
+            await fetchUserProfile(userId: session.user.id)
+        } catch {
+            errorMessage = error.localizedDescription
+            isAuthenticated = false
+        }
+
+        isLoading = false
+    }
+
+    func handleIncomingURL(_ url: URL) async -> Bool {
+        guard url.scheme == "vinho" else { return false }
+
+        let isAuthCallback = url.host == "auth-callback" || url.absoluteString.contains("access_token")
+
+        guard isAuthCallback else {
+            return false
+        }
+
+        isLoading = true
+        do {
+            let session = try await client.auth.session(from: url)
+            self.user = session.user
+            self.isAuthenticated = true
+            await fetchUserProfile(userId: session.user.id)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            isAuthenticated = false
+        }
+        isLoading = false
+        return true
+    }
+
     func signOut() async {
         isLoading = true
         do {
@@ -102,9 +168,47 @@ class AuthManager: ObservableObject {
             self.user = nil
             self.userProfile = nil
             self.isAuthenticated = false
+            self.errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
+        isLoading = false
+    }
+
+    func deleteAccount() async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let session = try await client.auth.session
+            var request = URLRequest(url: apiBaseURL.appendingPathComponent("api/account/delete"))
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+
+            if (200..<300).contains(httpResponse.statusCode) {
+                await signOut()
+                errorMessage = nil
+            } else {
+                if
+                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                    let serverError = json["error"] as? String
+                {
+                    errorMessage = serverError
+                } else {
+                    errorMessage = "Unable to delete your account right now. Please try again."
+                }
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
         isLoading = false
     }
 

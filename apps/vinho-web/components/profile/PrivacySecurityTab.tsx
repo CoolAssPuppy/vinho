@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Lock, Shield, Key, Download, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Lock, Shield, Key, Download, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -12,11 +13,51 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export function PrivacySecurityTab() {
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [autoLock, setAutoLock] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "Delete your account and all tastings, scans, and preferences? This cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !sessionData.session) {
+      toast.error("Unable to verify your session. Please sign in again.");
+      setIsDeleting(false);
+      return;
+    }
+
+    const response = await fetch("/api/account/delete", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
+    });
+
+    if (response.ok) {
+      toast.success("Account deleted. We hope to see you again.");
+      await supabase.auth.signOut();
+      router.push("/auth/login?deleted=true");
+    } else {
+      const body = await response.json().catch(() => null);
+      toast.error(body?.error ?? "Unable to delete your account right now.");
+    }
+
+    setIsDeleting(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -104,10 +145,30 @@ export function PrivacySecurityTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="destructive" className="w-full text-base py-2.5">
-            <Trash2 className="mr-2 h-5 w-5" />
-            Delete Account
-          </Button>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Remove your profile, tastings, scans, sharing connections, and preferences from
+              Vinho. This cannot be undone.
+            </p>
+            <Button
+              variant="destructive"
+              className="w-full text-base py-2.5"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-5 w-5" />
+                  Delete Account
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
