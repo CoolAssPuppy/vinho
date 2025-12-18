@@ -8,6 +8,8 @@ struct PrivacySecurityView: View {
     @AppStorage("autoLock") private var autoLock = true
     @State private var showingChangePassword = false
     @State private var showingDeleteAccount = false
+    @State private var isDeletingAccount = false
+    @State private var deleteError: String?
 
     var body: some View {
         ZStack {
@@ -112,6 +114,10 @@ struct PrivacySecurityView: View {
                                 Text("Delete Account")
                                     .foregroundColor(.vinoError)
                                 Spacer()
+                                if isDeletingAccount {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .vinoError))
+                                }
                             }
                             .padding(16)
                             .background(
@@ -122,6 +128,18 @@ struct PrivacySecurityView: View {
                                             .stroke(Color.vinoError.opacity(0.3), lineWidth: 1)
                                     )
                             )
+                        }
+
+                        if let deleteError {
+                            Text(deleteError)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.vinoError)
+                                .padding(.horizontal, 4)
+                        } else {
+                            Text("Permanently remove your profile, tastings, scans, and preferences from Vinho.")
+                                .font(.system(size: 13))
+                                .foregroundColor(.vinoTextSecondary)
+                                .padding(.horizontal, 4)
                         }
                     }
                     .padding(20)
@@ -138,7 +156,21 @@ struct PrivacySecurityView: View {
         .alert("Delete Account", isPresented: $showingDeleteAccount) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
-                // Delete account
+                hapticManager.error()
+                isDeletingAccount = true
+                deleteError = nil
+                Task {
+                    await authManager.deleteAccount()
+                    await MainActor.run {
+                        isDeletingAccount = false
+                        if authManager.errorMessage == nil {
+                            hapticManager.success()
+                        } else {
+                            deleteError = authManager.errorMessage
+                            hapticManager.error()
+                        }
+                    }
+                }
             }
         } message: {
             Text("This action is permanent and cannot be undone. All your data will be deleted.")

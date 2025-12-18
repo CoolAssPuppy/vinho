@@ -5,28 +5,50 @@ struct AuthenticationView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var hapticManager: HapticManager
     @State private var isShowingSignUp = false
+    @State private var backgroundPulse = false
 
     var body: some View {
         NavigationView {
             ZStack {
                 // Background
                 backgroundGradient
+                floatingAccents
 
                 ScrollView {
                     VStack(spacing: 32) {
                         // Logo and Welcome
                         headerSection
 
-                        // Auth Form
-                        if isShowingSignUp {
-                            SignUpFormView(viewModel: viewModel)
-                                .environmentObject(authManager)
-                                .environmentObject(hapticManager)
-                        } else {
-                            SignInFormView(viewModel: viewModel)
-                                .environmentObject(authManager)
-                                .environmentObject(hapticManager)
+                        VStack(spacing: 20) {
+                            // Auth Form
+                            if isShowingSignUp {
+                                SignUpFormView(viewModel: viewModel)
+                                    .environmentObject(authManager)
+                                    .environmentObject(hapticManager)
+                            } else {
+                                SignInFormView(viewModel: viewModel)
+                                    .environmentObject(authManager)
+                                    .environmentObject(hapticManager)
+                            }
                         }
+                        .padding(24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                .fill(Color.vinoDarkSecondary.opacity(0.85))
+                                .overlay(
+                                    LinearGradient(
+                                        colors: [Color.vinoPrimary.opacity(0.2), Color.clear, Color.vinoAccent.opacity(0.15)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    .blur(radius: 20)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .stroke(Color.vinoBorder.opacity(0.6), lineWidth: 1)
+                                )
+                                .shadow(color: Color.black.opacity(0.25), radius: 20, x: 0, y: 10)
+                        )
 
                         // Toggle Auth Mode
                         toggleAuthButton
@@ -53,6 +75,38 @@ struct AuthenticationView: View {
             endPoint: .bottomTrailing
         )
         .ignoresSafeArea()
+    }
+
+    var floatingAccents: some View {
+        ZStack {
+            Circle()
+                .fill(Color.vinoPrimary.opacity(0.18))
+                .frame(width: 380, height: 380)
+                .blur(radius: 80)
+                .offset(x: -160, y: -250)
+                .scaleEffect(backgroundPulse ? 1.05 : 0.95)
+
+            Circle()
+                .fill(Color.vinoAccent.opacity(0.18))
+                .frame(width: 320, height: 320)
+                .blur(radius: 70)
+                .offset(x: 180, y: -180)
+                .scaleEffect(backgroundPulse ? 0.96 : 1.04)
+
+            LinearGradient(
+                colors: [Color.white.opacity(0.05), Color.clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 120)
+            .blur(radius: 40)
+            .offset(y: -200)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                backgroundPulse.toggle()
+            }
+        }
     }
 
     var headerSection: some View {
@@ -89,6 +143,10 @@ struct AuthenticationView: View {
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.vinoTextSecondary)
                 .multilineTextAlignment(.center)
+
+            Text("Elevated wines, effortless sign in")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(.vinoTextSecondary)
         }
     }
 
@@ -127,22 +185,82 @@ struct AuthenticationView: View {
                     .frame(height: 1)
             }
 
-            HStack(spacing: 16) {
-                SocialLoginButton(
-                    icon: "applelogo",
-                    action: {
-                        hapticManager.mediumImpact()
-                        // Apple Sign In
-                    }
-                )
+            VStack(spacing: 12) {
+                Text("Continue with your favorite account")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.vinoText)
 
-                SocialLoginButton(
-                    icon: "envelope.fill",
-                    action: {
-                        hapticManager.mediumImpact()
-                        // Google Sign In
-                    }
-                )
+                Text("We request only your name and email to create your cellar.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.vinoTextSecondary)
+
+                HStack(spacing: 18) {
+                    SocialLoginButton(
+                        icon: "applelogo",
+                        fallbackText: nil,
+                        title: "Apple",
+                        gradient: LinearGradient(
+                            colors: [Color.white.opacity(0.2), Color.vinoDarkSecondary],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        foregroundColor: .white,
+                        isDisabled: authManager.isLoading,
+                        action: {
+                            hapticManager.mediumImpact()
+                            Task {
+                                await authManager.signInWithOAuth(provider: .apple)
+                                if authManager.isAuthenticated {
+                                    hapticManager.success()
+                                }
+                            }
+                        }
+                    )
+
+                    SocialLoginButton(
+                        icon: nil,
+                        fallbackText: "G",
+                        title: "Google",
+                        gradient: LinearGradient(
+                            colors: [Color(red: 0.98, green: 0.32, blue: 0.25), Color(red: 0.16, green: 0.42, blue: 0.86)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        foregroundColor: .white,
+                        isDisabled: authManager.isLoading,
+                        action: {
+                            hapticManager.mediumImpact()
+                            Task {
+                                await authManager.signInWithOAuth(provider: .google)
+                                if authManager.isAuthenticated {
+                                    hapticManager.success()
+                                }
+                            }
+                        }
+                    )
+
+                    SocialLoginButton(
+                        icon: nil,
+                        fallbackText: "f",
+                        title: "Facebook",
+                        gradient: LinearGradient(
+                            colors: [Color(red: 0.18, green: 0.31, blue: 0.72), Color(red: 0.13, green: 0.23, blue: 0.55)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        foregroundColor: .white,
+                        isDisabled: authManager.isLoading,
+                        action: {
+                            hapticManager.mediumImpact()
+                            Task {
+                                await authManager.signInWithOAuth(provider: .facebook)
+                                if authManager.isAuthenticated {
+                                    hapticManager.success()
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
         .padding(.top, 20)
@@ -409,24 +527,41 @@ struct PrimaryButton: View {
 }
 
 struct SocialLoginButton: View {
-    let icon: String
+    let icon: String?
+    let fallbackText: String?
+    let title: String
+    let gradient: LinearGradient
+    let foregroundColor: Color
     let action: () -> Void
+    var isDisabled: Bool = false
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(.vinoText)
-                .frame(width: 50, height: 50)
-                .background(
-                    Circle()
-                        .fill(Color.vinoDarkSecondary)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.vinoBorder, lineWidth: 1)
-                        )
-                )
+            ZStack {
+                Circle()
+                    .fill(gradient)
+                    .frame(width: 58, height: 58)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 6)
+
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(foregroundColor)
+                } else if let fallbackText {
+                    Text(fallbackText)
+                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .foregroundColor(foregroundColor)
+                }
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Sign in with \(title)"))
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1)
     }
 }
 
