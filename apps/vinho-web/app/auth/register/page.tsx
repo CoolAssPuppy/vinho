@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Mail, Lock, User, ShieldCheck } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { SocialButtons, type OAuthProvider } from "@/components/auth/SocialButtons";
@@ -174,36 +174,35 @@ export default function RegisterPage() {
             <div className="relative overflow-hidden bg-gradient-to-br from-vino-accent/20 via-vino-primary/10 to-transparent p-8 md:p-10">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_0,rgba(255,255,255,0.08),transparent_30%)]" />
               <div className="relative z-10 flex flex-col gap-6 text-white">
-                <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
-                  Start your tasting story
-                </div>
+                <CardTitle className="text-3xl font-bold leading-tight sm:text-4xl">
+                  Vinho
+                </CardTitle>
+                <CardDescription className="text-lg text-white/80">
+                  Scan wines, log tastings, and build your personal cellar.
+                </CardDescription>
 
-                <div className="space-y-3">
-                  <CardTitle className="text-3xl font-bold leading-tight sm:text-4xl">
-                    Create your account
-                  </CardTitle>
-                  <CardDescription className="text-base text-white/80">
-                    Securely capture every bottle you taste. Keep your palate history synced across
-                    iOS and the web with a single, beautiful sign-in.
-                  </CardDescription>
-                </div>
+                <ul className="space-y-3 text-sm text-white/80">
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Scan any bottle label to instantly identify wines</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Record tasting notes with ratings, aromas, and food pairings</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Discover similar wines based on your taste preferences</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Sync your cellar across iOS and web seamlessly</span>
+                  </li>
+                </ul>
 
-                <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80 shadow-inner shadow-black/20">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
-                      <ShieldCheck className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-semibold">Privacy first</p>
-                      <p className="text-xs text-white/70">
-                        We only ask for your name and email to set up your cellar.
-                      </p>
-                    </div>
-                  </div>
-                  <p className="leading-relaxed">
-                    Enable Sign in with Apple, Google, or Facebook for one-tap access. You can delete
-                    your account anytime from the Profile tab.
+                <div className="mt-auto rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg shadow-black/20">
+                  <p className="text-sm font-medium text-white">
+                    Nearly all features are free, forever.
                   </p>
                 </div>
               </div>

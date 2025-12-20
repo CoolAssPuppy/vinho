@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Mail, Lock, Wine } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { SocialButtons, type OAuthProvider } from "@/components/auth/SocialButtons";
@@ -117,48 +117,36 @@ function LoginForm() {
             <div className="relative overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-8 md:p-10">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_0,rgba(255,255,255,0.08),transparent_30%)]" />
               <div className="relative z-10 flex flex-col gap-6 text-white">
-                <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                  <Sparkles className="h-3.5 w-3.5 text-vino-accent" />
-                  Curated wine rituals
-                </div>
+                <CardTitle className="text-3xl font-bold leading-tight sm:text-4xl">
+                  Vinho
+                </CardTitle>
+                <CardDescription className="text-lg text-white/80">
+                  Scan wines, log tastings, and build your personal cellar.
+                </CardDescription>
 
-                <div className="space-y-3">
-                  <CardTitle className="text-3xl font-bold leading-tight sm:text-4xl">
-                    Welcome back to your cellar
-                  </CardTitle>
-                  <CardDescription className="text-base text-white/80">
-                    Slide into tasting notes, scan new bottles, and pick up your learning path
-                    exactly where you left off. Your palate progress is ready when you are.
-                  </CardDescription>
-                </div>
+                <ul className="space-y-3 text-sm text-white/80">
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Scan any bottle label to instantly identify wines</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Record tasting notes with ratings, aromas, and food pairings</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Discover similar wines based on your taste preferences</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
+                    <span>Sync your cellar across iOS and web seamlessly</span>
+                  </li>
+                </ul>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {[
-                    "Supersonic bottle scanning",
-                    "Trusted by sommeliers",
-                    "Private by default",
-                    "Personalized pairings",
-                  ].map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-start gap-3 rounded-2xl bg-white/5 p-3 text-sm text-white/80 shadow-inner shadow-black/20"
-                    >
-                      <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-vino-accent" />
-                      <p>{item}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-auto flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg shadow-black/20">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-                    <Wine className="h-6 w-6 text-vino-accent" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-white">Vinho</p>
-                    <p className="text-xs text-white/70">
-                      Crafted for thoughtful sippers — on iOS and the web.
-                    </p>
-                  </div>
+                <div className="mt-auto rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg shadow-black/20">
+                  <p className="text-sm font-medium text-white">
+                    Nearly all features are free, forever.
+                  </p>
                 </div>
               </div>
             </div>

@@ -196,15 +196,8 @@ struct AuthenticationView: View {
 
                 HStack(spacing: 18) {
                     SocialLoginButton(
-                        icon: "applelogo",
-                        fallbackText: nil,
+                        imageName: "apple-social",
                         title: "Apple",
-                        gradient: LinearGradient(
-                            colors: [Color.white.opacity(0.2), Color.vinoDarkSecondary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        foregroundColor: .white,
                         action: {
                             hapticManager.mediumImpact()
                             Task {
@@ -218,15 +211,8 @@ struct AuthenticationView: View {
                     )
 
                     SocialLoginButton(
-                        icon: nil,
-                        fallbackText: "G",
+                        imageName: "google-social",
                         title: "Google",
-                        gradient: LinearGradient(
-                            colors: [Color(red: 0.98, green: 0.32, blue: 0.25), Color(red: 0.16, green: 0.42, blue: 0.86)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        foregroundColor: .white,
                         action: {
                             hapticManager.mediumImpact()
                             Task {
@@ -240,15 +226,8 @@ struct AuthenticationView: View {
                     )
 
                     SocialLoginButton(
-                        icon: nil,
-                        fallbackText: "f",
+                        imageName: "facebook-social",
                         title: "Facebook",
-                        gradient: LinearGradient(
-                            colors: [Color(red: 0.18, green: 0.31, blue: 0.72), Color(red: 0.13, green: 0.23, blue: 0.55)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        foregroundColor: .white,
                         action: {
                             hapticManager.mediumImpact()
                             Task {
@@ -536,36 +515,18 @@ struct PrimaryButton: View {
 }
 
 struct SocialLoginButton: View {
-    let icon: String?
-    let fallbackText: String?
+    let imageName: String
     let title: String
-    let gradient: LinearGradient
-    let foregroundColor: Color
     let action: () -> Void
     var isDisabled: Bool = false
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(gradient)
-                    .frame(width: 58, height: 58)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 6)
-
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(foregroundColor)
-                } else if let fallbackText {
-                    Text(fallbackText)
-                        .font(.system(size: 22, weight: .black, design: .rounded))
-                        .foregroundColor(foregroundColor)
-                }
-            }
+            Image(imageName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 48, height: 48)
+                .shadow(color: Color.black.opacity(0.15), radius: 8, y: 4)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Sign in with \(title)"))
