@@ -49,6 +49,7 @@ echo "Secrets file: ${SECRETS_PLIST}"
 # Fetch secrets from Doppler and create a plist
 echo "Fetching secrets from Doppler..."
 "${DOPPLER_BIN}" secrets download \
+    --project vinho \
     --no-file \
     --format json \
     --config "${DOPPLER_CONFIG}" | \

@@ -50,6 +50,7 @@
 		D3BB06606878BCD99DE22F0A /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */; };
 		D5BABE4E94AA4B281632F7A8 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADC32950C12BBEE23AA069C /* ProfileView.swift */; };
 		D9C0E5E85EC5B7FF45530FFB /* StatsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED0979C5BF1EB4DE9122B7C /* StatsService.swift */; };
+		E0FA7C52081459AD4860FCC9 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5F348E1F820731B3193170CD /* Config.plist */; };
 		E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7623913BA99093EBB4AB0B6 /* AuthManager.swift */; };
 		E9DB772961E1A4E1690205FC /* SecretsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */; };
 		F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */ = {isa = PBXBuildFile; fileRef = E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */; };
@@ -73,6 +74,7 @@
 		503A1A0527BA0496BFAA8753 /* PlaceAutocompleteField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceAutocompleteField.swift; sourceTree = "<group>"; };
 		521D3070D8745ED050F907A6 /* DeepLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkHandler.swift; sourceTree = "<group>"; };
 		5D4E98265B16E5F972A19092 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		5F348E1F820731B3193170CD /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Config.plist; sourceTree = "<group>"; };
 		5F381A633A953D96111A3722 /* Vinho.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Vinho.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		606B033C31499FD7E913B4BA /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteDetailView.swift; sourceTree = "<group>"; };
@@ -234,6 +236,7 @@
 		9160BA6D81AB806DB4F74659 /* Vinho */ = {
 			isa = PBXGroup;
 			children = (
+				5F348E1F820731B3193170CD /* Config.plist */,
 				9AA9F21C724462525631A2AA /* Config.xcconfig */,
 				E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */,
 				74DCD174C09D3D93E28BEB64 /* DopplerSecrets.plist */,
@@ -453,6 +456,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				07BC8BA25C9BC65AA850EB6E /* Assets.xcassets in Resources */,
+				E0FA7C52081459AD4860FCC9 /* Config.plist in Resources */,
 				F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */,
 				A77BA238986CD22951701155 /* DopplerSecrets.plist in Resources */,
 			);
@@ -475,7 +479,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/Vinho/DopplerSecrets.plist",
+				"$(SRCROOT)/Vinho/Config.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
