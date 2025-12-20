@@ -10,6 +10,7 @@ import {
 import { createBrowserClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { identifyUser, resetUser, capture, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -88,10 +89,24 @@ export function UserProvider({ children }: UserProviderProps) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, _session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         await fetchUserData();
+        // Identify user in PostHog
+        if (session?.user) {
+          identifyUser(session.user.id, {
+            email: session.user.email,
+            created_at: session.user.created_at,
+          });
+          if (event === "SIGNED_IN") {
+            capture(ANALYTICS_EVENTS.USER_SIGNED_IN, {
+              auth_provider: session.user.app_metadata?.provider ?? "email",
+            });
+          }
+        }
       } else if (event === "SIGNED_OUT") {
+        capture(ANALYTICS_EVENTS.USER_SIGNED_OUT);
+        resetUser();
         setUser(null);
         setProfile(null);
       }

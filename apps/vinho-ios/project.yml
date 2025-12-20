@@ -36,6 +36,7 @@ targets:
       - package: Supabase
       - package: Kingfisher
       - package: Lottie
+      - package: PostHog
     preBuildScripts:
       - name: Fetch Doppler Secrets
         script: |
@@ -79,3 +80,6 @@ packages:
   Lottie:
     url: https://github.com/airbnb/lottie-ios
     from: 4.4.0
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios
+    from: 3.8.3

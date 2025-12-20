@@ -43,7 +43,9 @@ class SecretsManager {
             "NEXT_PUBLIC_SUPABASE_URL": ProcessInfo.processInfo.environment["NEXT_PUBLIC_SUPABASE_URL"] ?? "",
             "NEXT_PUBLIC_SUPABASE_ANON_KEY": ProcessInfo.processInfo.environment["NEXT_PUBLIC_SUPABASE_ANON_KEY"] ?? "",
             "GOOGLE_MAPS_API_KEY": ProcessInfo.processInfo.environment["GOOGLE_MAPS_API_KEY"] ?? "",
-            "RESEND_API_KEY": ProcessInfo.processInfo.environment["RESEND_API_KEY"] ?? ""
+            "RESEND_API_KEY": ProcessInfo.processInfo.environment["RESEND_API_KEY"] ?? "",
+            "NEXT_PUBLIC_POSTHOG_KEY": ProcessInfo.processInfo.environment["NEXT_PUBLIC_POSTHOG_KEY"] ?? "",
+            "NEXT_PUBLIC_POSTHOG_HOST": ProcessInfo.processInfo.environment["NEXT_PUBLIC_POSTHOG_HOST"] ?? "https://us.i.posthog.com"
         ]
     }
 

@@ -5,6 +5,7 @@ import SwiftUI
 
 @MainActor
 class AuthManager: ObservableObject {
+    private let analytics = AnalyticsService.shared
     @Published var user: User?
 @Published var userProfile: UserProfile?
 @Published var isAuthenticated = false
@@ -36,6 +37,12 @@ class AuthManager: ObservableObject {
             self.user = session.user
             self.isAuthenticated = true
             await fetchUserProfile(userId: session.user.id)
+
+            // Identify user in analytics
+            analytics.identify(userId: session.user.id.uuidString, properties: [
+                "email": session.user.email ?? "",
+                "created_at": session.user.createdAt.ISO8601Format()
+            ])
         } catch {
             self.user = nil
             self.isAuthenticated = false
@@ -76,6 +83,15 @@ class AuthManager: ObservableObject {
                 .execute()
 
             self.userProfile = profile
+
+            // Track sign up and identify user
+            analytics.identify(userId: user.id.uuidString, properties: [
+                "email": email,
+                "created_at": Date().ISO8601Format()
+            ])
+            analytics.capture(.userSignedUp, properties: [
+                "auth_provider": "email"
+            ])
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -95,6 +111,15 @@ class AuthManager: ObservableObject {
             self.user = session.user
             self.isAuthenticated = true
             await fetchUserProfile(userId: session.user.id)
+
+            // Track sign in and identify user
+            analytics.identify(userId: session.user.id.uuidString, properties: [
+                "email": email,
+                "created_at": session.user.createdAt.ISO8601Format()
+            ])
+            analytics.capture(.userSignedIn, properties: [
+                "auth_provider": "email"
+            ])
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -131,6 +156,15 @@ class AuthManager: ObservableObject {
             self.user = session.user
             self.isAuthenticated = true
             await fetchUserProfile(userId: session.user.id)
+
+            // Track OAuth sign in and identify user
+            analytics.identify(userId: session.user.id.uuidString, properties: [
+                "email": session.user.email ?? "",
+                "created_at": session.user.createdAt.ISO8601Format()
+            ])
+            analytics.capture(.userSignedIn, properties: [
+                "auth_provider": provider.rawValue
+            ])
         } catch {
             errorMessage = error.localizedDescription
             isAuthenticated = false
@@ -166,6 +200,9 @@ class AuthManager: ObservableObject {
     func signOut() async {
         isLoading = true
         do {
+            analytics.capture(.userSignedOut)
+            analytics.reset()
+
             try await client.auth.signOut()
             self.user = nil
             self.userProfile = nil

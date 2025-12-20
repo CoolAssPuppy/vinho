@@ -14,6 +14,7 @@
 		2B153EC92E7CA8643DAB1D7C /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 973411BA5C1ADCC5C1AD5777 /* Lottie */; };
 		3299AD7BD31BB010C3C95D33 /* VinoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F35B623A39A4E69CF7377EBF /* VinoApp.swift */; };
 		349D67EA1FFD622BAE858A9B /* DataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B148593675AB8A0C77F55433 /* DataService.swift */; };
+		366B1E3634C44B6EDDBB7937 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 9008C99ECE6828579C2EEDB4 /* PostHog */; };
 		38138BE828B613092B1F1921 /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D4E98265B16E5F972A19092 /* FeedView.swift */; };
 		3DA6839B39CE325E23CA89F5 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */; };
 		3FAE5321AD98A735DA17C531 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 606B033C31499FD7E913B4BA /* SplashScreen.swift */; };
@@ -24,9 +25,11 @@
 		5C06A4568DEE8645D0E19F3D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = E2FCDDA193BCB2EEF7F9D294 /* Supabase */; };
 		62881F7E464BCF773C5F0646 /* PersonalInformationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67CE2111EFCEAA5471D5E3D /* PersonalInformationView.swift */; };
 		645B80C67AE3A18559EBB109 /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB249AF6EFC0328F7E44F181 /* BiometricLockView.swift */; };
+		69D7BA571DE28CC628AA603E /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F95413CC6E037BB02200FD /* AnalyticsService.swift */; };
 		6A260EC6AE91F6BCDA66B3A6 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502BA12366C095B71BC59DC7 /* Colors.swift */; };
 		6D4140CD054747D59F2F9F51 /* TastingNoteEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22C09944462C17A161DFE8D /* TastingNoteEditorView.swift */; };
 		72F3A047DDFBDC0CE0472531 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02C9057D8AF0972213CD07D5 /* MapView.swift */; };
+		7C33AF9926EF3718B918EED2 /* AnalyticsEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B6857CCF78CD8D93E6BB81 /* AnalyticsEvents.swift */; };
 		7D89C1B5898017FC0ED09C33 /* SharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FD2D458C30F544F9DC95FC2 /* SharingService.swift */; };
 		82863C800219CC79D4F10699 /* PlaceAutocompleteField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503A1A0527BA0496BFAA8753 /* PlaceAutocompleteField.swift */; };
 		8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76EC39A8B54340E597E5A1C /* WineDetailView.swift */; };
@@ -61,6 +64,7 @@
 		1FD2D458C30F544F9DC95FC2 /* SharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingService.swift; sourceTree = "<group>"; };
 		22AD192CA1ACFC90988C8864 /* SuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsView.swift; sourceTree = "<group>"; };
 		24ACE8A61FC77F5216858D38 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		29F95413CC6E037BB02200FD /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		3B2590B0AAF412E2772E4D21 /* Vinho.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vinho.entitlements; sourceTree = "<group>"; };
 		424DB00EBA1869AA2305A38A /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
 		43B8DC0D1788C5BB4A3A4126 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -101,6 +105,7 @@
 		EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		F14AD12FA0227CF918093FD9 /* SharedUsersToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUsersToggleView.swift; sourceTree = "<group>"; };
 		F35B623A39A4E69CF7377EBF /* VinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VinoApp.swift; sourceTree = "<group>"; };
+		F4B6857CCF78CD8D93E6BB81 /* AnalyticsEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsEvents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +116,7 @@
 				5C06A4568DEE8645D0E19F3D /* Supabase in Frameworks */,
 				B653E262BEBE917EFF46D52D /* Kingfisher in Frameworks */,
 				2B153EC92E7CA8643DAB1D7C /* Lottie in Frameworks */,
+				366B1E3634C44B6EDDBB7937 /* PostHog in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -164,6 +170,8 @@
 		4BB0F5EF6CB13C137AB3BFA0 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F4B6857CCF78CD8D93E6BB81 /* AnalyticsEvents.swift */,
+				29F95413CC6E037BB02200FD /* AnalyticsService.swift */,
 				001D0CF7E2DD3ECD1480C924 /* BiometricAuthService.swift */,
 				B148593675AB8A0C77F55433 /* DataService.swift */,
 				521D3070D8745ED050F907A6 /* DeepLinkHandler.swift */,
@@ -393,6 +401,7 @@
 				E2FCDDA193BCB2EEF7F9D294 /* Supabase */,
 				2F796CEA6EE2797CF27D8203 /* Kingfisher */,
 				973411BA5C1ADCC5C1AD5777 /* Lottie */,
+				9008C99ECE6828579C2EEDB4 /* PostHog */,
 			);
 			productName = Vinho;
 			productReference = 5F381A633A953D96111A3722 /* Vinho.app */;
@@ -426,6 +435,7 @@
 			packageReferences = (
 				462AFD02504931377E0DF39D /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				076EF2D10255E9DC649822BC /* XCRemoteSwiftPackageReference "lottie-ios" */,
+				384366D97DF483287542A2E2 /* XCRemoteSwiftPackageReference "posthog-ios" */,
 				7635433D62507E29747941EF /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -480,6 +490,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				941BDD7A62A6BB225FA38720 /* AboutView.swift in Sources */,
+				7C33AF9926EF3718B918EED2 /* AnalyticsEvents.swift in Sources */,
+				69D7BA571DE28CC628AA603E /* AnalyticsService.swift in Sources */,
 				E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */,
 				3DA6839B39CE325E23CA89F5 /* AuthenticationView.swift in Sources */,
 				8EBC3D015AB8A728A21F6CA2 /* BiometricAuthService.swift in Sources */,
@@ -743,6 +755,14 @@
 				minimumVersion = 4.4.0;
 			};
 		};
+		384366D97DF483287542A2E2 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.8.3;
+			};
+		};
 		462AFD02504931377E0DF39D /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher";
@@ -766,6 +786,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 462AFD02504931377E0DF39D /* XCRemoteSwiftPackageReference "Kingfisher" */;
 			productName = Kingfisher;
+		};
+		9008C99ECE6828579C2EEDB4 /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 384366D97DF483287542A2E2 /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
 		};
 		973411BA5C1ADCC5C1AD5777 /* Lottie */ = {
 			isa = XCSwiftPackageProductDependency;

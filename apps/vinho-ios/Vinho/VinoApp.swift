@@ -10,8 +10,11 @@ struct VinoApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @Environment(\.scenePhase) private var scenePhase
 
+    private let analytics = AnalyticsService.shared
+
     init() {
         setupAppearance()
+        analytics.configure()
     }
 
     var body: some Scene {
@@ -58,9 +61,10 @@ struct VinoApp: App {
             if authManager.isAuthenticated {
                 biometricService.lockApp()
             }
+            analytics.capture(.appBackgrounded)
         case .active:
             // App became active - biometric prompt will show automatically
-            break
+            analytics.capture(.appOpened)
         case .inactive:
             // Transitioning - no action needed
             break
