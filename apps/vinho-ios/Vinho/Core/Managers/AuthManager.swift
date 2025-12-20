@@ -124,7 +124,9 @@ class AuthManager: ObservableObject {
                 provider: provider,
                 redirectTo: redirectURL,
                 scopes: scopes
-            )
+            ) { webSession in
+                webSession.prefersEphemeralWebBrowserSession = true
+            }
 
             self.user = session.user
             self.isAuthenticated = true
