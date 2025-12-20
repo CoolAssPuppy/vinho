@@ -23,12 +23,12 @@ echo "Using Doppler at: ${DOPPLER_BIN}"
 if [ -n "$SRCROOT" ]; then
     # Running from Xcode
     PROJECT_ROOT="${SRCROOT}/../.."
-    SECRETS_PLIST="${SRCROOT}/Vinho/DopplerSecrets.plist"
+    SECRETS_PLIST="${SRCROOT}/Vinho/Config.plist"
 else
     # Running manually
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-    SECRETS_PLIST="$SCRIPT_DIR/../Vinho/DopplerSecrets.plist"
+    SECRETS_PLIST="$SCRIPT_DIR/../Vinho/Config.plist"
 fi
 
 cd "$PROJECT_ROOT"

@@ -46,7 +46,7 @@ targets:
         showEnvVars: false
         basedOnDependencyAnalysis: false
         outputFiles:
-          - $(SRCROOT)/Vinho/DopplerSecrets.plist
+          - $(SRCROOT)/Vinho/Config.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.strategicnerds.vinho

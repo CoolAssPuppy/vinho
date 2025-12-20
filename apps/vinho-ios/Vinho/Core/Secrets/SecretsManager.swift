@@ -1,7 +1,7 @@
 import Foundation
 
 /// Manages secrets from Doppler
-/// The DopplerSecrets.plist is generated at build time by the Doppler script
+/// The Config.plist is generated at build time by the Doppler script
 class SecretsManager {
     static let shared = SecretsManager()
 
@@ -12,8 +12,8 @@ class SecretsManager {
     }
 
     private func loadSecrets() {
-        // Try to load from DopplerSecrets.plist (generated at build time)
-        if let url = Bundle.main.url(forResource: "DopplerSecrets", withExtension: "plist"),
+        // Try to load from Config.plist (generated at build time)
+        if let url = Bundle.main.url(forResource: "Config", withExtension: "plist"),
            let data = try? Data(contentsOf: url),
            let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] {
             self.secrets = plist
@@ -31,7 +31,7 @@ class SecretsManager {
                 print("⚠️ NEXT_PUBLIC_SUPABASE_ANON_KEY not found in secrets")
             }
         } else {
-            print("⚠️ Warning: DopplerSecrets.plist not found in bundle. Using fallback values.")
+            print("⚠️ Warning: Config.plist not found in bundle. Using fallback values.")
             loadFallbackSecrets()
         }
     }
