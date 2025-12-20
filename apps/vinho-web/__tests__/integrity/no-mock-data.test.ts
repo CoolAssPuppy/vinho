@@ -1,6 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
 import fs from "fs";
-import path from "path";
 import { execSync } from "child_process";
 
 // This test ensures we NEVER ship mock data or hardcoded wine names
@@ -113,8 +112,6 @@ describe("Mock Data Detection - Code Integrity Check", () => {
   it("should not have setTimeout or asyncAfter with wine data", () => {
     const swiftPattern =
       /DispatchQueue\.main\.asyncAfter.*\n.*producer\s*=|DispatchQueue\.main\.asyncAfter.*\n.*wineName\s*=/;
-    const jsPattern =
-      /setTimeout.*\n.*producer\s*=|setTimeout.*\n.*wineName\s*=/;
 
     const swiftFiles = execSync(
       'find ../vinho-ios -name "*.swift" -type f 2>/dev/null || true',

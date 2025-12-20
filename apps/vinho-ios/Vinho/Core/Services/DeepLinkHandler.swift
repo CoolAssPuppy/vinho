@@ -2,50 +2,110 @@ import Foundation
 import SwiftUI
 import Supabase
 
+enum DeepLinkDestination: Equatable {
+    case scan
+    case journal
+    case map
+    case discover
+    case profile
+    case sharing
+    case invite(code: String)
+    case wine(id: String)
+}
+
 @MainActor
 class DeepLinkHandler: ObservableObject {
     @Published var pendingSharingConnectionId: UUID?
     @Published var pendingInviteCode: String?
     @Published var showSharingAlert = false
+    @Published var pendingDestination: DeepLinkDestination?
 
     func handle(url: URL) {
-        guard url.scheme == "vinho" else { return }
+        // Handle both custom scheme (vinho://) and Universal Links (https://vinho.dev)
+        let isCustomScheme = url.scheme == "vinho"
+        let isUniversalLink = url.host == "vinho.dev" || url.host == "www.vinho.dev"
+
+        guard isCustomScheme || isUniversalLink else { return }
 
         let pathComponents = url.pathComponents.filter { $0 != "/" }
 
-        // Handle invite code: vinho://invite/{code}
-        if pathComponents.count >= 2 && pathComponents[0] == "invite" {
-            let inviteCode = pathComponents[1]
-            pendingInviteCode = inviteCode
-
-            // Accept the invite by code
-            Task {
-                await acceptInviteByCode(inviteCode)
-            }
+        // Route based on first path component
+        guard let firstComponent = pathComponents.first else {
+            // Root URL - no specific destination
+            return
         }
-        // Legacy: Handle old-style connection ID links
-        else if pathComponents.count >= 3 && pathComponents[0] == "sharing" && pathComponents[1] == "accept" {
-            if let connectionId = UUID(uuidString: pathComponents[2]) {
-                pendingSharingConnectionId = connectionId
-                showSharingAlert = true
 
-                Task {
-                    let success = await SharingService.shared.acceptInvitation(connectionId)
-                    if success {
-                        print("Successfully accepted sharing invitation from deep link")
-                    } else {
-                        print("Failed to accept sharing invitation from deep link")
-                    }
+        switch firstComponent {
+        case "scan":
+            pendingDestination = .scan
 
-                    // Clear pending state after a delay
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    await MainActor.run {
-                        pendingSharingConnectionId = nil
-                        showSharingAlert = false
+        case "journal":
+            pendingDestination = .journal
+
+        case "map":
+            pendingDestination = .map
+
+        case "discover":
+            pendingDestination = .discover
+
+        case "profile":
+            pendingDestination = .profile
+
+        case "sharing":
+            // Handle sharing routes
+            if pathComponents.count >= 3 && pathComponents[1] == "accept" {
+                // Legacy: Handle old-style connection ID links
+                if let connectionId = UUID(uuidString: pathComponents[2]) {
+                    pendingSharingConnectionId = connectionId
+                    showSharingAlert = true
+
+                    Task {
+                        let success = await SharingService.shared.acceptInvitation(connectionId)
+                        if success {
+                            print("Successfully accepted sharing invitation from deep link")
+                        } else {
+                            print("Failed to accept sharing invitation from deep link")
+                        }
+
+                        // Clear pending state after a delay
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        await MainActor.run {
+                            pendingSharingConnectionId = nil
+                            showSharingAlert = false
+                        }
                     }
                 }
+            } else {
+                pendingDestination = .sharing
             }
+
+        case "invite":
+            // Handle invite code: /invite/{code}
+            if pathComponents.count >= 2 {
+                let inviteCode = pathComponents[1]
+                pendingInviteCode = inviteCode
+                pendingDestination = .invite(code: inviteCode)
+
+                // Accept the invite by code
+                Task {
+                    await acceptInviteByCode(inviteCode)
+                }
+            }
+
+        case "wines":
+            // Handle wine detail: /wines/{id}
+            if pathComponents.count >= 2 {
+                let wineId = pathComponents[1]
+                pendingDestination = .wine(id: wineId)
+            }
+
+        default:
+            print("Unknown deep link path: \(firstComponent)")
         }
+    }
+
+    func clearDestination() {
+        pendingDestination = nil
     }
 
     private func acceptInviteByCode(_ code: String) async {

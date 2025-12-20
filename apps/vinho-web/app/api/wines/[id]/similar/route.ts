@@ -74,7 +74,7 @@ export async function GET(
 
     // Get current user (optional - allow public access for demo)
     const {
-      data: { user },
+      data: { user: _user },
     } = await supabase.auth.getUser();
 
     // First, check if this wine has a visual embedding in Vector Bucket

@@ -35,7 +35,6 @@ async function purgeUserData(admin: SupabaseClient<Database>, userId: string) {
     admin.from("photos").delete().eq("user_id", userId),
     admin.from("tastings").delete().eq("user_id", userId),
     admin.from("scans").delete().eq("user_id", userId),
-    admin.from("restaurant_favorites").delete().eq("user_id", userId),
     admin.from("wines_added_queue").delete().eq("user_id", userId),
     admin.from("wines_enrichment_queue").delete().eq("user_id", userId),
     admin.from("user_sharing_preferences").delete().eq("user_id", userId),

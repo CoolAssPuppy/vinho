@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,6 +17,15 @@ import { Sparkles, Mail, Lock, User, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { SocialButtons, type OAuthProvider } from "@/components/auth/SocialButtons";
+import { HCaptcha, type HCaptchaRef } from "@/components/auth/HCaptcha";
+import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
+import {
+  validateEmail,
+  validatePassword,
+  validatePasswordMatch,
+  validateRequired,
+  getAuthErrorMessage,
+} from "@/lib/validation/auth";
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,14 +34,82 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [emailError, setEmailError] = useState<string>();
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [confirmError, setConfirmError] = useState<string>();
+  const [captchaToken, setCaptchaToken] = useState<string>();
+  const captchaRef = useRef<HCaptchaRef>(null);
   const router = useRouter();
   const supabase = createClient();
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (emailError) {
+      const validation = validateEmail(value);
+      if (validation.isValid) {
+        setEmailError(undefined);
+      }
+    }
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    // Clear errors as user types
+    if (passwordErrors.length > 0) {
+      const validation = validatePassword(value);
+      if (validation.isValid) {
+        setPasswordErrors([]);
+      }
+    }
+    // Re-validate confirm password match
+    if (confirmPassword && value !== confirmPassword) {
+      setConfirmError("Passwords do not match");
+    } else if (confirmPassword) {
+      setConfirmError(undefined);
+    }
+  };
+
+  const handleConfirmChange = (value: string) => {
+    setConfirmPassword(value);
+    const matchValidation = validatePasswordMatch(password, value);
+    setConfirmError(matchValidation.error);
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+    // Validate all fields
+    const firstNameValidation = validateRequired(firstName, "First name");
+    const lastNameValidation = validateRequired(lastName, "Last name");
+    const emailValidation = validateEmail(email);
+    const passwordValidation = validatePassword(password);
+    const matchValidation = validatePasswordMatch(password, confirmPassword);
+
+    if (!firstNameValidation.isValid) {
+      toast.error(firstNameValidation.error);
+      return;
+    }
+    if (!lastNameValidation.isValid) {
+      toast.error(lastNameValidation.error);
+      return;
+    }
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error);
+      return;
+    }
+    if (!passwordValidation.isValid) {
+      setPasswordErrors(passwordValidation.errors);
+      return;
+    }
+    if (!matchValidation.isValid) {
+      setConfirmError(matchValidation.error);
+      return;
+    }
+
+    // Check captcha (only if site key is configured)
+    const hasCaptcha = !!process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
+    if (hasCaptcha && !captchaToken) {
+      toast.error("Please complete the captcha verification.");
       return;
     }
 
@@ -47,11 +124,15 @@ export default function RegisterPage() {
           last_name: lastName,
         },
         emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
+        captchaToken: captchaToken || undefined,
       },
     });
 
     if (error) {
-      toast.error(error.message);
+      toast.error(getAuthErrorMessage(error));
+      // Reset captcha on error
+      captchaRef.current?.reset();
+      setCaptchaToken(undefined);
     } else {
       toast.success("Check your email to confirm your account");
       router.push("/auth/verify-email");
@@ -187,14 +268,17 @@ export default function RegisterPage() {
                         type="email"
                         placeholder="wine@example.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleEmailChange(e.target.value)}
                         className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
                         required
                       />
                     </div>
+                    {emailError && (
+                      <p className="text-sm text-red-400">{emailError}</p>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="password" className="text-white/80">
                         Password
@@ -204,14 +288,22 @@ export default function RegisterPage() {
                         <Input
                           id="password"
                           type="password"
-                          placeholder="At least 6 characters"
+                          placeholder="At least 8 characters"
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          onChange={(e) => handlePasswordChange(e.target.value)}
                           className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
                           required
-                          minLength={6}
+                          minLength={8}
                         />
                       </div>
+                      <PasswordStrengthIndicator password={password} />
+                      {passwordErrors.length > 0 && (
+                        <ul className="text-sm text-red-400">
+                          {passwordErrors.map((error) => (
+                            <li key={error}>{error}</li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -225,12 +317,15 @@ export default function RegisterPage() {
                           type="password"
                           placeholder="Confirm your password"
                           value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          onChange={(e) => handleConfirmChange(e.target.value)}
                           className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
                           required
-                          minLength={6}
+                          minLength={8}
                         />
                       </div>
+                      {confirmError && (
+                        <p className="text-sm text-red-400">{confirmError}</p>
+                      )}
                     </div>
                   </div>
 
@@ -245,6 +340,17 @@ export default function RegisterPage() {
                     </Link>
                     .
                   </div>
+
+                  <HCaptcha
+                    ref={captchaRef}
+                    onVerify={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken(undefined)}
+                    onError={() => {
+                      setCaptchaToken(undefined);
+                      toast.error("Captcha error. Please try again.");
+                    }}
+                    className="py-2"
+                  />
 
                   <Button
                     type="submit"

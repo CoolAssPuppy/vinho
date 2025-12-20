@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,11 +17,16 @@ import { Sparkles, Mail, Lock, Wine } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { SocialButtons, type OAuthProvider } from "@/components/auth/SocialButtons";
+import { HCaptcha, type HCaptchaRef } from "@/components/auth/HCaptcha";
+import { validateEmail, getAuthErrorMessage } from "@/lib/validation/auth";
 
 function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState<string>();
+  const [captchaToken, setCaptchaToken] = useState<string>();
+  const captchaRef = useRef<HCaptchaRef>(null);
   const searchParams = useSearchParams();
   const supabase = createClient();
 
@@ -31,18 +36,47 @@ function LoginForm() {
     }
   }, [searchParams]);
 
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (emailError) {
+      const validation = validateEmail(value);
+      if (validation.isValid) {
+        setEmailError(undefined);
+      }
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error);
+      return;
+    }
+
+    // Check captcha (only if site key is configured)
+    const hasCaptcha = !!process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
+    if (hasCaptcha && !captchaToken) {
+      toast.error("Please complete the captcha verification.");
+      return;
+    }
+
     setIsLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: captchaToken ? { captchaToken } : undefined,
     });
 
     if (error) {
-      toast.error(error.message);
+      toast.error(getAuthErrorMessage(error));
       setIsLoading(false);
+      // Reset captcha on error
+      captchaRef.current?.reset();
+      setCaptchaToken(undefined);
     } else {
       toast.success("Welcome back!");
       window.location.href = "/journal";
@@ -150,12 +184,15 @@ function LoginForm() {
                         type="email"
                         placeholder="wine@example.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleEmailChange(e.target.value)}
                         className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
                         required
                         autoComplete="email"
                       />
                     </div>
+                    {emailError && (
+                      <p className="text-sm text-red-400">{emailError}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -183,6 +220,17 @@ function LoginForm() {
                       />
                     </div>
                   </div>
+
+                  <HCaptcha
+                    ref={captchaRef}
+                    onVerify={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken(undefined)}
+                    onError={() => {
+                      setCaptchaToken(undefined);
+                      toast.error("Captcha error. Please try again.");
+                    }}
+                    className="py-2"
+                  />
 
                   <Button
                     type="submit"

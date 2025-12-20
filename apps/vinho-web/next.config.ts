@@ -24,6 +24,20 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb', // Increase limit to 10MB for wine label images
     },
   },
+  async headers() {
+    return [
+      {
+        // Apple App Site Association file for Universal Links and Shared Web Credentials
+        source: '/.well-known/apple-app-site-association',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/json',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

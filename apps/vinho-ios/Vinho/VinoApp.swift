@@ -6,7 +6,9 @@ struct VinoApp: App {
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var hapticManager = HapticManager()
     @StateObject private var deepLinkHandler = DeepLinkHandler()
+    @StateObject private var biometricService = BiometricAuthService.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         setupAppearance()
@@ -14,23 +16,56 @@ struct VinoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(.dark)
-                .environmentObject(authManager)
-                .environmentObject(themeManager)
-                .environmentObject(hapticManager)
-                .environmentObject(deepLinkHandler)
-                .onOpenURL { url in
-                    Task {
-                        let handledAuth = await authManager.handleIncomingURL(url)
-                        if !handledAuth {
-                            deepLinkHandler.handle(url: url)
+            ZStack {
+                ContentView()
+                    .preferredColorScheme(.dark)
+                    .environmentObject(authManager)
+                    .environmentObject(themeManager)
+                    .environmentObject(hapticManager)
+                    .environmentObject(deepLinkHandler)
+                    .environmentObject(biometricService)
+                    .onOpenURL { url in
+                        Task {
+                            let handledAuth = await authManager.handleIncomingURL(url)
+                            if !handledAuth {
+                                deepLinkHandler.handle(url: url)
+                            }
                         }
                     }
+                    .task {
+                        await authManager.checkSession()
+                    }
+
+                // Biometric lock overlay
+                if biometricService.isLocked && authManager.isAuthenticated {
+                    BiometricLockView(biometricService: biometricService)
+                        .transition(.opacity)
+                        .zIndex(100)
                 }
-                .task {
-                    await authManager.checkSession()
-                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: biometricService.isLocked)
+            .onChange(of: scenePhase) { _, newPhase in
+                handleScenePhaseChange(newPhase)
+            }
+        }
+    }
+
+    /// Handle app lifecycle changes for biometric lock
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+        switch phase {
+        case .background:
+            // Lock the app when going to background (if biometric is enabled)
+            if authManager.isAuthenticated {
+                biometricService.lockApp()
+            }
+        case .active:
+            // App became active - biometric prompt will show automatically
+            break
+        case .inactive:
+            // Transitioning - no action needed
+            break
+        @unknown default:
+            break
         }
     }
 

@@ -205,7 +205,6 @@ struct AuthenticationView: View {
                             endPoint: .bottomTrailing
                         ),
                         foregroundColor: .white,
-                        isDisabled: authManager.isLoading,
                         action: {
                             hapticManager.mediumImpact()
                             Task {
@@ -214,7 +213,8 @@ struct AuthenticationView: View {
                                     hapticManager.success()
                                 }
                             }
-                        }
+                        },
+                        isDisabled: authManager.isLoading
                     )
 
                     SocialLoginButton(
@@ -227,7 +227,6 @@ struct AuthenticationView: View {
                             endPoint: .bottomTrailing
                         ),
                         foregroundColor: .white,
-                        isDisabled: authManager.isLoading,
                         action: {
                             hapticManager.mediumImpact()
                             Task {
@@ -236,7 +235,8 @@ struct AuthenticationView: View {
                                     hapticManager.success()
                                 }
                             }
-                        }
+                        },
+                        isDisabled: authManager.isLoading
                     )
 
                     SocialLoginButton(
@@ -249,7 +249,6 @@ struct AuthenticationView: View {
                             endPoint: .bottomTrailing
                         ),
                         foregroundColor: .white,
-                        isDisabled: authManager.isLoading,
                         action: {
                             hapticManager.mediumImpact()
                             Task {
@@ -258,7 +257,8 @@ struct AuthenticationView: View {
                                     hapticManager.success()
                                 }
                             }
-                        }
+                        },
+                        isDisabled: authManager.isLoading
                     )
                 }
             }
@@ -385,6 +385,11 @@ struct SignUpFormView: View {
             )
             .focused($focusedField, equals: .password)
 
+            // Password Strength Indicator
+            if !viewModel.password.isEmpty {
+                PasswordStrengthBar(password: viewModel.password)
+            }
+
             // Password Requirements
             VStack(alignment: .leading, spacing: 8) {
                 PasswordRequirement(
@@ -394,6 +399,10 @@ struct SignUpFormView: View {
                 PasswordRequirement(
                     text: "Contains uppercase letter",
                     isMet: viewModel.password.rangeOfCharacter(from: .uppercaseLetters) != nil
+                )
+                PasswordRequirement(
+                    text: "Contains lowercase letter",
+                    isMet: viewModel.password.rangeOfCharacter(from: .lowercaseLetters) != nil
                 )
                 PasswordRequirement(
                     text: "Contains number",
@@ -579,5 +588,70 @@ struct PasswordRequirement: View {
                 .font(.system(size: 12))
                 .foregroundColor(isMet ? .vinoTextSecondary : .vinoTextTertiary)
         }
+    }
+}
+
+// MARK: - Password Strength Bar
+struct PasswordStrengthBar: View {
+    let password: String
+
+    private var strengthScore: Int {
+        var score = 0
+        if password.count >= 8 { score += 1 }
+        if password.rangeOfCharacter(from: .lowercaseLetters) != nil { score += 1 }
+        if password.rangeOfCharacter(from: .uppercaseLetters) != nil { score += 1 }
+        if password.rangeOfCharacter(from: .decimalDigits) != nil { score += 1 }
+        return score
+    }
+
+    private var strengthLabel: String {
+        switch strengthScore {
+        case 0, 1: return "Weak"
+        case 2: return "Fair"
+        case 3: return "Good"
+        case 4: return "Strong"
+        default: return "Weak"
+        }
+    }
+
+    private var strengthColor: Color {
+        switch strengthScore {
+        case 0, 1: return .vinoError
+        case 2: return .vinoWarning
+        case 3: return .yellow
+        case 4: return .vinoSuccess
+        default: return .vinoError
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Password strength")
+                    .font(.system(size: 12))
+                    .foregroundColor(.vinoTextSecondary)
+                Spacer()
+                Text(strengthLabel)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(strengthColor)
+            }
+
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.vinoDarkTertiary)
+                        .frame(height: 6)
+
+                    // Progress
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(strengthColor)
+                        .frame(width: geometry.size.width * CGFloat(strengthScore) / 4.0, height: 6)
+                        .animation(.easeInOut(duration: 0.3), value: strengthScore)
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(.horizontal, 4)
     }
 }

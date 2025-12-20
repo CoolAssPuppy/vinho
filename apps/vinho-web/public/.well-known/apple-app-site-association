@@ -1,0 +1,77 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["955GSY56UT.com.strategicnerds.vinho"],
+        "components": [
+          {
+            "/": "/scan",
+            "comment": "Open wine scanner"
+          },
+          {
+            "/": "/scan/*",
+            "comment": "Scan results and details"
+          },
+          {
+            "/": "/journal",
+            "comment": "Wine journal"
+          },
+          {
+            "/": "/journal/*",
+            "comment": "Journal entries"
+          },
+          {
+            "/": "/map",
+            "comment": "Wine map"
+          },
+          {
+            "/": "/discover",
+            "comment": "Discover wines"
+          },
+          {
+            "/": "/discover/*",
+            "comment": "Discovery details"
+          },
+          {
+            "/": "/invite/*",
+            "comment": "Sharing invitations"
+          },
+          {
+            "/": "/sharing",
+            "comment": "Sharing management"
+          },
+          {
+            "/": "/sharing/*",
+            "comment": "Sharing details"
+          },
+          {
+            "/": "/profile",
+            "comment": "User profile"
+          },
+          {
+            "/": "/wines/*",
+            "comment": "Wine details"
+          },
+          {
+            "/": "/auth/login",
+            "exclude": true,
+            "comment": "Keep login in browser for OAuth"
+          },
+          {
+            "/": "/auth/register",
+            "exclude": true,
+            "comment": "Keep registration in browser"
+          },
+          {
+            "/": "/auth/callback",
+            "exclude": true,
+            "comment": "OAuth callback stays in browser"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["955GSY56UT.com.strategicnerds.vinho"]
+  }
+}
