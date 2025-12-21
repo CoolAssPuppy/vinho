@@ -136,7 +136,7 @@ fun AuthScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Or continue with",
+                    text = "or continue with",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
@@ -156,6 +156,13 @@ fun AuthScreen(
                 ) {
                     Text("Continue with Apple", color = MaterialTheme.colorScheme.onBackground)
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "We only request your email and basic profile to authenticate.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
             }
         }
 
