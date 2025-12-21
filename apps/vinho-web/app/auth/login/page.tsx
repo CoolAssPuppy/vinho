@@ -230,15 +230,14 @@ function LoginForm() {
                 </form>
 
                 <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center justify-between text-sm text-white/70">
-                    <span>Prefer single-tap access?</span>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-wide text-white/60">
-                      Social
-                    </span>
+                  <div className="flex items-center gap-3 text-sm text-white/70">
+                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    <span>or continue with</span>
+                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                   </div>
                   <SocialButtons onSelect={handleOAuth} disabled={isLoading} />
                   <p className="text-center text-xs text-white/60">
-                    We request the bare minimum: your name and email so your cellar stays synced.
+                    We only request your email and basic profile to authenticate.
                   </p>
                 </div>
 

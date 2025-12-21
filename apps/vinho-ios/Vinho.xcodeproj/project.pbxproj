@@ -52,6 +52,7 @@
 		D9C0E5E85EC5B7FF45530FFB /* StatsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED0979C5BF1EB4DE9122B7C /* StatsService.swift */; };
 		E0FA7C52081459AD4860FCC9 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5F348E1F820731B3193170CD /* Config.plist */; };
 		E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7623913BA99093EBB4AB0B6 /* AuthManager.swift */; };
+		E879BDC38CBBA54D76CAF323 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28B3247AAF2285B6BD3DD63 /* ForgotPasswordView.swift */; };
 		E9DB772961E1A4E1690205FC /* SecretsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */; };
 		F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */ = {isa = PBXBuildFile; fileRef = E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */; };
 		F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */; };
@@ -103,6 +104,7 @@
 		DA7B5EC22E3D6283B0ACDCB6 /* YouMightLikeSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouMightLikeSection.swift; sourceTree = "<group>"; };
 		E0AF7394CBB4C8215CB789F5 /* VisualSimilarityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualSimilarityService.swift; sourceTree = "<group>"; };
 		E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */ = {isa = PBXFileReference; path = Config.xcconfig.template; sourceTree = "<group>"; };
+		E28B3247AAF2285B6BD3DD63 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
 		E7623913BA99093EBB4AB0B6 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		F14AD12FA0227CF918093FD9 /* SharedUsersToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUsersToggleView.swift; sourceTree = "<group>"; };
@@ -258,6 +260,7 @@
 			children = (
 				6A6EF1E9EF11D5869C58E0E4 /* AuthenticationView.swift */,
 				CB249AF6EFC0328F7E44F181 /* BiometricLockView.swift */,
+				E28B3247AAF2285B6BD3DD63 /* ForgotPasswordView.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -506,6 +509,7 @@
 				9F9B647C68AF7E054FC5EA87 /* DeepLinkHandler.swift in Sources */,
 				F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */,
 				38138BE828B613092B1F1921 /* FeedView.swift in Sources */,
+				E879BDC38CBBA54D76CAF323 /* ForgotPasswordView.swift in Sources */,
 				C82DB8F44EC2F17E16B1AC74 /* HapticManager.swift in Sources */,
 				C0348ACC34903A81CF748F9F /* JournalView.swift in Sources */,
 				72F3A047DDFBDC0CE0472531 /* MapView.swift in Sources */,

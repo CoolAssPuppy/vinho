@@ -176,7 +176,7 @@ struct AuthenticationView: View {
                     .fill(Color.vinoTextTertiary.opacity(0.3))
                     .frame(height: 1)
 
-                Text("OR")
+                Text("or continue with")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.vinoTextSecondary)
 
@@ -186,14 +186,6 @@ struct AuthenticationView: View {
             }
 
             VStack(spacing: 12) {
-                Text("Continue with your favorite account")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.vinoText)
-
-                Text("We request only your name and email to create your cellar.")
-                    .font(.system(size: 12))
-                    .foregroundColor(.vinoTextSecondary)
-
                 HStack(spacing: 18) {
                     SocialLoginButton(
                         imageName: "apple-social",
@@ -240,6 +232,11 @@ struct AuthenticationView: View {
                         isDisabled: authManager.isLoading
                     )
                 }
+
+                Text("We only request your email and basic profile to authenticate.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.vinoTextSecondary)
+                    .multilineTextAlignment(.center)
             }
         }
         .padding(.top, 20)
@@ -252,6 +249,7 @@ struct SignInFormView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var hapticManager: HapticManager
     @FocusState private var focusedField: Field?
+    @State private var showingForgotPassword = false
 
     enum Field {
         case email, password
@@ -284,7 +282,7 @@ struct SignInFormView: View {
                 Spacer()
                 Button("Forgot Password?") {
                     hapticManager.lightImpact()
-                    // Handle forgot password
+                    showingForgotPassword = true
                 }
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.vinoAccent)
@@ -317,6 +315,9 @@ struct SignInFormView: View {
                     .foregroundColor(.vinoError)
                     .multilineTextAlignment(.center)
             }
+        }
+        .sheet(isPresented: $showingForgotPassword) {
+            ForgotPasswordView(prefillEmail: viewModel.email)
         }
     }
 }

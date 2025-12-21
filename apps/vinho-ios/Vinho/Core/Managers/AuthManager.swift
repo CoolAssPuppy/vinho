@@ -214,6 +214,10 @@ class AuthManager: ObservableObject {
         isLoading = false
     }
 
+    func resetPassword(email: String) async throws {
+        try await client.auth.resetPasswordForEmail(email)
+    }
+
     func deleteAccount() async {
         isLoading = true
         errorMessage = nil
