@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.strategicnerds.vinho.core.analytics.AnalyticsService
 import com.strategicnerds.vinho.core.places.GooglePlacesService
-import com.strategicnerds.vinho.core.recommendations.VisualSimilarityService
 import com.strategicnerds.vinho.data.model.Scan
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.Wine
@@ -34,8 +33,7 @@ class HomeViewModel @Inject constructor(
     private val wineRepository: WineRepository,
     private val scanRepository: ScanRepository,
     private val analytics: AnalyticsService,
-    val placesService: GooglePlacesService,
-    val similarityService: VisualSimilarityService
+    val placesService: GooglePlacesService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())

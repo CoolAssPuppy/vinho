@@ -11,6 +11,7 @@ import com.strategicnerds.vinho.data.repository.ProfileRepository
 import com.strategicnerds.vinho.data.repository.ScanRepository
 import com.strategicnerds.vinho.data.repository.TastingRepository
 import com.strategicnerds.vinho.data.repository.WineRepository
+import com.strategicnerds.vinho.core.recommendations.VisualSimilarityService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -62,4 +63,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideScanRepository(client: SupabaseClient): ScanRepository = ScanRepository(client)
+
+    @Provides
+    @Singleton
+    fun provideVisualSimilarityService(client: SupabaseClient): VisualSimilarityService =
+        VisualSimilarityService(client)
 }

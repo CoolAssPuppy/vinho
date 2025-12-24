@@ -1,7 +1,6 @@
 package com.strategicnerds.vinho.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -34,14 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -49,43 +41,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.strategicnerds.vinho.core.recommendations.SimilarWinesResult
-import com.strategicnerds.vinho.core.recommendations.VisualSimilarityService
 import com.strategicnerds.vinho.data.model.RecommendationType
 import com.strategicnerds.vinho.data.model.SimilarWine
-import kotlinx.coroutines.launch
+import com.strategicnerds.vinho.ui.state.SuggestionsUiState
 
 @Composable
 fun YouMightLikeSection(
+    state: SuggestionsUiState,
     hasTastings: Boolean,
-    similarityService: VisualSimilarityService,
+    onLoadIfNeeded: () -> Unit,
+    onRefresh: () -> Unit,
     onWineClick: (SimilarWine) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var wines by remember { mutableStateOf<List<SimilarWine>>(emptyList()) }
-    var recommendationType by remember { mutableStateOf(RecommendationType.YOUR_FAVORITES) }
-    var isLoading by remember { mutableStateOf(false) }
-    var hasLoaded by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
-    suspend fun fetchSimilarWines() {
-        isLoading = true
-        errorMessage = null
-        try {
-            val result = similarityService.fetchSimilarWines()
-            wines = result.wines
-            recommendationType = result.recommendationType
-            hasLoaded = true
-        } catch (e: Exception) {
-            errorMessage = e.message ?: "Failed to load recommendations"
-        }
-        isLoading = false
-    }
-
     LaunchedEffect(hasTastings) {
-        if (hasTastings && !hasLoaded) {
-            fetchSimilarWines()
+        if (hasTastings) {
+            onLoadIfNeeded()
         }
     }
 
@@ -93,16 +64,16 @@ fun YouMightLikeSection(
 
     Box(modifier = modifier) {
         when {
-            isLoading -> LoadingView()
-            errorMessage != null -> ErrorView(
-                message = errorMessage!!,
-                onRetry = { scope.launch { fetchSimilarWines() } }
+            state.isLoading -> LoadingView()
+            state.errorMessage != null -> ErrorView(
+                message = state.errorMessage,
+                onRetry = onRefresh
             )
-            wines.isEmpty() && hasLoaded -> EmptyView()
-            wines.isNotEmpty() -> ContentView(
-                wines = wines,
-                recommendationType = recommendationType,
-                onRefresh = { scope.launch { fetchSimilarWines() } },
+            state.wines.isEmpty() && state.hasLoaded -> EmptyView()
+            state.wines.isNotEmpty() -> ContentView(
+                wines = state.wines,
+                recommendationType = state.recommendationType,
+                onRefresh = onRefresh,
                 onWineClick = onWineClick
             )
             else -> LoadingView()

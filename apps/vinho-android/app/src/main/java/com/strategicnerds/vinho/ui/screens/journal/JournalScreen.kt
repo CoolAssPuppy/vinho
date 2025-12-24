@@ -52,13 +52,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.strategicnerds.vinho.core.recommendations.VisualSimilarityService
 import com.strategicnerds.vinho.data.model.SimilarWine
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.WineStats
 import com.strategicnerds.vinho.ui.components.YouMightLikeSection
 import com.strategicnerds.vinho.ui.state.HomeUiState
 import com.strategicnerds.vinho.ui.state.SessionUiState
+import com.strategicnerds.vinho.ui.state.SuggestionsUiState
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -81,10 +81,12 @@ enum class TimeFilter(val label: String) {
 fun JournalScreen(
     sessionState: SessionUiState,
     state: HomeUiState,
+    suggestionsState: SuggestionsUiState,
     onSearch: (String) -> Unit,
     onTastingClick: (Tasting) -> Unit = {},
     onRefresh: () -> Unit = {},
-    similarityService: VisualSimilarityService? = null,
+    onLoadSuggestions: () -> Unit = {},
+    onRefreshSuggestions: () -> Unit = {},
     onSimilarWineClick: (SimilarWine) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
@@ -161,8 +163,10 @@ fun JournalScreen(
                     onTastingClick = onTastingClick
                 )
                 1 -> SuggestionsTab(
+                    suggestionsState = suggestionsState,
                     hasTastings = state.tastings.isNotEmpty(),
-                    similarityService = similarityService,
+                    onLoadIfNeeded = onLoadSuggestions,
+                    onRefresh = onRefreshSuggestions,
                     onWineClick = onSimilarWineClick
                 )
             }
@@ -233,27 +237,17 @@ private fun TastingsTab(
 
 @Composable
 private fun SuggestionsTab(
+    suggestionsState: SuggestionsUiState,
     hasTastings: Boolean,
-    similarityService: VisualSimilarityService?,
+    onLoadIfNeeded: () -> Unit,
+    onRefresh: () -> Unit,
     onWineClick: (SimilarWine) -> Unit
 ) {
-    if (similarityService == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Suggestions not available",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
-        }
-        return
-    }
-
     YouMightLikeSection(
+        state = suggestionsState,
         hasTastings = hasTastings,
-        similarityService = similarityService,
+        onLoadIfNeeded = onLoadIfNeeded,
+        onRefresh = onRefresh,
         onWineClick = onWineClick,
         modifier = Modifier
             .fillMaxSize()

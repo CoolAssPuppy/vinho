@@ -51,6 +51,7 @@ import com.strategicnerds.vinho.ui.screens.scanner.ScannerSheet
 import com.strategicnerds.vinho.ui.state.HomeViewModel
 import com.strategicnerds.vinho.ui.state.ScannerViewModel
 import com.strategicnerds.vinho.ui.state.SessionUiState
+import com.strategicnerds.vinho.ui.state.SuggestionsViewModel
 
 @Composable
 fun HomeScreen(
@@ -59,11 +60,13 @@ fun HomeScreen(
     onDeleteAccount: () -> Unit,
     onToggleBiometrics: (Boolean) -> Unit,
     homeViewModel: HomeViewModel = hiltViewModel(),
-    scannerViewModel: ScannerViewModel = hiltViewModel()
+    scannerViewModel: ScannerViewModel = hiltViewModel(),
+    suggestionsViewModel: SuggestionsViewModel = hiltViewModel()
 ) {
     val placesService = homeViewModel.placesService
     val homeState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val scannerState by scannerViewModel.uiState.collectAsStateWithLifecycle()
+    val suggestionsState by suggestionsViewModel.uiState.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var showProfile by remember { mutableStateOf(false) }
@@ -107,6 +110,7 @@ fun HomeScreen(
                     0 -> JournalScreen(
                         sessionState = sessionState,
                         state = homeState,
+                        suggestionsState = suggestionsState,
                         onSearch = { query ->
                             sessionState.userProfile?.id?.let { homeViewModel.search(query, it) }
                         },
@@ -117,7 +121,12 @@ fun HomeScreen(
                         onRefresh = {
                             homeViewModel.load(sessionState.userProfile?.id)
                         },
-                        similarityService = homeViewModel.similarityService,
+                        onLoadSuggestions = {
+                            suggestionsViewModel.loadIfNeeded(homeState.tastings.isNotEmpty())
+                        },
+                        onRefreshSuggestions = {
+                            suggestionsViewModel.refresh()
+                        },
                         onSimilarWineClick = { /* TODO: Navigate to wine detail */ }
                     )
 
