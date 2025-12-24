@@ -23,11 +23,11 @@ fun localSecret(key: String, defaultValue: String = ""): String =
     (localProperties.getProperty(key) ?: defaultValue).ifBlank { defaultValue }
 
 android {
-    namespace = "com.vinho.android"
+    namespace = "com.strategicnerds.vinho"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.vinho.android"
+        applicationId = "com.strategicnerds.vinho"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -35,10 +35,12 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${localSecret("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localSecret("SUPABASE_ANON_KEY")}\"")
-        buildConfigField("String", "VINHO_API_BASE_URL", "\"${localSecret("VINHO_API_BASE_URL", "https://vinho.dev")}\"")
+        buildConfigField("String", "VINHO_API_BASE_URL", "\"${localSecret("VINHO_API_BASE_URL", "https://www.vinho.dev")}\"")
         buildConfigField("String", "MAPS_API_KEY", "\"${localSecret("MAPS_API_KEY")}\"")
         buildConfigField("String", "POSTHOG_API_KEY", "\"${localSecret("POSTHOG_API_KEY")}\"")
         buildConfigField("String", "POSTHOG_HOST", "\"${localSecret("POSTHOG_HOST", "https://app.posthog.com")}\"")
+
+        manifestPlaceholders["MAPS_API_KEY"] = localSecret("MAPS_API_KEY")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -67,6 +69,10 @@ android {
         jvmTarget = "21"
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-opt-in=kotlinx.serialization.ExperimentalSerializationApi",
+            "-opt-in=io.ktor.util.InternalAPI",
             "-Xcontext-receivers"
         )
     }
@@ -94,6 +100,7 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     androidTestImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
 
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.compose.ui:ui")
@@ -115,17 +122,31 @@ dependencies {
 
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.maps.android:maps-compose:6.2.1")
 
-    implementation("com.posthog:posthog-android:2.1.1")
+    implementation("com.posthog:posthog-android:3.9.3")
 
-    implementation(platform("io.github.jan-tennert.supabase:bom:2.5.5"))
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.0.3"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    implementation("io.github.jan-tennert.supabase:gotrue-kt")
+    implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:storage-kt")
     implementation("io.github.jan-tennert.supabase:functions-kt")
-    implementation("io.ktor:ktor-client-okhttp:2.3.12")
+    implementation("io.ktor:ktor-client-okhttp:3.0.3")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("com.russhwolf:multiplatform-settings-no-arg:1.2.0")
+
+    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+
+    // CameraX
+    val cameraxVersion = "1.4.0"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
 
     implementation("com.google.dagger:hilt-android:2.52")
     kapt("com.google.dagger:hilt-compiler:2.52")

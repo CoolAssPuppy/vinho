@@ -26,3 +26,6 @@ mcp.json
 Config.local.xcconfig
 *.local.xcconfig
 apps/vinho-ios/Vinho/Config.plist
+
+# Android Gradle wrapper jar
+apps/vinho-android/gradle/wrapper/gradle-wrapper.jar
