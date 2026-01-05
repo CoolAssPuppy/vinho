@@ -459,7 +459,7 @@ struct TastingNoteCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 // Wine Name + Vintage as title with shared indicator
                 HStack(spacing: 6) {
-                    Text("\(note.wineName) \(note.vintage != nil ? String(note.vintage!) : "NV")")
+                    Text("\(note.wineName) \(note.vintage.map { String($0) } ?? "NV")")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.vinoText)
                         .lineLimit(1)
@@ -664,7 +664,7 @@ extension JournalView {
                 pendingWinesCount = wines.count
             }
         } catch {
-            print("Error loading pending wines: \(error)")
+            // Error loading pending wines - silently continue
         }
     }
 
@@ -698,15 +698,12 @@ class JournalViewModel: ObservableObject {
         let tastings = await dataService.fetchUserTastingsPaginated(page: 0, pageSize: pageSize)
         hasMorePages = tastings.count == pageSize
 
-        print("DataService has \(tastings.count) tastings for page 0")
-
         // Convert tastings to TastingNoteWithWine format
         let newNotes = convertTastings(tastings)
 
         // Only update if we got data or if this is the initial load
         allNotes = newNotes
         notes = allNotes
-        print("Converted to \(notes.count) TastingNoteWithWine objects")
         isLoading = false
     }
 
@@ -798,7 +795,7 @@ class JournalViewModel: ObservableObject {
             // Refresh the data service
             await dataService.fetchUserTastings()
         } catch {
-            print("Error deleting tasting: \(error)")
+            // Error deleting tasting - UI will remain unchanged
         }
     }
 

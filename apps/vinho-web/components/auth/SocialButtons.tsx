@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
-export type OAuthProvider = "apple" | "google" | "facebook";
+export type OAuthProvider = "apple" | "google";
 
 interface SocialButtonsProps {
   onSelect: (provider: OAuthProvider) => void;
@@ -16,7 +16,6 @@ interface SocialButtonsProps {
 const providers: { id: OAuthProvider; label: string; icon: string }[] = [
   { id: "apple", label: "Sign in with Apple", icon: "/icons/apple.svg" },
   { id: "google", label: "Sign in with Google", icon: "/icons/google.svg" },
-  { id: "facebook", label: "Sign in with Facebook", icon: "/icons/facebook.svg" },
 ];
 
 export function SocialButtons({ onSelect, disabled, loading, className }: SocialButtonsProps) {

@@ -7,7 +7,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { identifyUser, resetUser, capture, ANALYTICS_EVENTS } from "@/lib/analytics";
@@ -41,10 +41,7 @@ export function UserProvider({ children }: UserProviderProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  const supabase = createClient();
 
   const fetchUserData = async () => {
     try {

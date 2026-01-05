@@ -382,28 +382,6 @@ struct WineListCell: View {
     }
 }
 
-// MARK: - Rating Badge
-struct RatingBadge: View {
-    let rating: Double
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "star.fill")
-                .font(.system(size: 10, weight: .bold))
-            Text(String(format: "%.1f", rating))
-                .font(.system(size: 12, weight: .bold))
-        }
-        .foregroundColor(.white)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            Capsule()
-                .fill(LinearGradient.vinoGradient)
-                .shadow(color: .vinoPrimary.opacity(0.3), radius: 4, x: 0, y: 2)
-        )
-    }
-}
-
 // MARK: - Filter Sheet
 struct FilterSheet: View {
     @ObservedObject var viewModel: WineListViewModel
@@ -495,30 +473,6 @@ struct FilterSection<Content: View>: View {
                 .foregroundColor(.vinoText)
             
             content()
-        }
-    }
-}
-
-struct FilterChip: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: .medium))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? LinearGradient.vinoGradient : LinearGradient(colors: [Color.vinoDarkSecondary], startPoint: .leading, endPoint: .trailing))
-                        .overlay(
-                            Capsule()
-                                .stroke(isSelected ? Color.clear : Color.vinoBorder, lineWidth: 1)
-                        )
-                )
-                .foregroundColor(isSelected ? .white : .vinoTextSecondary)
         }
     }
 }

@@ -25,7 +25,6 @@ final class AnalyticsService {
     func configure() {
         guard let apiKey = SecretsManager.shared.string(for: "NEXT_PUBLIC_POSTHOG_KEY"),
               !apiKey.isEmpty else {
-            print("[Analytics] PostHog API key not found, skipping initialization")
             return
         }
 
@@ -47,12 +46,6 @@ final class AnalyticsService {
         config.preloadFeatureFlags = true
 
         PostHogSDK.shared.setup(config)
-
-        #if DEBUG
-        print("[Analytics] PostHog initialized in DEBUG mode (events will be logged, not sent)")
-        #else
-        print("[Analytics] PostHog initialized in production mode")
-        #endif
     }
 
     // MARK: - User Identification
@@ -62,10 +55,7 @@ final class AnalyticsService {
     ///   - userId: The unique user identifier (Supabase user ID)
     ///   - properties: Optional user properties to set
     func identify(userId: String, properties: [String: Any]? = nil) {
-        if !isEnabled {
-            print("[Analytics Dev] identify: \(userId), properties: \(properties ?? [:])")
-            return
-        }
+        guard isEnabled else { return }
 
         if let properties = properties {
             PostHogSDK.shared.identify(userId, userProperties: properties)
@@ -76,11 +66,7 @@ final class AnalyticsService {
 
     /// Reset the current user identity on logout.
     func reset() {
-        if !isEnabled {
-            print("[Analytics Dev] reset")
-            return
-        }
-
+        guard isEnabled else { return }
         PostHogSDK.shared.reset()
     }
 
@@ -91,10 +77,7 @@ final class AnalyticsService {
     ///   - event: The event to capture
     ///   - properties: Optional event properties
     func capture(_ event: AnalyticsEvent, properties: [String: Any]? = nil) {
-        if !isEnabled {
-            print("[Analytics Dev] \(event.rawValue): \(properties ?? [:])")
-            return
-        }
+        guard isEnabled else { return }
 
         if let properties = properties {
             PostHogSDK.shared.capture(event.rawValue, properties: properties)
@@ -123,17 +106,7 @@ final class AnalyticsService {
 
     /// Capture an error
     func captureError(_ error: Error, component: String? = nil, action: String? = nil) {
-        let properties = ErrorProperties(
-            errorMessage: error.localizedDescription,
-            errorType: String(describing: type(of: error)),
-            component: component,
-            action: action
-        )
-
-        if !isEnabled {
-            print("[Analytics Dev] Error: \(properties.dictionary)")
-            return
-        }
+        guard isEnabled else { return }
 
         PostHogSDK.shared.capture("$exception", properties: [
             "$exception_message": error.localizedDescription,
@@ -147,10 +120,7 @@ final class AnalyticsService {
 
     /// Set a persistent user property
     func setUserProperty(_ property: String, value: Any) {
-        if !isEnabled {
-            print("[Analytics Dev] setUserProperty: \(property) = \(value)")
-            return
-        }
+        guard isEnabled else { return }
 
         PostHogSDK.shared.identify(
             PostHogSDK.shared.getDistinctId(),

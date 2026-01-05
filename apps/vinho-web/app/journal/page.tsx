@@ -14,8 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogContentNoX } from "@/components/ui/dialog-no-x";
 import Link from "next/link";
-import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@/lib/database.types";
+import { createClient } from "@/lib/supabase";
 import { TastingNoteForm } from "@/components/tasting/TastingNoteForm";
 import { TastingCard } from "@/components/journal/TastingCard";
 import { SearchBar } from "@/components/journal/SearchBar";
@@ -51,10 +50,7 @@ export default function JournalPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const PAGE_SIZE = 12;
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  const supabase = createClient();
 
   const fetchTastings = async (loadMore = false) => {
     if (!loadMore) {

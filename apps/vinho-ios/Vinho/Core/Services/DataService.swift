@@ -2,6 +2,25 @@ import Foundation
 import Supabase
 import Combine
 
+// MARK: - Debug Logging
+
+#if DEBUG
+private func logDecodingError(_ error: DecodingError) {
+    switch error {
+    case .typeMismatch(let type, let context):
+        print("[DataService] Type mismatch: \(type) at \(context.codingPath)")
+    case .valueNotFound(let type, let context):
+        print("[DataService] Value not found: \(type) at \(context.codingPath)")
+    case .keyNotFound(let key, let context):
+        print("[DataService] Key not found: \(key) at \(context.codingPath)")
+    case .dataCorrupted(let context):
+        print("[DataService] Data corrupted at \(context.codingPath)")
+    @unknown default:
+        print("[DataService] Unknown decoding error")
+    }
+}
+#endif
+
 @MainActor
 class DataService: ObservableObject {
     static let shared = DataService()
@@ -197,19 +216,9 @@ class DataService: ObservableObject {
 
             self.tastings = fullResponse
         } catch let decodingError as DecodingError {
-            switch decodingError {
-            case .typeMismatch(let type, let context):
-                print("   Type mismatch: \(type) at \(context.codingPath)")
-                print("   Debug description: \(context.debugDescription)")
-            case .valueNotFound(let type, let context):
-                print("   Value not found: \(type) at \(context.codingPath)")
-            case .keyNotFound(let key, let context):
-                print("   Key not found: \(key) at \(context.codingPath)")
-            case .dataCorrupted(let context):
-                print("   Data corrupted at \(context.codingPath)")
-            @unknown default:
-                print("   Unknown decoding error")
-            }
+            #if DEBUG
+            logDecodingError(decodingError)
+            #endif
             errorMessage = "Failed to decode tastings: \(decodingError.localizedDescription)"
         } catch {
             errorMessage = "Failed to fetch tastings: \(error.localizedDescription)"
@@ -264,18 +273,9 @@ class DataService: ObservableObject {
 
             return fullResponse
         } catch let decodingError as DecodingError {
-            switch decodingError {
-            case .typeMismatch(let type, let context):
-                print("   Type mismatch: \(type) at \(context.codingPath)")
-            case .valueNotFound(let type, let context):
-                print("   Value not found: \(type) at \(context.codingPath)")
-            case .keyNotFound(let key, let context):
-                print("   Key not found: \(key) at \(context.codingPath)")
-            case .dataCorrupted(let context):
-                print("   Data corrupted at \(context.codingPath)")
-            @unknown default:
-                print("   Unknown decoding error")
-            }
+            #if DEBUG
+            logDecodingError(decodingError)
+            #endif
             return []
         } catch {
             return []
@@ -331,19 +331,9 @@ class DataService: ObservableObject {
 
             return fullResponse
         } catch let decodingError as DecodingError {
-            switch decodingError {
-            case .typeMismatch(let type, let context):
-                print("   Type mismatch: \(type) at \(context.codingPath)")
-                print("   Debug description: \(context.debugDescription)")
-            case .valueNotFound(let type, let context):
-                print("   Value not found: \(type) at \(context.codingPath)")
-            case .keyNotFound(let key, let context):
-                print("   Key not found: \(key) at \(context.codingPath)")
-            case .dataCorrupted(let context):
-                print("   Data corrupted at \(context.codingPath)")
-            @unknown default:
-                print("   Unknown decoding error")
-            }
+            #if DEBUG
+            logDecodingError(decodingError)
+            #endif
             errorMessage = "Failed to decode tastings: \(decodingError.localizedDescription)"
             return []
         } catch {
@@ -399,7 +389,6 @@ class DataService: ObservableObject {
 
             return tastings
         } catch {
-            print("Search failed: \(error)")
             errorMessage = "Search failed: \(error.localizedDescription)"
             return []
         }
@@ -486,7 +475,6 @@ class DataService: ObservableObject {
 
             return tastings
         } catch {
-            print("Failed to fetch tastings for wine: \(error)")
             errorMessage = "Failed to fetch wine tastings: \(error.localizedDescription)"
             return []
         }
@@ -643,7 +631,7 @@ class DataService: ObservableObject {
                     let feedItem = FeedItem(
                         type: .tasting,
                         title: "\(wine.name)",
-                        description: "By \(producer.name)" + (tasting.notes != nil ? "\n\(tasting.notes!)" : ""),
+                        description: "By \(producer.name)" + (tasting.notes.map { "\n\($0)" } ?? ""),
                         imageUrl: nil,
                         tags: [],
                         timestamp: tasting.createdAt,
@@ -656,7 +644,7 @@ class DataService: ObservableObject {
                 }
             }
         } catch {
-            print("Failed to fetch recent tastings: \(error)")
+            // Error fetching recent tastings - silently continue
         }
 
         // Fetch recent scans
@@ -700,7 +688,7 @@ class DataService: ObservableObject {
                 }
             }
         } catch {
-            print("Failed to fetch recent scans: \(error)")
+            // Error fetching recent scans - silently continue
         }
 
         // Sort by timestamp
@@ -747,12 +735,12 @@ class DataService: ObservableObject {
 
     /// Post notification when wine data changes to trigger UI updates
     func notifyWineDataChanged() {
-        NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+        NotificationCenter.default.post(name: Constants.Notifications.wineDataChanged, object: nil)
     }
 
     /// Post notification when tasting data changes to trigger UI updates
     func notifyTastingDataChanged() {
-        NotificationCenter.default.post(name: NSNotification.Name("TastingDataChanged"), object: nil)
+        NotificationCenter.default.post(name: Constants.Notifications.tastingDataChanged, object: nil)
     }
 
     // MARK: - Enhanced Tasting Methods
@@ -771,8 +759,6 @@ class DataService: ObservableObject {
         locationLongitude: Double? = nil
     ) async -> Bool {
         guard let userId = try? await client.auth.session.user.id else { return false }
-
-        print("DataService.saveTasting - Location: \(locationName ?? "nil"), City: \(locationCity ?? "nil"), Lat: \(locationLatitude ?? 0)")
 
         let tasting = Tasting(
             id: id ?? UUID(),
@@ -903,7 +889,6 @@ class DataService: ObservableObject {
 
             return expertRating
         } catch {
-            print("[DataService] Failed to fetch expert rating: \(error)")
             return nil
         }
     }

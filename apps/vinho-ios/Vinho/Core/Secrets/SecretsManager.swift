@@ -17,24 +17,22 @@ class SecretsManager {
            let data = try? Data(contentsOf: url),
            let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] {
             self.secrets = plist
-            print("✅ Loaded \(secrets.count) secrets from Doppler")
-            print("Available keys: \(secrets.keys.sorted())")
-            // Check for Supabase keys specifically
-            if secrets["NEXT_PUBLIC_SUPABASE_URL"] != nil {
-                print("✅ Found NEXT_PUBLIC_SUPABASE_URL")
-            } else {
-                print("⚠️ NEXT_PUBLIC_SUPABASE_URL not found in secrets")
-            }
-            if secrets["NEXT_PUBLIC_SUPABASE_ANON_KEY"] != nil {
-                print("✅ Found NEXT_PUBLIC_SUPABASE_ANON_KEY")
-            } else {
-                print("⚠️ NEXT_PUBLIC_SUPABASE_ANON_KEY not found in secrets")
-            }
+            #if DEBUG
+            debugLog("Loaded \(secrets.count) secrets from Doppler")
+            #endif
         } else {
-            print("⚠️ Warning: Config.plist not found in bundle. Using fallback values.")
+            #if DEBUG
+            debugLog("Config.plist not found in bundle. Using fallback values.")
+            #endif
             loadFallbackSecrets()
         }
     }
+
+    #if DEBUG
+    private func debugLog(_ message: String) {
+        // Only log in debug builds
+    }
+    #endif
 
     private func loadFallbackSecrets() {
         // Fallback for development when not using Doppler

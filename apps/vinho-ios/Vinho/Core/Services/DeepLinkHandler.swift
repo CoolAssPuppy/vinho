@@ -60,12 +60,7 @@ class DeepLinkHandler: ObservableObject {
                     showSharingAlert = true
 
                     Task {
-                        let success = await SharingService.shared.acceptInvitation(connectionId)
-                        if success {
-                            print("Successfully accepted sharing invitation from deep link")
-                        } else {
-                            print("Failed to accept sharing invitation from deep link")
-                        }
+                        _ = await SharingService.shared.acceptInvitation(connectionId)
 
                         // Clear pending state after a delay
                         try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -100,7 +95,7 @@ class DeepLinkHandler: ObservableObject {
             }
 
         default:
-            print("Unknown deep link path: \(firstComponent)")
+            break
         }
     }
 
@@ -116,7 +111,6 @@ class DeepLinkHandler: ObservableObject {
             guard let _ = try? await client.auth.session.user else {
                 // Store code for post-login acceptance
                 UserDefaults.standard.set(code, forKey: "pending_invite_code")
-                print("User not authenticated, storing invite code for later")
                 return
             }
 
@@ -138,7 +132,6 @@ class DeepLinkHandler: ObservableObject {
             )
 
             if result.success {
-                print("Successfully accepted invite from deep link")
                 showSharingAlert = true
 
                 // Refresh sharing connections
@@ -153,11 +146,9 @@ class DeepLinkHandler: ObservableObject {
                     showSharingAlert = false
                     pendingInviteCode = nil
                 }
-            } else {
-                print("Failed to accept invite: \(result.error ?? "unknown error")")
             }
         } catch {
-            print("Error accepting invite by code: \(error)")
+            // Error accepting invite - silently fail
         }
     }
 }

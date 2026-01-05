@@ -104,12 +104,11 @@ Minimal permissions: **name** and **email** (Apple may only return name on first
 **Create Services ID (for web):**
 - [ ] Create or select Service ID (e.g., `com.strategicnerds.vinho.web`)
 - [ ] Enable "Sign in with Apple"
-- [ ] Configure:
-  - Return URLs:
-    - `https://vinho.dev/auth/callback`
-    - `http://localhost:3000/auth/callback`
-    - `vinho://auth-callback`
-  - Domains: `vinho.dev`
+- [ ] Configure Website URLs:
+  - **Domains**: `aghiopwrzzvamssgcwpv.supabase.co` (your Supabase project domain)
+  - **Return URLs**: `https://aghiopwrzzvamssgcwpv.supabase.co/auth/v1/callback`
+
+  Note: Apple only accepts HTTPS URLs. The OAuth flow goes through Supabase, which then redirects to your app's callback URLs configured in Supabase.
 
 **Create Sign in with Apple Key:**
 - [ ] Go to Keys > Create new key
@@ -125,62 +124,52 @@ Minimal permissions: **name** and **email** (Apple may only return name on first
 
 - [ ] Go to Supabase Dashboard > Authentication > Providers > Apple
 - [ ] Enable Apple provider
-- [ ] Enter:
-  - **Client ID**: Service ID (e.g., `com.strategicnerds.vinho.web`)
-  - **Team ID**: From Apple Developer Console
-  - **Key ID**: From Apple Developer Console
-  - **Private Key**: Contents of `.p8` file
-  - **Scopes**: `name email`
+- [ ] Configure:
+  - **Client IDs**: Comma-separated list of all App IDs and Service IDs:
+    - `com.strategicnerds.vinho` (iOS App ID / Bundle ID)
+    - `com.strategicnerds.vinho.web` (Service ID for web)
+    - `host.exp.Exponent` (if testing with Expo Go)
+  - **Secret Key (for OAuth)**: A JWT signed with your `.p8` key. Generate with:
+    - Team ID: `955GSY56UT`
+    - Key ID: `AY25H65TAY`
+    - Service ID: `com.strategicnerds.vinho.web`
+    - The secret expires every 6 months and must be regenerated
+  - **Callback URL (for OAuth)**: Read-only. Copy this URL and add it to Apple's Service ID configuration
 
 ### 4.2 Google Sign In
 
 Minimal permissions: **email** and **profile**.
 
-#### Google Cloud Console
-
-- [ ] Go to [Google Cloud Console](https://console.cloud.google.com/)
-- [ ] Navigate to APIs & Services > Credentials
-
-**Create OAuth Client ID:**
-- [ ] Create OAuth 2.0 Client ID (Web application)
-- [ ] Set Authorized redirect URIs:
-  - `https://vinho.dev/auth/callback`
-  - `http://localhost:3000/auth/callback`
-- [ ] Set Authorized JavaScript origins:
-  - `https://vinho.dev`
-  - `http://localhost:3000`
-- [ ] Note **Client ID** and **Client Secret**
-
-#### Supabase Configuration
+#### Supabase Configuration (do this first)
 
 - [ ] Go to Supabase Dashboard > Authentication > Providers > Google
 - [ ] Enable Google provider
-- [ ] Enter Client ID and Client Secret
-- [ ] Set scopes: `email profile`
+- [ ] Copy the **Callback URL (for OAuth)** shown (e.g., `https://aghiopwrzzvamssgcwpv.supabase.co/auth/v1/callback`)
 
-### 4.3 Facebook Sign In
+#### Google Cloud Console
 
-Minimal permissions: **public_profile** and **email**.
+- [ ] Go to [Google Cloud Console](https://console.cloud.google.com/)
+- [ ] Navigate to APIs & Services > OAuth consent screen
+  - [ ] Configure consent screen (External or Internal)
+  - [ ] Add scopes (search for "userinfo"):
+    - `.../auth/userinfo.email` - See your primary Google Account email address
+    - `.../auth/userinfo.profile` - See your personal info
+  - [ ] Add test users if in testing mode
+- [ ] Navigate to APIs & Services > Credentials
 
-#### Meta Developer Console
+**Create OAuth Client ID:**
+- [ ] Click "Create Credentials" > OAuth client ID
+- [ ] Application type: Web application
+- [ ] Set Authorized JavaScript origins:
+  - `https://aghiopwrzzvamssgcwpv.supabase.co`
+- [ ] Set Authorized redirect URIs:
+  - Paste the Callback URL from Supabase (e.g., `https://aghiopwrzzvamssgcwpv.supabase.co/auth/v1/callback`)
+- [ ] Note **Client ID** and **Client Secret**
 
-- [ ] Go to [Meta for Developers](https://developers.facebook.com/)
-- [ ] Create or select app > Facebook Login > Settings
+#### Back to Supabase
 
-**Configure OAuth:**
-- [ ] Add Valid OAuth Redirect URIs:
-  - `https://vinho.dev/auth/callback`
-  - `http://localhost:3000/auth/callback`
-- [ ] Add App Domain: `vinho.dev`
-- [ ] Note **App ID** and **App Secret**
-- [ ] Put app in Live mode (or add testers)
-
-#### Supabase Configuration
-
-- [ ] Go to Supabase Dashboard > Authentication > Providers > Facebook
-- [ ] Enable Facebook provider
-- [ ] Enter App ID and App Secret
-- [ ] Set scopes: `public_profile email`
+- [ ] Enter Client ID and Client Secret from Google
+- [ ] Save
 
 ---
 
@@ -299,7 +288,6 @@ Ensure Doppler includes:
 - [ ] Password update works (`/auth/update-password`)
 - [ ] Apple Sign In redirects and authenticates
 - [ ] Google Sign In redirects and authenticates
-- [ ] Facebook Sign In redirects and authenticates
 - [ ] Protected routes redirect to login when unauthenticated
 - [ ] Profile > Privacy & Security > Delete Account works
 
@@ -309,9 +297,8 @@ Ensure Doppler includes:
 - [ ] Email/password login works
 - [ ] Email/password signup works with HCaptcha
 - [ ] Password strength indicator shows during signup
-- [ ] Apple Sign In: Safari sheet opens, completes, app returns authenticated
+- [ ] Apple Sign In: Native Apple sheet opens, completes, app returns authenticated
 - [ ] Google Sign In: Safari sheet opens, completes, app returns authenticated
-- [ ] Facebook Sign In: Safari sheet opens, completes, app returns authenticated
 - [ ] Biometric can be enabled in settings
 - [ ] App locks when going to background (if biometric enabled)
 - [ ] Face ID/Touch ID unlocks the app
@@ -363,6 +350,5 @@ Ensure Doppler includes:
 We only request minimal permissions:
 - **Apple**: `name`, `email` (name delivered once on first consent)
 - **Google**: `email`, `profile`
-- **Facebook**: `public_profile`, `email`
 
 No contacts, friends lists, ads permissions, or extended device permissions are requested.

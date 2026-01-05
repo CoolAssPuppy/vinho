@@ -101,15 +101,10 @@ export function TastingCard({ tasting, onEdit }: TastingCardProps) {
               {/* Community Rating */}
               {communityRating && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Vinho Rating</span>
+                  <span className="text-sm text-muted-foreground">Community Average</span>
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm font-medium">{communityRating.toFixed(1)}</span>
-                    {communityRatingCount && communityRatingCount > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        ({communityRatingCount})
-                      </span>
-                    )}
                   </div>
                 </div>
               )}

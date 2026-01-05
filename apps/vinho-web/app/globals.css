@@ -110,3 +110,71 @@
 body {
   font-family: var(--font-sans);
 }
+
+/* Typography System */
+@layer components {
+  /* Display text */
+  .text-display-lg {
+    @apply text-4xl font-bold tracking-tight;
+  }
+  .text-display-md {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  .text-display-sm {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  /* Title text */
+  .text-title-lg {
+    @apply text-xl font-semibold;
+  }
+  .text-title-md {
+    @apply text-lg font-semibold;
+  }
+  .text-title-sm {
+    @apply text-base font-semibold;
+  }
+
+  /* Body text */
+  .text-body-lg {
+    @apply text-base font-normal;
+  }
+  .text-body-md {
+    @apply text-sm font-normal;
+  }
+  .text-body-sm {
+    @apply text-xs font-normal;
+  }
+
+  /* Label text */
+  .text-label-lg {
+    @apply text-sm font-medium;
+  }
+  .text-label-md {
+    @apply text-xs font-medium;
+  }
+  .text-label-sm {
+    @apply text-[11px] font-medium;
+  }
+
+  /* Caption text */
+  .text-caption {
+    @apply text-xs text-muted-foreground;
+  }
+
+  /* Stat value */
+  .text-stat {
+    @apply text-2xl font-bold tabular-nums;
+  }
+}
+
+/* Spacing System */
+@theme inline {
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+}

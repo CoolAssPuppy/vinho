@@ -1,18 +1,19 @@
-# Vinho 🍷
+# Vinho
 
 Cloud-only Supabase monorepo for a terroir-first, privacy-respecting wine journal and recommender.
 
 ## Overview
 
-Vinho is a wine education platform that focuses on teaching users about wine through geography, history, and terroir rather than commerce. Built with Next.js, Supabase, and SwiftUI.
+Vinho is a wine education platform that focuses on teaching users about wine through geography, history, and terroir rather than commerce. Built with Next.js, Supabase, SwiftUI, and Jetpack Compose.
 
 ## Tech Stack
 
-- **Web**: Next.js 15, TypeScript, Tailwind CSS, shadcn/ui
+- **Web**: Next.js 16, TypeScript, Tailwind CSS, shadcn/ui
 - **Backend**: Supabase (PostgreSQL, Auth, Edge Functions, Storage)
-- **Mobile**: SwiftUI (iOS 17+), MapKit
+- **iOS**: SwiftUI (iOS 17+), MapKit
+- **Android**: Kotlin, Jetpack Compose, Material 3
 - **Secrets**: Doppler for environment management
-- **Deployment**: Vercel
+- **Deployment**: Vercel (web), App Store (iOS), Play Store (Android)
 
 ## Getting Started
 
@@ -104,24 +105,36 @@ npm run build:doppler
 vinho/
 ├── apps/
 │   ├── vinho-web/        # Next.js web application
-│   └── VinhoApp/         # iOS application (SwiftUI)
-├── packages/
-│   └── db-types/         # Shared TypeScript types
+│   ├── vinho-ios/        # iOS application (SwiftUI)
+│   └── vinho-android/    # Android application (Jetpack Compose)
 ├── supabase/
 │   ├── migrations/       # Database migrations
-│   └── functions/        # Edge Functions
+│   ├── functions/        # Edge Functions
+│   ├── seeds/            # Seed data (regions, varietals, etc.)
+│   └── auth-emails/      # Custom auth email templates
+├── scripts/              # Development and deployment scripts
 └── docs/                 # Documentation
 ```
 
 ## Features
 
-- 🍷 Wine label scanning with OCR
-- 🗺️ Interactive wine region exploration
-- 📖 Personal tasting journal
-- 🎓 Wine education through terroir
-- 🔍 Smart wine recommendations
-- 📋 Restaurant wine list parsing
-- 🔐 Privacy-first design
+- Wine label scanning with OCR
+- Interactive wine region exploration
+- Personal tasting journal
+- Wine education through terroir
+- Smart wine recommendations
+- Restaurant wine list parsing
+- Privacy-first design
+
+## Test users
+
+For development and testing purposes, the following test accounts are available:
+
+| Name | Email | Purpose |
+|------|-------|---------|
+| Test User | testuser@strategicnerds.com | General testing and QA |
+
+Note: Contact the project maintainer for test account credentials.
 
 ## Documentation
 

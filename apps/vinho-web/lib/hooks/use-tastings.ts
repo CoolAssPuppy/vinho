@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '@/lib/database.types';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { createClient } from '@/lib/supabase';
 
 export interface TastingWithSharing {
   id: string;
@@ -65,10 +64,7 @@ export function useTastings(limit: number = 100, offset: number = 0) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchTastings = useCallback(async (newLimit?: number, newOffset?: number) => {
     setLoading(true);

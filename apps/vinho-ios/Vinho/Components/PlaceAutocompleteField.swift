@@ -214,7 +214,7 @@ class GooglePlacesService: ObservableObject {
             body["includedPrimaryTypes"] = types
         }
 
-        let url = URL(string: "https://places.googleapis.com/v1/places:autocomplete")!
+        let url = Constants.URLs.googlePlacesAutocomplete
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -238,7 +238,7 @@ class GooglePlacesService: ObservableObject {
             throw PlacesError.missingAPIKey
         }
 
-        let url = URL(string: "https://places.googleapis.com/v1/places/\(placeId)")!
+        let url = Constants.URLs.googlePlaceDetails(placeId: placeId)
         var request = URLRequest(url: url)
         request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
         request.setValue("displayName,formattedAddress,location", forHTTPHeaderField: "X-Goog-FieldMask")

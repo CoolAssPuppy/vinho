@@ -1,10 +1,9 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { Database } from "@/lib/database.types";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface RealtimeContextType {
@@ -17,10 +16,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  const supabase = createClient();
 
   // Get current user ID
   useEffect(() => {

@@ -434,122 +434,27 @@ struct WineDetailView: View {
 
     @ViewBuilder
     var expertRatingSection: some View {
-        // Show side-by-side ratings if we have any data
-        let hasExpertRating = expertRating?.rating != nil
-        let hasCommunityRating = wine.communityRating != nil
-
-        if isLoadingExpertRating || hasExpertRating || hasCommunityRating {
-            HStack(spacing: 12) {
-                // Vivino Rating Box - Tappable to refresh
-                VStack(spacing: 8) {
-                    Text("Vivino Rating")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.vinoTextSecondary)
-                        .textCase(.uppercase)
-
-                    if isLoadingExpertRating {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .vinoAccent))
-                            .frame(height: 32)
-                        Text("Loading...")
-                            .font(.system(size: 10))
-                            .foregroundColor(.vinoTextTertiary)
-                    } else if let rating = expertRating, let ratingValue = rating.rating {
-                        Text(String(format: "%.1f", ratingValue))
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.vinoText)
-
-                        if let ratingCount = rating.ratingCount {
-                            Text("\(formatRatingCount(ratingCount)) ratings")
-                                .font(.system(size: 10))
-                                .foregroundColor(.vinoTextTertiary)
-                        }
-                    } else {
-                        Text("-")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.vinoTextTertiary)
-
-                        Text("Not available")
-                            .font(.system(size: 10))
-                            .foregroundColor(.vinoTextTertiary)
+        let ratingsView = RatingsComparisonView(
+            vivinoRating: expertRating?.rating,
+            vivinoRatingCount: expertRating?.ratingCount,
+            communityRating: wine.communityRating,
+            communityRatingCount: wine.communityRatingCount,
+            isLoadingVivino: isLoadingExpertRating,
+            onVivinoTap: {
+                hapticManager.lightImpact()
+                if let vintageId = wine.vintageId {
+                    Task {
+                        await fetchExpertRating(vintageId: vintageId, forceRefresh: true)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.vinoDark)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.vinoGold.opacity(0.2), lineWidth: 1)
-                        )
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    hapticManager.lightImpact()
-                    if let vintageId = wine.vintageId {
-                        Task {
-                            await fetchExpertRating(vintageId: vintageId, forceRefresh: true)
-                        }
-                    }
-                }
-
-                // Vinho Rating Box (Community Rating) - Tappable to refresh
-                VStack(spacing: 8) {
-                    Text("Vinho Rating")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.vinoTextSecondary)
-                        .textCase(.uppercase)
-
-                    if let communityRating = wine.communityRating {
-                        Text(String(format: "%.1f", communityRating))
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.vinoText)
-
-                        Text("Community average")
-                            .font(.system(size: 10))
-                            .foregroundColor(.vinoTextTertiary)
-                    } else {
-                        Text("-")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(.vinoTextTertiary)
-
-                        Text("No ratings yet")
-                            .font(.system(size: 10))
-                            .foregroundColor(.vinoTextTertiary)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.vinoDark)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.vinoAccent.opacity(0.2), lineWidth: 1)
-                        )
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    hapticManager.lightImpact()
-                    if let vintageId = wine.vintageId {
-                        Task {
-                            await fetchExpertRating(vintageId: vintageId, forceRefresh: true)
-                        }
-                    }
-                }
+            },
+            onCommunityTap: {
+                hapticManager.lightImpact()
             }
-        }
-        // If no ratings at all and not loading, show nothing
-    }
+        )
 
-    private func formatRatingCount(_ count: Int) -> String {
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", Double(count) / 1_000_000)
-        } else if count >= 1_000 {
-            return String(format: "%.1fK", Double(count) / 1_000)
-        } else {
-            return "\(count)"
+        if ratingsView.shouldDisplay {
+            ratingsView
         }
     }
 
@@ -978,10 +883,9 @@ struct WineDetailView: View {
                     hapticManager.success()
 
                     // Post notification to refresh other views
-                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                    NotificationCenter.default.post(name: Constants.Notifications.wineDataChanged, object: nil)
                 }
             } catch {
-                print("Error updating producer: \(error)")
                 await MainActor.run {
                     isSaving = false
                     hapticManager.error()
@@ -1015,10 +919,9 @@ struct WineDetailView: View {
                     hapticManager.success()
 
                     // Post notification to refresh wine list
-                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                    NotificationCenter.default.post(name: Constants.Notifications.wineDataChanged, object: nil)
                 }
             } catch {
-                print("Error updating wine name: \(error)")
                 await MainActor.run {
                     isSaving = false
                     hapticManager.error()
@@ -1047,10 +950,9 @@ struct WineDetailView: View {
                     hapticManager.success()
 
                     // Post notification to refresh wine list
-                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                    NotificationCenter.default.post(name: Constants.Notifications.wineDataChanged, object: nil)
                 }
             } catch {
-                print("Error updating wine description: \(error)")
                 await MainActor.run {
                     isSaving = false
                     hapticManager.error()
@@ -1121,10 +1023,9 @@ struct WineDetailView: View {
                     }
                     isSaving = false
                     hapticManager.success()
-                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                    NotificationCenter.default.post(name: Constants.Notifications.wineDataChanged, object: nil)
                 }
             } catch {
-                print("Error updating wine field \(field): \(error)")
                 await MainActor.run {
                     isSaving = false
                     hapticManager.error()
@@ -1210,13 +1111,12 @@ struct WineDetailView: View {
 
                     isEnrichingWithAI = false
                     hapticManager.success()
-                    NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                    NotificationCenter.default.post(name: Constants.Notifications.wineDataChanged, object: nil)
                 }
             } else {
                 throw NSError(domain: "Enrichment", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to enrich wine"])
             }
         } catch {
-            print("Error enriching wine with AI: \(error)")
             await MainActor.run {
                 isEnrichingWithAI = false
                 hapticManager.error()

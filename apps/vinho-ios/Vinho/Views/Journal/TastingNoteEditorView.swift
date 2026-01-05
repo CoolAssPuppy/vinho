@@ -581,13 +581,6 @@ struct TastingNoteEditorView: View {
         let tastingNotes = tastingStyle == .casual ? nil : (notes.isEmpty ? nil : notes)
         let technicalNotes = tastingStyle == .winemaker ? (detailedNotes.isEmpty ? nil : detailedNotes) : nil
 
-        print("Saving tasting - ID: \(existingTasting?.id.uuidString ?? "new"), Rating: \(rating), Notes: \(tastingNotes ?? "none")")
-        if let loc = selectedLocation {
-            print("Location: \(loc.name), Address: \(loc.address), City: \(loc.city ?? "nil"), Lat: \(loc.latitude ?? 0), Lng: \(loc.longitude ?? 0)")
-        } else {
-            print("No location selected")
-        }
-
         let success = await viewModel.saveTasting(
             id: existingTasting?.id,
             vintageId: vintageId,
@@ -599,7 +592,6 @@ struct TastingNoteEditorView: View {
         )
 
         if success {
-            print("Tasting saved successfully")
             // Show toast
             withAnimation {
                 showingToast = true
@@ -607,8 +599,6 @@ struct TastingNoteEditorView: View {
             // Wait 0.3 seconds then dismiss
             try? await Task.sleep(nanoseconds: 300_000_000)
             dismiss()
-        } else {
-            print("Failed to save tasting")
         }
     }
 }

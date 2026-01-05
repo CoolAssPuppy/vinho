@@ -160,13 +160,16 @@ struct PrivacySecurityView: View {
                 isDeletingAccount = true
                 deleteError = nil
                 Task {
-                    await authManager.deleteAccount()
-                    await MainActor.run {
-                        isDeletingAccount = false
-                        if authManager.errorMessage == nil {
+                    do {
+                        try await authManager.deleteAccount()
+                        await MainActor.run {
+                            isDeletingAccount = false
                             hapticManager.success()
-                        } else {
-                            deleteError = authManager.errorMessage
+                        }
+                    } catch {
+                        await MainActor.run {
+                            isDeletingAccount = false
+                            deleteError = authManager.errorMessage ?? error.localizedDescription
                             hapticManager.error()
                         }
                     }
@@ -528,22 +531,22 @@ struct WinePreferencesView: View {
     }
     
     private func performSave() async {
+        guard let existingProfile = authManager.userProfile else {
+            await handleSaveError()
+            return
+        }
+
         do {
-            let updatedProfile = createUpdatedProfile()
+            let updatedProfile = createUpdatedProfile(from: existingProfile)
             try await saveToDatabase(profile: updatedProfile)
             await handleSaveSuccess(profile: updatedProfile)
         } catch {
-            print("❌ Save error: \(error)")
-            print("❌ Error details: \(error.localizedDescription)")
-            if let decodingError = error as? DecodingError {
-                print("❌ Decoding error: \(decodingError)")
-            }
             await handleSaveError()
         }
     }
-    
-    private func createUpdatedProfile() -> UserProfile {
-        var updatedProfile = authManager.userProfile!
+
+    private func createUpdatedProfile(from existingProfile: UserProfile) -> UserProfile {
+        var updatedProfile = existingProfile
         updatedProfile.favoriteRegions = Array(selectedRegions)
         updatedProfile.favoriteVarietals = Array(selectedVarietals)
         updatedProfile.favoriteStyles = Array(selectedStyles)

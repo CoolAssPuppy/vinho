@@ -9,6 +9,10 @@ struct ProfileView: View {
     @State private var showingImagePicker = false
     @State private var showingEditProfile = false
     @State private var showingVivinoImport = false
+    @State private var showingDeleteAccount = false
+    @State private var deleteConfirmation = ""
+    @State private var deleteErrorMessage: String?
+    @State private var isDeletingAccount = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var navigationPath = NavigationPath()
 
@@ -39,7 +43,10 @@ struct ProfileView: View {
                         
                         // Sign Out Button
                         signOutButton
-                        
+
+                        // Delete Account Link
+                        deleteAccountButton
+
                         Spacer(minLength: 50)
                     }
                     .padding(.horizontal, 20)
@@ -92,6 +99,9 @@ struct ProfileView: View {
             Task {
                 await handlePhotoSelection(newValue)
             }
+        }
+        .sheet(isPresented: $showingDeleteAccount) {
+            deleteAccountSheet
         }
     }
     
@@ -333,7 +343,212 @@ struct ProfileView: View {
         .padding(.top, 16)
         .padding(.bottom, 32)
     }
-    
+
+    var deleteAccountButton: some View {
+        Button {
+            hapticManager.lightImpact()
+            showingDeleteAccount = true
+        } label: {
+            Text("Delete Account")
+                .font(.system(size: 13))
+                .foregroundColor(.vinoTextTertiary)
+        }
+    }
+
+    var deleteAccountSheet: some View {
+        NavigationView {
+            ZStack {
+                Color.vinoDark.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Warning Icon Header
+                        VStack(spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.white)
+                                .padding(24)
+                                .background(
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.vinoError, Color.vinoError.opacity(0.7)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                )
+
+                            Text("Delete Account")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.vinoText)
+
+                            Text("This action cannot be undone")
+                                .font(.system(size: 16))
+                                .foregroundColor(.vinoTextSecondary)
+                        }
+                        .padding(.top, 24)
+
+                        // What Will Be Deleted Section
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("What will be deleted")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.vinoText)
+
+                            DeleteItemRow(icon: "wineglass", title: "Your wine collection", description: "All scanned and saved wines")
+                            DeleteItemRow(icon: "note.text", title: "Tasting notes", description: "All your tasting notes and ratings")
+                            DeleteItemRow(icon: "photo.stack", title: "Photos", description: "Wine label and bottle photos")
+                            DeleteItemRow(icon: "person.crop.circle", title: "Your profile", description: "Name, photo, and preferences")
+                            DeleteItemRow(icon: "person.2", title: "Sharing connections", description: "All shared collections")
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.vinoError.opacity(0.08))
+                        )
+
+                        // Confirmation Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Confirm deletion")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.vinoText)
+
+                            Text("Type DELETE to confirm you want to permanently delete your account and all associated data.")
+                                .font(.system(size: 14))
+                                .foregroundColor(.vinoTextSecondary)
+
+                            TextField("Type DELETE", text: $deleteConfirmation)
+                                .textInputAutocapitalization(.characters)
+                                .disableAutocorrection(true)
+                                .font(.system(size: 16))
+                                .foregroundColor(.vinoText)
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.vinoDarkSecondary)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(
+                                            deleteConfirmation.uppercased() == "DELETE" ? Color.vinoError : Color.vinoBorder,
+                                            lineWidth: deleteConfirmation.uppercased() == "DELETE" ? 2 : 1
+                                        )
+                                )
+
+                            if let errorMessage = deleteErrorMessage {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                    Text(errorMessage)
+                                }
+                                .font(.system(size: 14))
+                                .foregroundColor(.vinoError)
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.vinoError.opacity(0.1))
+                                )
+                            }
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.vinoDarkSecondary)
+                        )
+
+                        // Action Buttons
+                        VStack(spacing: 16) {
+                            Button {
+                                hapticManager.mediumImpact()
+                                performAccountDeletion()
+                            } label: {
+                                HStack {
+                                    if isDeletingAccount {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    } else {
+                                        Image(systemName: "trash.fill")
+                                        Text("Delete My Account")
+                                            .fontWeight(.semibold)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(
+                                            deleteConfirmation.uppercased() == "DELETE" && !isDeletingAccount
+                                                ? Color.vinoError
+                                                : Color.vinoError.opacity(0.4)
+                                        )
+                                )
+                                .foregroundColor(.white)
+                            }
+                            .disabled(deleteConfirmation.uppercased() != "DELETE" || isDeletingAccount)
+
+                            Button {
+                                hapticManager.lightImpact()
+                                showingDeleteAccount = false
+                                deleteConfirmation = ""
+                                deleteErrorMessage = nil
+                            } label: {
+                                Text("Cancel")
+                                    .fontWeight(.medium)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                            }
+                            .foregroundColor(.vinoTextSecondary)
+                        }
+
+                        Spacer(minLength: 40)
+                    }
+                    .padding(20)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        showingDeleteAccount = false
+                        deleteConfirmation = ""
+                        deleteErrorMessage = nil
+                    }
+                    .foregroundColor(.vinoAccent)
+                }
+            }
+        }
+    }
+
+    private func performAccountDeletion() {
+        guard deleteConfirmation.uppercased() == "DELETE" else {
+            deleteErrorMessage = "Type DELETE to confirm."
+            return
+        }
+
+        Task {
+            await MainActor.run {
+                isDeletingAccount = true
+                deleteErrorMessage = nil
+            }
+
+            do {
+                try await authManager.deleteAccount()
+                await MainActor.run {
+                    isDeletingAccount = false
+                    showingDeleteAccount = false
+                    deleteConfirmation = ""
+                    hapticManager.success()
+                }
+            } catch {
+                await MainActor.run {
+                    isDeletingAccount = false
+                    deleteErrorMessage = authManager.errorMessage ?? error.localizedDescription
+                    hapticManager.error()
+                }
+            }
+        }
+    }
+
     func handlePhotoSelection(_ item: PhotosPickerItem?) async {
         guard let item = item else { return }
 
@@ -398,7 +613,7 @@ struct MenuRow: View {
     let title: String
     let showChevron: Bool
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
@@ -406,13 +621,13 @@ struct MenuRow: View {
                     .font(.system(size: 18))
                     .foregroundColor(.vinoAccent)
                     .frame(width: 24)
-                
+
                 Text(title)
                     .font(.system(size: 16))
                     .foregroundColor(.vinoText)
-                
+
                 Spacer()
-                
+
                 if showChevron {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14))
@@ -421,6 +636,33 @@ struct MenuRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
+        }
+    }
+}
+
+// MARK: - Delete Item Row
+struct DeleteItemRow: View {
+    let icon: String
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundColor(.vinoError)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.vinoText)
+                Text(description)
+                    .font(.system(size: 14))
+                    .foregroundColor(.vinoTextSecondary)
+            }
+
+            Spacer()
         }
     }
 }

@@ -22,9 +22,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase";
 import { useDebounce } from "@/hooks/use-debounce";
-import type { Database } from "@/lib/database.types";
 import type { WineLocation, RecentWine, WineStats } from "@/lib/types/shared";
 import {
   Table,
@@ -73,10 +72,7 @@ export default function MapPage() {
   const hasInitialLoad = useRef(false);
   // const router = useRouter();
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  const supabase = createClient();
 
   // Fetch complete stats from materialized view
   const fetchStats = useCallback(async () => {

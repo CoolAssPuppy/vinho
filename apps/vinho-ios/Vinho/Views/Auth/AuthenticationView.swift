@@ -216,21 +216,6 @@ struct AuthenticationView: View {
                         },
                         isDisabled: authManager.isLoading
                     )
-
-                    SocialLoginButton(
-                        imageName: "facebook-social",
-                        title: "Facebook",
-                        action: {
-                            hapticManager.mediumImpact()
-                            Task {
-                                await authManager.signInWithOAuth(provider: .facebook)
-                                if authManager.isAuthenticated {
-                                    hapticManager.success()
-                                }
-                            }
-                        },
-                        isDisabled: authManager.isLoading
-                    )
                 }
 
                 Text("We only request your email and basic profile to authenticate.")

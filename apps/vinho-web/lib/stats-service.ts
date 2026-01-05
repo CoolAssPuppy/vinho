@@ -1,5 +1,4 @@
-import { createBrowserClient } from "@supabase/ssr";
-import type { Database } from "@/lib/database.types";
+import { createClient } from "@/lib/supabase";
 
 export interface WineStats {
   uniqueWines: number;
@@ -18,10 +17,7 @@ export interface WineStats {
  * Uses the user_wine_stats view for consistency across the app
  */
 export class StatsService {
-  private supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  private supabase = createClient();
 
   /**
    * Fetch comprehensive wine statistics for the current user

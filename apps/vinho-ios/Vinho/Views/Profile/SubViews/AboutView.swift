@@ -73,7 +73,7 @@ struct AboutView: View {
                             .foregroundColor(.vinoText)
 
                         VStack(alignment: .leading, spacing: 12) {
-                            Link(destination: URL(string: "https://vinho.dev")!) {
+                            Link(destination: Constants.URLs.vinhoWeb) {
                                 HStack {
                                     Image(systemName: "globe")
                                         .foregroundColor(.vinoAccent)
@@ -82,7 +82,7 @@ struct AboutView: View {
                                 }
                             }
 
-                            Link(destination: URL(string: "mailto:hello@strategicnerds.com")!) {
+                            Link(destination: Constants.URLs.supportEmail) {
                                 HStack {
                                     Image(systemName: "envelope.fill")
                                         .foregroundColor(.vinoAccent)
@@ -91,7 +91,7 @@ struct AboutView: View {
                                 }
                             }
 
-                            Link(destination: URL(string: "https://www.picksandshovels.dev")!) {
+                            Link(destination: Constants.URLs.picksAndShovels) {
                                 HStack {
                                     Image(systemName: "book.fill")
                                         .foregroundColor(.vinoAccent)
@@ -100,7 +100,7 @@ struct AboutView: View {
                                 }
                             }
 
-                            Link(destination: URL(string: "https://www.strategicnerds.com")!) {
+                            Link(destination: Constants.URLs.strategicNerds) {
                                 HStack {
                                     Image(systemName: "doc.richtext")
                                         .foregroundColor(.vinoAccent)

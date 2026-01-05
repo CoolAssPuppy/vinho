@@ -90,12 +90,7 @@ function LoginForm() {
       provider,
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        scopes:
-          provider === "apple"
-            ? "name email"
-            : provider === "facebook"
-              ? "public_profile email"
-              : "email profile",
+        scopes: provider === "apple" ? "name email" : "email profile",
       },
     });
 

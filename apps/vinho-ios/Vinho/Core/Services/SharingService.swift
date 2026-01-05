@@ -35,7 +35,6 @@ class SharingService: ObservableObject {
             decoder.dateDecodingStrategy = .iso8601
             connections = try decoder.decode([SharingConnection].self, from: response.data)
         } catch {
-            print("Error fetching sharing connections: \(error)")
             errorMessage = "Failed to fetch sharing connections: \(error.localizedDescription)"
         }
         isLoading = false
@@ -101,7 +100,6 @@ class SharingService: ObservableObject {
                 return (false, result.error ?? "Failed to send invitation")
             }
         } catch {
-            print("Error sending invitation: \(error)")
             errorMessage = "Failed to send invitation: \(error.localizedDescription)"
             return (false, error.localizedDescription)
         }
@@ -126,7 +124,6 @@ class SharingService: ObservableObject {
             await fetchSharingConnections()
             return true
         } catch {
-            print("Error accepting invitation: \(error)")
             errorMessage = "Failed to accept invitation: \(error.localizedDescription)"
             return false
         }
@@ -143,7 +140,6 @@ class SharingService: ObservableObject {
             await fetchSharingConnections()
             return true
         } catch {
-            print("Error rejecting invitation: \(error)")
             errorMessage = "Failed to reject invitation: \(error.localizedDescription)"
             return false
         }
@@ -165,7 +161,6 @@ class SharingService: ObservableObject {
             await fetchSharingConnections()
             return true
         } catch {
-            print("Error revoking sharing: \(error)")
             errorMessage = "Failed to revoke sharing: \(error.localizedDescription)"
             return false
         }
@@ -201,9 +196,8 @@ class SharingService: ObservableObject {
             preferences = prefs
 
             // Notify data service to refresh tastings
-            NotificationCenter.default.post(name: NSNotification.Name("TastingDataChanged"), object: nil)
+            NotificationCenter.default.post(name: Constants.Notifications.tastingDataChanged, object: nil)
         } catch {
-            print("Error updating preferences: \(error)")
             errorMessage = "Failed to update preferences: \(error.localizedDescription)"
         }
     }
@@ -228,7 +222,6 @@ class SharingService: ObservableObject {
 
             preferences = newPrefs
         } catch {
-            print("Error creating default preferences: \(error)")
             errorMessage = "Failed to create default preferences: \(error.localizedDescription)"
         }
     }

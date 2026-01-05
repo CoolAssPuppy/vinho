@@ -440,7 +440,6 @@ struct ScanResultView: View {
                 attempt += 1
 
             } catch {
-                print("Error checking processing status: \(error)")
                 // Continue polling even on errors
                 try? await Task.sleep(for: .seconds(1))
                 attempt += 1

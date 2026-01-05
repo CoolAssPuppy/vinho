@@ -523,12 +523,12 @@ struct WineMapDetailCard: View {
                         .foregroundColor(.vinoTextSecondary)
                 }
 
-                if mapView == .origins && wine.country != nil {
+                if mapView == .origins, let country = wine.country {
                     HStack(spacing: 6) {
                         Image(systemName: "globe")
                             .font(.system(size: 12))
                             .foregroundColor(.vinoTextSecondary)
-                        Text(wine.country!)
+                        Text(country)
                             .font(.system(size: 13))
                             .foregroundColor(.vinoTextSecondary)
                     }
@@ -677,15 +677,21 @@ class MapViewModel: ObservableObject {
         // Cancel any pending timer
         regionChangeTimer?.invalidate()
 
+        // Only refetch if the region changed significantly from when we last loaded data
+        let shouldRefetch: Bool
+        if let previousRegion = lastRegion {
+            let centerChanged = abs(previousRegion.center.latitude - newRegion.center.latitude) > 0.5 ||
+                               abs(previousRegion.center.longitude - newRegion.center.longitude) > 0.5
+            let zoomChanged = abs(previousRegion.span.latitudeDelta - newRegion.span.latitudeDelta) > 5.0
+            shouldRefetch = centerChanged || zoomChanged
+        } else {
+            shouldRefetch = true
+        }
+
         // Store the new region
         lastRegion = newRegion
 
-        // Only refetch if the region changed significantly from when we last loaded data
-        let centerChanged = abs(lastRegion!.center.latitude - newRegion.center.latitude) > 0.5 ||
-                           abs(lastRegion!.center.longitude - newRegion.center.longitude) > 0.5
-        let zoomChanged = abs(lastRegion!.span.latitudeDelta - newRegion.span.latitudeDelta) > 5.0
-
-        if centerChanged || zoomChanged {
+        if shouldRefetch {
             // Clear cache to force reload with new viewport
             cachedOrigins.removeAll()
             cachedTastings.removeAll()
@@ -696,7 +702,6 @@ class MapViewModel: ObservableObject {
                     await self.loadWines(for: self.locations == self.cachedOrigins ? .origins : .tastings)
                 }
             }
-            self.lastRegion = newRegion
         }
     }
 }

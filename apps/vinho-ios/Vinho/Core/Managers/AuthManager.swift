@@ -2,10 +2,12 @@ import Foundation
 import Supabase
 import Combine
 import SwiftUI
+import AuthenticationServices
 
 @MainActor
 class AuthManager: ObservableObject {
     private let analytics = AnalyticsService.shared
+    private let appleSignInService = AppleSignInService.shared
     @Published var user: User?
 @Published var userProfile: UserProfile?
 @Published var isAuthenticated = false
@@ -15,7 +17,7 @@ class AuthManager: ObservableObject {
     private var apiBaseURL: URL {
         SecretsManager.shared.url(for: "VINHO_WEB_BASE_URL") ??
         SecretsManager.shared.url(for: "VINHO_API_BASE_URL") ??
-        URL(string: "https://vinho.dev")!
+        Constants.URLs.vinhoWeb
     }
 
     private var cancellables = Set<AnyCancellable>()
@@ -131,16 +133,18 @@ class AuthManager: ObservableObject {
         errorMessage = nil
 
         do {
+            // Use native Apple Sign In for Apple provider
+            if provider == .apple {
+                await signInWithApple()
+                return
+            }
+
             let redirectURL = URL(string: "vinho://auth-callback")
             let scopes: String?
 
             switch provider {
             case .google:
                 scopes = "email profile"
-            case .facebook:
-                scopes = "email public_profile"
-            case .apple:
-                scopes = "name email"
             default:
                 scopes = nil
             }
@@ -165,6 +169,42 @@ class AuthManager: ObservableObject {
             analytics.capture(.userSignedIn, properties: [
                 "auth_provider": provider.rawValue
             ])
+        } catch {
+            errorMessage = error.localizedDescription
+            isAuthenticated = false
+        }
+
+        isLoading = false
+    }
+
+    /// Sign in with Apple using native AuthenticationServices
+    func signInWithApple() async {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let session = try await appleSignInService.signIn()
+
+            self.user = session.user
+            self.isAuthenticated = true
+            await fetchUserProfile(userId: session.user.id)
+
+            // Track Apple sign in and identify user
+            analytics.identify(userId: session.user.id.uuidString, properties: [
+                "email": session.user.email ?? "",
+                "created_at": session.user.createdAt.ISO8601Format()
+            ])
+            analytics.capture(.userSignedIn, properties: [
+                "auth_provider": "apple"
+            ])
+        } catch let error as AppleSignInService.AuthError {
+            // Don't show error message for user cancellation
+            if case .userCanceled = error {
+                errorMessage = nil
+            } else {
+                errorMessage = error.localizedDescription
+            }
+            isAuthenticated = false
         } catch {
             errorMessage = error.localizedDescription
             isAuthenticated = false
@@ -218,41 +258,52 @@ class AuthManager: ObservableObject {
         try await client.auth.resetPasswordForEmail(email)
     }
 
-    func deleteAccount() async {
+    func deleteAccount() async throws {
         isLoading = true
         errorMessage = nil
 
-        do {
-            let session = try await client.auth.session
-            var request = URLRequest(url: apiBaseURL.appendingPathComponent("api/account/delete"))
-            request.httpMethod = "POST"
-            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        defer { isLoading = false }
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+        let session = try await client.auth.session
 
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw URLError(.badServerResponse)
-            }
-
-            if (200..<300).contains(httpResponse.statusCode) {
-                await signOut()
-                errorMessage = nil
-            } else {
-                if
-                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                    let serverError = json["error"] as? String
-                {
-                    errorMessage = serverError
-                } else {
-                    errorMessage = "Unable to delete your account right now. Please try again."
-                }
-            }
-        } catch {
-            errorMessage = error.localizedDescription
+        // Get Supabase URL from SecretsManager
+        guard let supabaseURL = SecretsManager.shared.url(for: "SUPABASE_URL") else {
+            errorMessage = "Missing Supabase configuration"
+            throw NSError(domain: "AuthManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing Supabase configuration"])
         }
 
-        isLoading = false
+        let deleteURL = supabaseURL.appendingPathComponent("functions/v1/delete-account")
+
+        var request = URLRequest(url: deleteURL)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            errorMessage = "Invalid server response"
+            throw URLError(.badServerResponse)
+        }
+
+        if httpResponse.statusCode >= 300 {
+            if
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                let serverError = json["error"] as? String
+            {
+                errorMessage = serverError
+                throw NSError(domain: "AuthManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: serverError])
+            } else {
+                errorMessage = "Unable to delete your account right now. Please try again."
+                throw NSError(domain: "AuthManager", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Unable to delete account"])
+            }
+        }
+
+        // Track account deletion
+        analytics.capture(.userSignedOut, properties: ["reason": "account_deleted"])
+
+        // Sign out after successful deletion
+        await signOut()
     }
 
     func fetchUserProfile(userId: UUID) async {
@@ -290,7 +341,6 @@ class AuthManager: ObservableObject {
             
             self.userProfile = profile
         } catch {
-            print("Error fetching user profile: \(error)")
             // If there's an error, create a minimal profile
             self.userProfile = UserProfile(id: userId, email: user?.email)
         }

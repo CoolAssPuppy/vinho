@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { createBrowserClient } from "@supabase/ssr"
-import type { Database } from "@/lib/database.types"
+import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -29,10 +28,7 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [inviteCode, setInviteCode] = useState<string | null>(null)
 
-  const supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   const acceptInvite = useCallback(async () => {
     if (!inviteCode) return

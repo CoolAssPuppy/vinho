@@ -282,95 +282,13 @@ struct TastingNoteDetailView: View {
     }
 
     var ratingsComparisonSection: some View {
-        HStack(spacing: 12) {
-            // Vivino Rating Box
-            VStack(spacing: 8) {
-                Text("Vivino Rating")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.vinoTextSecondary)
-                    .textCase(.uppercase)
-
-                if isLoadingExpertRating {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .vinoAccent))
-                        .frame(height: 32)
-                } else if let rating = expertRating, let ratingValue = rating.rating {
-                    Text(String(format: "%.1f", ratingValue))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.vinoText)
-
-                    if let ratingCount = rating.ratingCount {
-                        Text("\(formatRatingCount(ratingCount)) ratings")
-                            .font(.system(size: 10))
-                            .foregroundColor(.vinoTextTertiary)
-                    }
-                } else {
-                    Text("-")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.vinoTextTertiary)
-
-                    Text("Not available")
-                        .font(.system(size: 10))
-                        .foregroundColor(.vinoTextTertiary)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.vinoDark)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.vinoGold.opacity(0.2), lineWidth: 1)
-                    )
-            )
-
-            // Vinho Rating Box (Community Rating)
-            VStack(spacing: 8) {
-                Text("Vinho Rating")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.vinoTextSecondary)
-                    .textCase(.uppercase)
-
-                if let communityRating = note.communityRating {
-                    Text(String(format: "%.1f", communityRating))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.vinoText)
-
-                    Text("Community average")
-                        .font(.system(size: 10))
-                        .foregroundColor(.vinoTextTertiary)
-                } else {
-                    Text("-")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.vinoTextTertiary)
-
-                    Text("No ratings yet")
-                        .font(.system(size: 10))
-                        .foregroundColor(.vinoTextTertiary)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.vinoDark)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.vinoAccent.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-    }
-
-    private func formatRatingCount(_ count: Int) -> String {
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", Double(count) / 1_000_000)
-        } else if count >= 1_000 {
-            return String(format: "%.1fK", Double(count) / 1_000)
-        } else {
-            return "\(count)"
-        }
+        RatingsComparisonView(
+            vivinoRating: expertRating?.rating,
+            vivinoRatingCount: expertRating?.ratingCount,
+            communityRating: note.communityRating,
+            communityRatingCount: note.communityRatingCount,
+            isLoadingVivino: isLoadingExpertRating
+        )
     }
 
     private func fetchExpertRating() async {
@@ -672,15 +590,14 @@ struct TastingNoteDetailView: View {
                     .execute()
 
                 // Notify other views that tasting data changed
-                NotificationCenter.default.post(name: NSNotification.Name("TastingDataChanged"), object: nil)
-                NotificationCenter.default.post(name: NSNotification.Name("WineDataChanged"), object: nil)
+                NotificationCenter.default.post(name: Constants.Notifications.tastingDataChanged, object: nil)
+                NotificationCenter.default.post(name: Constants.Notifications.wineDataChanged, object: nil)
 
                 await MainActor.run {
                     isSaving = false
                     hapticManager.success()
                 }
             } catch {
-                print("Error saving tasting changes: \(error)")
                 await MainActor.run {
                     isSaving = false
                     hapticManager.error()
@@ -711,7 +628,6 @@ struct TastingNoteDetailView: View {
                 hapticManager.success()
             }
         } catch {
-            print("Error saving tasting date: \(error)")
             await MainActor.run {
                 isSaving = false
                 hapticManager.error()
@@ -754,14 +670,13 @@ struct TastingNoteDetailView: View {
                 hapticManager.success()
             }
         } catch {
-            print("Error saving tasting location: \(error)")
             await MainActor.run {
                 isSaving = false
                 hapticManager.error()
             }
         }
     }
-    
+
     var formattedDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long
@@ -846,7 +761,6 @@ struct TastingNoteDetailView: View {
                 isLoadingWine = false
             }
         } catch {
-            print("Failed to load wine details: \(error)")
             await MainActor.run {
                 isLoadingWine = false
             }
@@ -1073,7 +987,7 @@ struct NewTastingNoteView: View {
 struct DetailTag: View {
     let text: String
     let color: Color
-    
+
     var body: some View {
         Text(text)
             .font(.system(size: 13, weight: .medium))
@@ -1084,89 +998,6 @@ struct DetailTag: View {
                 Capsule()
                     .fill(color.opacity(0.15))
             )
-    }
-}
-
-struct SelectableTag: View {
-    let text: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(text)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(isSelected ? .white : .vinoTextSecondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? AnyShapeStyle(LinearGradient.vinoGradient) : AnyShapeStyle(Color.vinoDarkSecondary))
-                        .overlay(
-                            Capsule()
-                                .stroke(isSelected ? Color.clear : Color.vinoBorder, lineWidth: 1)
-                        )
-                )
-        }
-    }
-}
-
-struct FlowLayout: Layout {
-    let spacing: CGFloat
-    
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = FlowResult(in: proposal.replacingUnspecifiedDimensions().width, subviews: subviews, spacing: spacing)
-        return CGSize(width: proposal.replacingUnspecifiedDimensions().width, height: result.height)
-    }
-    
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = FlowResult(in: bounds.width, subviews: subviews, spacing: spacing)
-        for row in result.rows {
-            for item in row {
-                let pt = CGPoint(x: bounds.minX + item.x, y: bounds.minY + item.y)
-                item.view.place(at: pt, proposal: ProposedViewSize(item.size))
-            }
-        }
-    }
-    
-    struct FlowResult {
-        var rows: [[Item]] = []
-        var height: CGFloat = 0
-        
-        struct Item {
-            var view: LayoutSubviews.Element
-            var size: CGSize
-            var x: CGFloat
-            var y: CGFloat
-        }
-        
-        init(in width: CGFloat, subviews: LayoutSubviews, spacing: CGFloat) {
-            var currentRow: [Item] = []
-            var currentX: CGFloat = 0
-            var currentY: CGFloat = 0
-            var lineHeight: CGFloat = 0
-            
-            for subview in subviews {
-                let size = subview.sizeThatFits(.unspecified)
-                
-                if currentX + size.width > width && !currentRow.isEmpty {
-                    rows.append(currentRow)
-                    currentRow = []
-                    currentX = 0
-                    currentY += lineHeight + spacing
-                    lineHeight = 0
-                }
-                
-                currentRow.append(Item(view: subview, size: size, x: currentX, y: currentY))
-                currentX += size.width + spacing
-                lineHeight = max(lineHeight, size.height)
-            }
-            
-            if !currentRow.isEmpty {
-                rows.append(currentRow)
-                height = currentY + lineHeight
-            }
-        }
     }
 }
 
