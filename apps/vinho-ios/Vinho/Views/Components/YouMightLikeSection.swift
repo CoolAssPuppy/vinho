@@ -185,7 +185,9 @@ private struct SimilarWineCardWithNav: View {
                 foodPairings: nil,
                 style: nil,
                 color: nil,
-                vintageId: nil
+                vintageId: nil,
+                communityRating: nil,
+                communityRatingCount: nil
             ))) {
                 SimilarWineCard(wine: wine)
             }

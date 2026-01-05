@@ -252,7 +252,14 @@ struct MapView: View {
             averageRating: nil,
             imageUrl: nil,
             type: .red, // Default, could be improved
-            description: nil
+            description: nil,
+            servingTemperature: nil,
+            foodPairings: nil,
+            style: nil,
+            color: nil,
+            vintageId: nil,
+            communityRating: nil,
+            communityRatingCount: nil
         )
 
         await MainActor.run {

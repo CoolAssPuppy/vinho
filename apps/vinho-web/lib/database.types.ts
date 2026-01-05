@@ -105,6 +105,63 @@ export type Database = {
         }
         Relationships: []
       }
+      expert_ratings: {
+        Row: {
+          id: string
+          vintage_id: string | null
+          wine_id: string | null
+          rating: number | null
+          rating_count: number | null
+          source: string
+          source_url: string | null
+          source_wine_id: string | null
+          fetched_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          vintage_id?: string | null
+          wine_id?: string | null
+          rating?: number | null
+          rating_count?: number | null
+          source?: string
+          source_url?: string | null
+          source_wine_id?: string | null
+          fetched_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          vintage_id?: string | null
+          wine_id?: string | null
+          rating?: number | null
+          rating_count?: number | null
+          source?: string
+          source_url?: string | null
+          source_wine_id?: string | null
+          fetched_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expert_ratings_vintage_id_fkey"
+            columns: ["vintage_id"]
+            isOneToOne: false
+            referencedRelation: "vintages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expert_ratings_wine_id_fkey"
+            columns: ["wine_id"]
+            isOneToOne: false
+            referencedRelation: "wines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       label_embeddings: {
         Row: {
           created_at: string
@@ -546,6 +603,8 @@ export type Database = {
       vintages: {
         Row: {
           abv: number | null
+          community_rating: number | null
+          community_rating_count: number | null
           created_at: string | null
           id: string
           wine_id: string | null
@@ -553,6 +612,8 @@ export type Database = {
         }
         Insert: {
           abv?: number | null
+          community_rating?: number | null
+          community_rating_count?: number | null
           created_at?: string | null
           id?: string
           wine_id?: string | null
@@ -560,6 +621,8 @@ export type Database = {
         }
         Update: {
           abv?: number | null
+          community_rating?: number | null
+          community_rating_count?: number | null
           created_at?: string | null
           id?: string
           wine_id?: string | null

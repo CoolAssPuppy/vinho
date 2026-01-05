@@ -71,7 +71,9 @@ data class Vintage(
     @SerialName("climate_zone_id") val climateZoneId: Int? = null,
     @SerialName("soil_type_id") val soilTypeId: Int? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("wines") val wine: Wine? = null
+    @SerialName("wines") val wine: Wine? = null,
+    @SerialName("community_rating") val communityRating: Double? = null,
+    @SerialName("community_rating_count") val communityRatingCount: Int? = null
 )
 
 @Serializable
@@ -205,4 +207,39 @@ enum class QueueStatus {
 
     @SerialName("failed")
     FAILED
+}
+
+@Serializable
+data class ExpertRating(
+    val rating: Double? = null,
+    val ratingCount: Int? = null,
+    val source: String,
+    val sourceUrl: String? = null,
+    val fetchedAt: String,
+    val isCached: Boolean
+) {
+    /**
+     * Formats the "last updated" text for display
+     */
+    fun lastUpdatedText(): String {
+        return try {
+            val fetchedDate = java.time.Instant.parse(fetchedAt)
+            val now = java.time.Instant.now()
+            val duration = java.time.Duration.between(fetchedDate, now)
+
+            when {
+                duration.toMinutes() < 1 -> "Just now"
+                duration.toHours() < 1 -> "Updated ${duration.toMinutes()}m ago"
+                duration.toDays() < 1 -> "Updated ${duration.toHours()}h ago"
+                duration.toDays() < 7 -> "Updated ${duration.toDays()}d ago"
+                else -> {
+                    val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d")
+                        .withZone(java.time.ZoneId.systemDefault())
+                    "Updated ${formatter.format(fetchedDate)}"
+                }
+            }
+        } catch (e: Exception) {
+            "Updated recently"
+        }
+    }
 }

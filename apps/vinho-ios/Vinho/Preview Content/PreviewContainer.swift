@@ -29,14 +29,22 @@ extension WineWithDetails {
     static let previewData = WineWithDetails(
         id: UUID(),
         name: "Margaux",
-        producer: "Château Margaux",
+        producer: "Chateau Margaux",
         year: 2019,
         region: "Bordeaux, France",
         varietal: "Cabernet Sauvignon",
         price: 850,
         averageRating: 4.8,
         imageUrl: nil,
-        type: .red
+        type: .red,
+        description: nil,
+        servingTemperature: nil,
+        foodPairings: nil,
+        style: nil,
+        color: nil,
+        vintageId: nil,
+        communityRating: 4.2,
+        communityRatingCount: 47
     )
 }
 #endif

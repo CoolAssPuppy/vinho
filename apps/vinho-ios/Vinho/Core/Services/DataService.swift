@@ -864,6 +864,49 @@ class DataService: ObservableObject {
 
     // Statistics functionality has been moved to StatsService.swift
     // for consistency and to eliminate duplication across the app
+
+    // MARK: - Expert Ratings
+
+    /// Fetches expert rating for a vintage from external providers
+    /// - Parameters:
+    ///   - vintageId: The UUID of the vintage to fetch rating for
+    ///   - wineName: The wine name for search
+    ///   - producerName: The producer name for search
+    ///   - year: Optional vintage year
+    /// - Returns: ExpertRating if found, nil on error or no rating available
+    func fetchExpertRating(
+        vintageId: UUID,
+        wineName: String,
+        producerName: String,
+        year: Int? = nil
+    ) async -> ExpertRating? {
+        do {
+            struct ExpertRatingRequest: Encodable {
+                let vintageId: String
+                let wineName: String
+                let producerName: String
+                let year: Int?
+            }
+
+            let requestBody = ExpertRatingRequest(
+                vintageId: vintageId.uuidString,
+                wineName: wineName,
+                producerName: producerName,
+                year: year
+            )
+
+            // The invoke function returns the decoded type directly
+            let expertRating: ExpertRating = try await client.functions.invoke(
+                "fetch-expert-rating",
+                options: FunctionInvokeOptions(body: requestBody)
+            )
+
+            return expertRating
+        } catch {
+            print("[DataService] Failed to fetch expert rating: \(error)")
+            return nil
+        }
+    }
 }
 
 // MARK: - Supporting Types

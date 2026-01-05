@@ -66,6 +66,8 @@ struct Vintage: Identifiable, Codable, Hashable {
     let soilTypeId: Int?
     let createdAt: Date
     var wine: Wine?
+    let communityRating: Double?
+    let communityRatingCount: Int?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -77,6 +79,8 @@ struct Vintage: Identifiable, Codable, Hashable {
         case soilTypeId = "soil_type_id"
         case createdAt = "created_at"
         case wine = "wines"
+        case communityRating = "community_rating"
+        case communityRatingCount = "community_rating_count"
     }
 }
 
@@ -395,3 +399,75 @@ struct ProcessedWineData: Codable, Hashable {
 
 // MARK: - ProfileStats Model
 // ProfileStats has been removed in favor of unified WineStats in StatsService.swift
+
+// MARK: - Expert Rating Model
+struct ExpertRating: Codable {
+    let rating: Double?
+    let ratingCount: Int?
+    let source: String
+    let sourceUrl: String?
+    let fetchedAt: Date
+    let isCached: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case rating
+        case ratingCount
+        case source
+        case sourceUrl
+        case fetchedAt
+        case isCached
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        rating = try container.decodeIfPresent(Double.self, forKey: .rating)
+        ratingCount = try container.decodeIfPresent(Int.self, forKey: .ratingCount)
+        source = try container.decode(String.self, forKey: .source)
+        sourceUrl = try container.decodeIfPresent(String.self, forKey: .sourceUrl)
+        isCached = try container.decode(Bool.self, forKey: .isCached)
+
+        // Handle ISO8601 date format for fetchedAt
+        if let dateString = try? container.decode(String.self, forKey: .fetchedAt) {
+            let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            fetchedAt = dateFormatter.date(from: dateString) ?? Date()
+        } else {
+            fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
+        }
+    }
+
+    // Convenience init for local use
+    init(rating: Double?, ratingCount: Int?, source: String, sourceUrl: String?, fetchedAt: Date, isCached: Bool) {
+        self.rating = rating
+        self.ratingCount = ratingCount
+        self.source = source
+        self.sourceUrl = sourceUrl
+        self.fetchedAt = fetchedAt
+        self.isCached = isCached
+    }
+
+    // Helper to format "last updated" text
+    var lastUpdatedText: String {
+        let calendar = Calendar.current
+        let now = Date()
+
+        if calendar.isDateInToday(fetchedAt) {
+            return "Updated today"
+        } else if calendar.isDateInYesterday(fetchedAt) {
+            return "Updated yesterday"
+        } else {
+            let days = calendar.dateComponents([.day], from: fetchedAt, to: now).day ?? 0
+            if days < 7 {
+                return "Updated \(days) day\(days == 1 ? "" : "s") ago"
+            } else if days < 30 {
+                let weeks = days / 7
+                return "Updated \(weeks) week\(weeks == 1 ? "" : "s") ago"
+            } else {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .medium
+                return "Updated \(formatter.string(from: fetchedAt))"
+            }
+        }
+    }
+}

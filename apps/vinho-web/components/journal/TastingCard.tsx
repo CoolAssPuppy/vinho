@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, MapPin, Wine, Users } from "lucide-react";
+import { Edit, MapPin, Wine, Users, Star } from "lucide-react";
 import Image from "next/image";
 import { StarDisplay } from "@/components/ui/star-rating";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ export function TastingCard({ tasting, onEdit }: TastingCardProps) {
   const producerName = tasting.vintage.wine.producer.name;
   const producerCity = tasting.vintage.wine.producer.city;
   const tastingLocation = tasting.location_name || tasting.location_city;
+  const communityRating = tasting.vintage.community_rating;
+  const communityRatingCount = tasting.vintage.community_rating_count;
 
   return (
     <Card className="hover:shadow-lg transition-shadow overflow-hidden">
@@ -92,9 +94,25 @@ export function TastingCard({ tasting, onEdit }: TastingCardProps) {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Rating</span>
+                <span className="text-sm text-muted-foreground">Your Rating</span>
                 <StarDisplay rating={tasting.verdict} />
               </div>
+
+              {/* Community Rating */}
+              {communityRating && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Vinho Rating</span>
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-medium">{communityRating.toFixed(1)}</span>
+                    {communityRatingCount && communityRatingCount > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        ({communityRatingCount})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {tasting.notes && (
                 <div>

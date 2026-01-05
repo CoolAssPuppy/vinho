@@ -3,6 +3,7 @@ package com.strategicnerds.vinho.ui.state
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.strategicnerds.vinho.core.analytics.AnalyticsService
+import com.strategicnerds.vinho.data.model.ExpertRating
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.Wine
 import com.strategicnerds.vinho.data.repository.TastingRepository
@@ -42,6 +43,8 @@ data class WineDetailState(
     val isLoading: Boolean = false,
     val wine: Wine? = null,
     val tastings: List<Tasting> = emptyList(),
+    val expertRating: ExpertRating? = null,
+    val isLoadingExpertRating: Boolean = false,
     val error: String? = null
 )
 
@@ -137,5 +140,30 @@ class WineListViewModel @Inject constructor(
 
     fun clearDetailState() {
         _detailState.value = WineDetailState()
+    }
+
+    fun fetchExpertRating() {
+        val wine = _detailState.value.wine ?: return
+        val vintage = wine.vintages?.firstOrNull() ?: return
+
+        viewModelScope.launch {
+            _detailState.value = _detailState.value.copy(isLoadingExpertRating = true)
+
+            val expertRating = wineRepository.fetchExpertRating(
+                vintageId = vintage.id,
+                wineName = wine.name,
+                producerName = wine.producer?.name,
+                year = vintage.year
+            )
+
+            _detailState.value = _detailState.value.copy(
+                expertRating = expertRating,
+                isLoadingExpertRating = false
+            )
+        }
+    }
+
+    fun refreshExpertRating() {
+        fetchExpertRating()
     }
 }

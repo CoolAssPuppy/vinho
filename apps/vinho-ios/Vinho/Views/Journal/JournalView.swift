@@ -503,6 +503,20 @@ struct TastingNoteCard: View {
                             .foregroundColor(index < note.rating ? .vinoGold : .vinoTextTertiary)
                     }
 
+                    // Community rating
+                    if let communityRating = note.communityRating, let count = note.communityRatingCount, count > 0 {
+                        Text("·")
+                            .foregroundColor(.vinoTextTertiary)
+
+                        HStack(spacing: 2) {
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 8))
+                            Text(String(format: "%.1f", communityRating))
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                        .foregroundColor(.vinoAccent)
+                    }
+
                     Text("·")
                         .foregroundColor(.vinoTextTertiary)
 
@@ -753,7 +767,9 @@ class JournalViewModel: ObservableObject {
                 locationCity: tasting.locationCity,
                 locationAddress: tasting.locationAddress,
                 locationLatitude: tasting.locationLatitude,
-                locationLongitude: tasting.locationLongitude
+                locationLongitude: tasting.locationLongitude,
+                communityRating: vintage.communityRating,
+                communityRatingCount: vintage.communityRatingCount
             )
         }
     }
@@ -850,4 +866,6 @@ struct TastingNoteWithWine: Identifiable {
     let locationAddress: String?
     let locationLatitude: Double?
     let locationLongitude: Double?
+    let communityRating: Double?
+    let communityRatingCount: Int?
 }

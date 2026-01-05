@@ -28,6 +28,11 @@ struct TastingNoteDetailView: View {
     @State private var showingDatePicker = false
     @State private var showingLocationPicker = false
 
+    // Expert rating state
+    @State private var expertRating: ExpertRating?
+    @State private var isLoadingExpertRating = false
+    @State private var hasAttemptedExpertRatingFetch = false
+
     init(note: TastingNoteWithWine, fromWine: Bool = false, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.note = note
         self.fromWine = fromWine
@@ -51,7 +56,12 @@ struct TastingNoteDetailView: View {
                         
                         // Rating Section
                         ratingSection
-                        
+
+                        // Ratings Comparison Section (only show if user has rated)
+                        if editedRating > 0 {
+                            ratingsComparisonSection
+                        }
+
                         // Tasting Date
                         dateSection
                         
@@ -123,6 +133,12 @@ struct TastingNoteDetailView: View {
                 }
             }
             .environmentObject(hapticManager)
+        }
+        .task {
+            // Fetch expert rating when view appears
+            guard !hasAttemptedExpertRatingFetch else { return }
+            hasAttemptedExpertRatingFetch = true
+            await fetchExpertRating()
         }
     }
 
@@ -263,6 +279,116 @@ struct TastingNoteDetailView: View {
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color.vinoDarkSecondary)
         )
+    }
+
+    var ratingsComparisonSection: some View {
+        HStack(spacing: 12) {
+            // Vivino Rating Box
+            VStack(spacing: 8) {
+                Text("Vivino Rating")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.vinoTextSecondary)
+                    .textCase(.uppercase)
+
+                if isLoadingExpertRating {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .vinoAccent))
+                        .frame(height: 32)
+                } else if let rating = expertRating, let ratingValue = rating.rating {
+                    Text(String(format: "%.1f", ratingValue))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.vinoText)
+
+                    if let ratingCount = rating.ratingCount {
+                        Text("\(formatRatingCount(ratingCount)) ratings")
+                            .font(.system(size: 10))
+                            .foregroundColor(.vinoTextTertiary)
+                    }
+                } else {
+                    Text("-")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.vinoTextTertiary)
+
+                    Text("Not available")
+                        .font(.system(size: 10))
+                        .foregroundColor(.vinoTextTertiary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.vinoDark)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.vinoGold.opacity(0.2), lineWidth: 1)
+                    )
+            )
+
+            // Vinho Rating Box (Community Rating)
+            VStack(spacing: 8) {
+                Text("Vinho Rating")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.vinoTextSecondary)
+                    .textCase(.uppercase)
+
+                if let communityRating = note.communityRating {
+                    Text(String(format: "%.1f", communityRating))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.vinoText)
+
+                    Text("Community average")
+                        .font(.system(size: 10))
+                        .foregroundColor(.vinoTextTertiary)
+                } else {
+                    Text("-")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.vinoTextTertiary)
+
+                    Text("No ratings yet")
+                        .font(.system(size: 10))
+                        .foregroundColor(.vinoTextTertiary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.vinoDark)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.vinoAccent.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+    }
+
+    private func formatRatingCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return String(format: "%.1fM", Double(count) / 1_000_000)
+        } else if count >= 1_000 {
+            return String(format: "%.1fK", Double(count) / 1_000)
+        } else {
+            return "\(count)"
+        }
+    }
+
+    private func fetchExpertRating() async {
+        await MainActor.run {
+            isLoadingExpertRating = true
+        }
+
+        let rating = await DataService.shared.fetchExpertRating(
+            vintageId: note.vintageId,
+            wineName: note.wineName,
+            producerName: note.producer,
+            year: note.vintage
+        )
+
+        await MainActor.run {
+            expertRating = rating
+            isLoadingExpertRating = false
+        }
     }
     
     var dateSection: some View {
@@ -653,6 +779,8 @@ struct TastingNoteDetailView: View {
             struct VintageResponse: Decodable {
                 let wine_id: UUID
                 let year: Int?
+                let community_rating: Double?
+                let community_rating_count: Int?
                 let wine: WineResponse
             }
 
@@ -677,7 +805,7 @@ struct TastingNoteDetailView: View {
             let client = SupabaseManager.shared.client
             let vintage: VintageResponse = try await client
                 .from("vintages")
-                .select("wine_id, year, wine:wine_id(id, name, producer_id, tasting_notes, wine_type, varietal, style, serving_temperature, food_pairings, color, producer:producer_id(name))")
+                .select("wine_id, year, community_rating, community_rating_count, wine:wine_id(id, name, producer_id, tasting_notes, wine_type, varietal, style, serving_temperature, food_pairings, color, producer:producer_id(name))")
                 .eq("id", value: note.vintageId.uuidString)
                 .single()
                 .execute()
@@ -707,7 +835,9 @@ struct TastingNoteDetailView: View {
                 foodPairings: vintage.wine.food_pairings,
                 style: vintage.wine.style,
                 color: vintage.wine.color,
-                vintageId: note.vintageId
+                vintageId: note.vintageId,
+                communityRating: vintage.community_rating,
+                communityRatingCount: vintage.community_rating_count
             )
 
             await MainActor.run {

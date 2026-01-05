@@ -38,6 +38,11 @@ struct WineDetailView: View {
     @State private var isEditingStyle = false
     @State private var isEnrichingWithAI = false
 
+    // Expert rating
+    @State private var expertRating: ExpertRating?
+    @State private var isLoadingExpertRating = false
+    @State private var hasAttemptedExpertRatingFetch = false
+
     init(wine: WineWithDetails, fromTasting: Bool = false) {
         self.initialWine = wine
         self.fromTasting = fromTasting
@@ -61,7 +66,10 @@ struct WineDetailView: View {
                             
                             // Quick Stats
                             quickStats
-                            
+
+                            // Expert Rating Section
+                            expertRatingSection
+
                             // Tabbed Content
                             tabbedContent
                             
@@ -113,6 +121,13 @@ struct WineDetailView: View {
                 await loadTastings()
             }
         }
+        .task {
+            // Fetch expert rating when view appears
+            guard !hasAttemptedExpertRatingFetch else { return }
+            guard let vintageId = wine.vintageId else { return }
+            hasAttemptedExpertRatingFetch = true
+            await fetchExpertRating(vintageId: vintageId)
+        }
     }
     
     var heroSection: some View {
@@ -142,28 +157,6 @@ struct WineDetailView: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                
-                // Wine Bottle Illustration
-                VStack {
-                    Spacer()
-                    Image(systemName: "wineglass")
-                        .font(.system(size: 100))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.vinoGold, Color.vinoPrimary],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-                        .scaleEffect(heroImageScale)
-                        .onAppear {
-                            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
-                                heroImageScale = 1.1
-                            }
-                        }
-                    Spacer()
-                }
             }
             .frame(
                 width: geometry.size.width,
@@ -396,20 +389,20 @@ struct WineDetailView: View {
     
     var quickStats: some View {
         HStack(spacing: 0) {
-            // Rating
-            if let rating = wine.averageRating {
+            // Community Rating
+            if let communityRating = wine.communityRating, let count = wine.communityRatingCount, count > 0 {
                 StatCard(
-                    icon: "star.fill",
-                    value: String(format: "%.1f", rating),
-                    label: "Rating",
-                    color: .vinoGold
+                    icon: "person.2.fill",
+                    value: String(format: "%.1f", communityRating),
+                    label: "\(count) rating\(count == 1 ? "" : "s")",
+                    color: .vinoAccent
                 )
+
+                Divider()
+                    .frame(height: 40)
+                    .background(Color.vinoBorder)
             }
-            
-            Divider()
-                .frame(height: 40)
-                .background(Color.vinoBorder)
-            
+
             // Price
             if let price = wine.price {
                 StatCard(
@@ -418,12 +411,12 @@ struct WineDetailView: View {
                     label: "Price",
                     color: .vinoSuccess
                 )
+
+                Divider()
+                    .frame(height: 40)
+                    .background(Color.vinoBorder)
             }
-            
-            Divider()
-                .frame(height: 40)
-                .background(Color.vinoBorder)
-            
+
             // Type
             StatCard(
                 icon: "drop.fill",
@@ -438,7 +431,128 @@ struct WineDetailView: View {
                 .fill(Color.vinoDark)
         )
     }
-    
+
+    @ViewBuilder
+    var expertRatingSection: some View {
+        // Show side-by-side ratings if we have any data
+        let hasExpertRating = expertRating?.rating != nil
+        let hasCommunityRating = wine.communityRating != nil
+
+        if isLoadingExpertRating || hasExpertRating || hasCommunityRating {
+            HStack(spacing: 12) {
+                // Vivino Rating Box - Tappable to refresh
+                VStack(spacing: 8) {
+                    Text("Vivino Rating")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.vinoTextSecondary)
+                        .textCase(.uppercase)
+
+                    if isLoadingExpertRating {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .vinoAccent))
+                            .frame(height: 32)
+                        Text("Loading...")
+                            .font(.system(size: 10))
+                            .foregroundColor(.vinoTextTertiary)
+                    } else if let rating = expertRating, let ratingValue = rating.rating {
+                        Text(String(format: "%.1f", ratingValue))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.vinoText)
+
+                        if let ratingCount = rating.ratingCount {
+                            Text("\(formatRatingCount(ratingCount)) ratings")
+                                .font(.system(size: 10))
+                                .foregroundColor(.vinoTextTertiary)
+                        }
+                    } else {
+                        Text("-")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.vinoTextTertiary)
+
+                        Text("Not available")
+                            .font(.system(size: 10))
+                            .foregroundColor(.vinoTextTertiary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.vinoDark)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.vinoGold.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    hapticManager.lightImpact()
+                    if let vintageId = wine.vintageId {
+                        Task {
+                            await fetchExpertRating(vintageId: vintageId, forceRefresh: true)
+                        }
+                    }
+                }
+
+                // Vinho Rating Box (Community Rating) - Tappable to refresh
+                VStack(spacing: 8) {
+                    Text("Vinho Rating")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.vinoTextSecondary)
+                        .textCase(.uppercase)
+
+                    if let communityRating = wine.communityRating {
+                        Text(String(format: "%.1f", communityRating))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.vinoText)
+
+                        Text("Community average")
+                            .font(.system(size: 10))
+                            .foregroundColor(.vinoTextTertiary)
+                    } else {
+                        Text("-")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.vinoTextTertiary)
+
+                        Text("No ratings yet")
+                            .font(.system(size: 10))
+                            .foregroundColor(.vinoTextTertiary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.vinoDark)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.vinoAccent.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    hapticManager.lightImpact()
+                    if let vintageId = wine.vintageId {
+                        Task {
+                            await fetchExpertRating(vintageId: vintageId, forceRefresh: true)
+                        }
+                    }
+                }
+            }
+        }
+        // If no ratings at all and not loading, show nothing
+    }
+
+    private func formatRatingCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return String(format: "%.1fM", Double(count) / 1_000_000)
+        } else if count >= 1_000 {
+            return String(format: "%.1fK", Double(count) / 1_000)
+        } else {
+            return "\(count)"
+        }
+    }
+
     var tabbedContent: some View {
         VStack(spacing: 16) {
             // Tab Selector
@@ -739,6 +853,24 @@ struct WineDetailView: View {
         }
     }
 
+    private func fetchExpertRating(vintageId: UUID, forceRefresh: Bool = false) async {
+        await MainActor.run {
+            isLoadingExpertRating = true
+        }
+
+        let rating = await DataService.shared.fetchExpertRating(
+            vintageId: vintageId,
+            wineName: wine.name,
+            producerName: wine.producer,
+            year: wine.year
+        )
+
+        await MainActor.run {
+            expertRating = rating
+            isLoadingExpertRating = false
+        }
+    }
+
     private func convertToTastingNoteWithWine(_ tasting: Tasting) -> TastingNoteWithWine? {
         guard let vintage = tasting.vintage,
               let wine = vintage.wine,
@@ -766,7 +898,9 @@ struct WineDetailView: View {
             locationCity: tasting.locationCity,
             locationAddress: tasting.locationAddress,
             locationLatitude: tasting.locationLatitude,
-            locationLongitude: tasting.locationLongitude
+            locationLongitude: tasting.locationLongitude,
+            communityRating: vintage.communityRating,
+            communityRatingCount: vintage.communityRatingCount
         )
     }
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.WineBar
 import androidx.compose.material3.Button
@@ -42,10 +45,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.strategicnerds.vinho.data.model.ExpertRating
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.Wine
 import com.strategicnerds.vinho.ui.state.WineListViewModel
@@ -65,6 +71,13 @@ fun WineDetailScreen(
 
     LaunchedEffect(wineId) {
         viewModel.loadWineDetail(wineId)
+    }
+
+    // Fetch expert rating when wine is loaded
+    LaunchedEffect(state.wine?.id) {
+        if (state.wine != null) {
+            viewModel.fetchExpertRating()
+        }
     }
 
     Scaffold(
@@ -122,6 +135,16 @@ fun WineDetailScreen(
 
                 item {
                     ProducerCard(wine = state.wine!!)
+                }
+
+                // Ratings Section
+                item {
+                    RatingsSection(
+                        expertRating = state.expertRating,
+                        communityRating = state.wine?.vintages?.firstOrNull()?.communityRating,
+                        isLoading = state.isLoadingExpertRating,
+                        onRefresh = { viewModel.refreshExpertRating() }
+                    )
                 }
 
                 state.wine?.tastingNotes?.takeIf { it.isNotBlank() }?.let { notes ->
@@ -418,5 +441,187 @@ private fun TastingHistoryCard(tasting: Tasting, onClick: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RatingsSection(
+    expertRating: ExpertRating?,
+    communityRating: Double?,
+    isLoading: Boolean,
+    onRefresh: () -> Unit
+) {
+    val hasExpertRating = expertRating?.rating != null
+    val hasCommunityRating = communityRating != null
+
+    if (!isLoading && !hasExpertRating && !hasCommunityRating) {
+        return
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Vivino Rating Box - Tappable to refresh
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onRefresh() },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "VIVINO RATING",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 1.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else if (hasExpertRating) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFC107),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = String.format("%.1f", expertRating?.rating),
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        // Show rating count instead of last updated
+                        expertRating?.ratingCount?.let { count ->
+                            Text(
+                                text = formatRatingCount(count) + " ratings",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "-",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        )
+                        Text(
+                            text = "Not available",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            // Vinho Rating Box (Community Rating) - Tappable to refresh
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onRefresh() },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "VINHO RATING",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 1.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                    if (hasCommunityRating) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFC107),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = String.format("%.1f", communityRating),
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Text(
+                            text = "Community average",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        Text(
+                            text = "-",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        )
+                        Text(
+                            text = "No ratings yet",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatRatingCount(count: Int): String {
+    return when {
+        count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
+        count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+        else -> count.toString()
     }
 }

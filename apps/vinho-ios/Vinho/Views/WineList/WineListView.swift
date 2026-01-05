@@ -614,11 +614,12 @@ class WineListViewModel: ObservableObject {
                 wineType = .sparkling
             }
 
+            let firstVintage = wine.vintages?.first
             return WineWithDetails(
                 id: wine.id,
                 name: wine.name,
                 producer: wine.producer?.name ?? "Unknown",
-                year: wine.vintages?.first?.year,
+                year: firstVintage?.year,
                 region: wine.producer?.region?.name,
                 varietal: wine.varietal,
                 price: nil,
@@ -630,7 +631,9 @@ class WineListViewModel: ObservableObject {
                 foodPairings: wine.foodPairings,
                 style: wine.style,
                 color: wine.color,
-                vintageId: wine.vintages?.first?.id
+                vintageId: firstVintage?.id,
+                communityRating: firstVintage?.communityRating,
+                communityRatingCount: firstVintage?.communityRatingCount
             )
         }
         isLoading = false
@@ -705,4 +708,6 @@ struct WineWithDetails: Identifiable {
     var style: String?
     var color: String?
     var vintageId: UUID?  // For varietal storage
+    let communityRating: Double?  // Average rating from all users
+    let communityRatingCount: Int?  // Number of ratings
 }

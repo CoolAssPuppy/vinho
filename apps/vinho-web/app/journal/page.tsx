@@ -93,6 +93,8 @@ export default function JournalPage() {
         vintage:vintage_id (
           id,
           year,
+          community_rating,
+          community_rating_count,
           wine:wine_id (
             id,
             name,
