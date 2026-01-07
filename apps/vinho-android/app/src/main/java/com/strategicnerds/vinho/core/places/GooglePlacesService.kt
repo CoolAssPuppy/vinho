@@ -10,6 +10,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.strategicnerds.vinho.core.security.CertificatePinnerConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,7 +31,9 @@ data class PlaceDetails(
 @Singleton
 class GooglePlacesService @Inject constructor() {
 
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .certificatePinner(CertificatePinnerConfig.certificatePinner)
+        .build()
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun searchPlaces(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import {
   Wine,
   Camera,
@@ -35,36 +35,120 @@ function SuggestionsTab({ tastings }: SuggestionsTabProps) {
   );
 }
 
-export default function JournalPage() {
-  const [tastings, setTastings] = useState<Tasting[]>([]);
-  const [filteredTastings, setFilteredTastings] = useState<Tasting[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedTasting, setSelectedTasting] = useState<Tasting | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [pendingWinesCount, setPendingWinesCount] = useState(0);
+// Journal page state type
+interface JournalState {
+  tastings: Tasting[];
+  filteredTastings: Tasting[];
+  isSearching: boolean;
+  isLoading: boolean;
+  selectedTasting: Tasting | null;
+  isEditDialogOpen: boolean;
+  pendingWinesCount: number;
+  page: number;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+}
 
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+// Action types for state transitions
+type JournalAction =
+  | { type: "SET_TASTINGS"; payload: Tasting[] }
+  | { type: "APPEND_TASTINGS"; payload: Tasting[] }
+  | { type: "SET_FILTERED_TASTINGS"; payload: Tasting[] }
+  | { type: "SET_IS_SEARCHING"; payload: boolean }
+  | { type: "SET_IS_LOADING"; payload: boolean }
+  | { type: "SET_SELECTED_TASTING"; payload: Tasting | null }
+  | { type: "SET_IS_EDIT_DIALOG_OPEN"; payload: boolean }
+  | { type: "SET_PENDING_WINES_COUNT"; payload: number }
+  | { type: "SET_PAGE"; payload: number }
+  | { type: "INCREMENT_PAGE" }
+  | { type: "SET_HAS_MORE"; payload: boolean }
+  | { type: "SET_IS_LOADING_MORE"; payload: boolean }
+  | { type: "REMOVE_TASTING"; payload: string }
+  | { type: "CLEAR_SEARCH" };
+
+const initialState: JournalState = {
+  tastings: [],
+  filteredTastings: [],
+  isSearching: false,
+  isLoading: true,
+  selectedTasting: null,
+  isEditDialogOpen: false,
+  pendingWinesCount: 0,
+  page: 0,
+  hasMore: true,
+  isLoadingMore: false,
+};
+
+function journalReducer(state: JournalState, action: JournalAction): JournalState {
+  switch (action.type) {
+    case "SET_TASTINGS":
+      return { ...state, tastings: action.payload };
+    case "APPEND_TASTINGS":
+      return { ...state, tastings: [...state.tastings, ...action.payload] };
+    case "SET_FILTERED_TASTINGS":
+      return { ...state, filteredTastings: action.payload };
+    case "SET_IS_SEARCHING":
+      return { ...state, isSearching: action.payload };
+    case "SET_IS_LOADING":
+      return { ...state, isLoading: action.payload };
+    case "SET_SELECTED_TASTING":
+      return { ...state, selectedTasting: action.payload };
+    case "SET_IS_EDIT_DIALOG_OPEN":
+      return { ...state, isEditDialogOpen: action.payload };
+    case "SET_PENDING_WINES_COUNT":
+      return { ...state, pendingWinesCount: action.payload };
+    case "SET_PAGE":
+      return { ...state, page: action.payload };
+    case "INCREMENT_PAGE":
+      return { ...state, page: state.page + 1 };
+    case "SET_HAS_MORE":
+      return { ...state, hasMore: action.payload };
+    case "SET_IS_LOADING_MORE":
+      return { ...state, isLoadingMore: action.payload };
+    case "REMOVE_TASTING":
+      return {
+        ...state,
+        tastings: state.tastings.filter((t) => t.id !== action.payload),
+      };
+    case "CLEAR_SEARCH":
+      return { ...state, isSearching: false, filteredTastings: [] };
+    default:
+      return state;
+  }
+}
+
+export default function JournalPage() {
+  const [state, dispatch] = useReducer(journalReducer, initialState);
+  const {
+    tastings,
+    filteredTastings,
+    isSearching,
+    isLoading,
+    selectedTasting,
+    isEditDialogOpen,
+    pendingWinesCount,
+    page,
+    hasMore,
+    isLoadingMore,
+  } = state;
+
   const PAGE_SIZE = 12;
 
   const supabase = createClient();
 
   const fetchTastings = async (loadMore = false) => {
     if (!loadMore) {
-      setIsLoading(true);
+      dispatch({ type: "SET_IS_LOADING", payload: true });
     } else {
-      setIsLoadingMore(true);
+      dispatch({ type: "SET_IS_LOADING_MORE", payload: true });
     }
 
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      dispatch({ type: "SET_IS_LOADING", payload: false });
+      dispatch({ type: "SET_IS_LOADING_MORE", payload: false });
       return;
     }
 
@@ -120,7 +204,7 @@ export default function JournalPage() {
         .filter((item) => item.vintage !== null) as unknown) as Tasting[];
 
       // Set has more based on whether we got a full page
-      setHasMore(data.length === PAGE_SIZE + 1);
+      dispatch({ type: "SET_HAS_MORE", payload: data.length === PAGE_SIZE + 1 });
 
       // Remove the extra item we fetched to check hasMore
       const itemsToShow =
@@ -129,16 +213,16 @@ export default function JournalPage() {
           : transformedData;
 
       if (loadMore) {
-        setTastings((prev) => [...prev, ...itemsToShow]);
-        setPage((prev) => prev + 1);
+        dispatch({ type: "APPEND_TASTINGS", payload: itemsToShow });
+        dispatch({ type: "INCREMENT_PAGE" });
       } else {
-        setTastings(itemsToShow);
-        setPage(1);
+        dispatch({ type: "SET_TASTINGS", payload: itemsToShow });
+        dispatch({ type: "SET_PAGE", payload: 1 });
       }
     }
 
-    setIsLoading(false);
-    setIsLoadingMore(false);
+    dispatch({ type: "SET_IS_LOADING", payload: false });
+    dispatch({ type: "SET_IS_LOADING_MORE", payload: false });
   };
 
   useEffect(() => {
@@ -199,19 +283,19 @@ export default function JournalPage() {
       .in("status", ["pending", "working"]);
 
     if (!error && data) {
-      setPendingWinesCount(data.length);
+      dispatch({ type: "SET_PENDING_WINES_COUNT", payload: data.length });
     } else {
-      setPendingWinesCount(0);
+      dispatch({ type: "SET_PENDING_WINES_COUNT", payload: 0 });
     }
   };
 
   const handleEditTasting = (tasting: Tasting) => {
-    setSelectedTasting(tasting);
-    setIsEditDialogOpen(true);
+    dispatch({ type: "SET_SELECTED_TASTING", payload: tasting });
+    dispatch({ type: "SET_IS_EDIT_DIALOG_OPEN", payload: true });
   };
 
   const handleSaveTasting = () => {
-    setIsEditDialogOpen(false);
+    dispatch({ type: "SET_IS_EDIT_DIALOG_OPEN", payload: false });
     fetchTastings(); // Refresh the list
   };
 
@@ -296,7 +380,7 @@ export default function JournalPage() {
             </TabsList>
             <SearchBar
               onResults={(results) => {
-                setIsSearching(true);
+                dispatch({ type: "SET_IS_SEARCHING", payload: true });
                 // Map search results to Tasting format
                 const mappedResults = results.map((r: {
                   tasting_id: string;
@@ -354,11 +438,10 @@ export default function JournalPage() {
                     },
                   },
                 } as Tasting));
-                setFilteredTastings(mappedResults);
+                dispatch({ type: "SET_FILTERED_TASTINGS", payload: mappedResults });
               }}
               onClear={() => {
-                setIsSearching(false);
-                setFilteredTastings([]);
+                dispatch({ type: "CLEAR_SEARCH" });
               }}
             />
           </div>
@@ -439,7 +522,7 @@ export default function JournalPage() {
         </Tabs>
 
         {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => dispatch({ type: "SET_IS_EDIT_DIALOG_OPEN", payload: open })}>
           <DialogContentNoX className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -473,15 +556,13 @@ export default function JournalPage() {
                       .eq("id", selectedTasting.id);
 
                     if (!error) {
-                      setIsEditDialogOpen(false);
+                      dispatch({ type: "SET_IS_EDIT_DIALOG_OPEN", payload: false });
                       // Remove from local state
-                      setTastings((prev) =>
-                        prev.filter((t) => t.id !== selectedTasting.id),
-                      );
+                      dispatch({ type: "REMOVE_TASTING", payload: selectedTasting.id });
                     }
                   }
                 }}
-                onCancel={() => setIsEditDialogOpen(false)}
+                onCancel={() => dispatch({ type: "SET_IS_EDIT_DIALOG_OPEN", payload: false })}
               />
             )}
           </DialogContentNoX>

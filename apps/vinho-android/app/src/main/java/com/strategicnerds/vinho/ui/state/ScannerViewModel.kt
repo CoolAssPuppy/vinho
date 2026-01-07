@@ -199,7 +199,9 @@ class ScannerViewModel @Inject constructor(
 
     private fun pollProcessingStatus(queueId: String, userId: String) {
         viewModelScope.launch {
-            val maxAttempts = 60
+            val maxAttempts = 10
+            val initialDelayMs = 1000L
+            val maxDelayMs = 30000L
             var attempt = 0
 
             while (attempt < maxAttempts && _uiState.value.processingStatus == ProcessingStatus.PROCESSING) {
@@ -230,7 +232,9 @@ class ScannerViewModel @Inject constructor(
                     // Continue polling on errors
                 }
 
-                delay(1000)
+                // Exponential backoff: 1s, 2s, 4s, 8s, 16s, capped at 30s
+                val delayMs = minOf(initialDelayMs * (1L shl attempt), maxDelayMs)
+                delay(delayMs)
                 attempt++
             }
 

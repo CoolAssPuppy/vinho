@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05EAB157886024EE6B60DB04 /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AE27D9EBE5289435994AE66 /* SearchService.swift */; };
+		06FA288953D8F889174CCF2C /* WineDetailComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BEC72F0D3874AA49272849F /* WineDetailComponents.swift */; };
 		07BC8BA25C9BC65AA850EB6E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 43B8DC0D1788C5BB4A3A4126 /* Assets.xcassets */; };
 		13A6F43BB46E393CF7E19112 /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9035CE3E87A566DBD5591517 /* Sharing.swift */; };
 		143A27A98DEE7FDC4140DFA0 /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424DB00EBA1869AA2305A38A /* ScannerView.swift */; };
@@ -22,6 +24,7 @@
 		477CD43304B4A9062FDA7911 /* SuggestionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AD192CA1ACFC90988C8864 /* SuggestionsView.swift */; };
 		4F5FB7F11CB6E8DE7CAD220B /* SharingManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B373E89CE0B31F12198AA339 /* SharingManagementView.swift */; };
 		50E953ED00257FD1E91915D2 /* VisualSimilarityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0AF7394CBB4C8215CB789F5 /* VisualSimilarityService.swift */; };
+		562DFD408B09C376E2484177 /* WineService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1291C694F8A654BA6BE10EC /* WineService.swift */; };
 		5C06A4568DEE8645D0E19F3D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = E2FCDDA193BCB2EEF7F9D294 /* Supabase */; };
 		62881F7E464BCF773C5F0646 /* PersonalInformationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67CE2111EFCEAA5471D5E3D /* PersonalInformationView.swift */; };
 		645B80C67AE3A18559EBB109 /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB249AF6EFC0328F7E44F181 /* BiometricLockView.swift */; };
@@ -32,47 +35,65 @@
 		72F3A047DDFBDC0CE0472531 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02C9057D8AF0972213CD07D5 /* MapView.swift */; };
 		7C33AF9926EF3718B918EED2 /* AnalyticsEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B6857CCF78CD8D93E6BB81 /* AnalyticsEvents.swift */; };
 		7D89C1B5898017FC0ED09C33 /* SharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FD2D458C30F544F9DC95FC2 /* SharingService.swift */; };
+		826E1B7ECF7EA9289A84A427 /* WineTastingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7DBD5E26182C7B042BA880 /* WineTastingsTab.swift */; };
 		82863C800219CC79D4F10699 /* PlaceAutocompleteField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503A1A0527BA0496BFAA8753 /* PlaceAutocompleteField.swift */; };
+		86D2B1DB22FEDED7BB6F790D /* ProfileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5AE3D1AB6B639713AE8B8A /* ProfileService.swift */; };
 		8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D76EC39A8B54340E597E5A1C /* WineDetailView.swift */; };
+		8A9EB465662C1173AEF10D89 /* WineDetailViewModel+Save.swift in Sources */ = {isa = PBXBuildFile; fileRef = 878B22B0D9281C7077794E78 /* WineDetailViewModel+Save.swift */; };
 		8B93B5F8B8BDB5B16674C938 /* TastingNoteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60D87C31A920448B8906C9BD /* TastingNoteDetailView.swift */; };
 		8EBC3D015AB8A728A21F6CA2 /* BiometricAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001D0CF7E2DD3ECD1480C924 /* BiometricAuthService.swift */; };
 		941BDD7A62A6BB225FA38720 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8380926523C07A9EB6D6FF80 /* AboutView.swift */; };
+		9C8B32A4AB62B6D9B8CCDDA4 /* TastingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E81111C2D07E3459F51E12 /* TastingService.swift */; };
+		9CEFDB79947947B528135982 /* WineDetailsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85EFC8658DCF1E74177E81B6 /* WineDetailsTab.swift */; };
+		9E1EA5BB02F2963E20BEDE6D /* WinePairingsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9574995E43BE2A729EA653A7 /* WinePairingsTab.swift */; };
 		9F9B647C68AF7E054FC5EA87 /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521D3070D8745ED050F907A6 /* DeepLinkHandler.swift */; };
 		A1B2C3D4E5F67890ABCDEF12 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12FEDCBA0987654321ABCDEF /* AppleSignInService.swift */; };
 		A77BA238986CD22951701155 /* DopplerSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = 74DCD174C09D3D93E28BEB64 /* DopplerSecrets.plist */; };
 		A8082F0C15F6DD83DA140F78 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24ACE8A61FC77F5216858D38 /* ThemeManager.swift */; };
+		A857077E12A58F0AFEDA0E44 /* AddTastingNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B958261C7D65969139CF6E /* AddTastingNoteView.swift */; };
 		AAD609426C18779F1015CBCF /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB94BFD5EBB6ECF874AC61EC /* SupabaseClient.swift */; };
+		B0C9DB671629D9A870B6E58C /* WineActionButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 237FFD2981959BF8F38845D0 /* WineActionButtons.swift */; };
+		B226FC1336CDB9BE895B15E6 /* WineHeroSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54483147FC32531D3BB921E3 /* WineHeroSection.swift */; };
 		B5E389EE06A1018722836AE9 /* PreviewContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E81AE2E53674E7F6EDA972 /* PreviewContainer.swift */; };
 		B653E262BEBE917EFF46D52D /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 2F796CEA6EE2797CF27D8203 /* Kingfisher */; };
 		B6778FAC52FC305D601ADD3B /* Wine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C5FF736994778CE20D63418 /* Wine.swift */; };
 		BAEDAB496398490D44302725 /* WineListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FF4D04198FB8957C739FEE1 /* WineListView.swift */; };
 		C0348ACC34903A81CF748F9F /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CA3B36B6C96D776DE7016D /* JournalView.swift */; };
+		C2F6C5E40BE6504815E96EA3 /* WineDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E15B49CEBFCECD16455CBB9 /* WineDetailViewModel.swift */; };
 		C3C78B7299A18AF07269D223 /* YouMightLikeSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA7B5EC22E3D6283B0ACDCB6 /* YouMightLikeSection.swift */; };
 		C82DB8F44EC2F17E16B1AC74 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6781C9995199363EC644A617 /* HapticManager.swift */; };
-		D3BB06606878BCD99DE22F0A /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */; };
-		D5BABE4E94AA4B281632F7A8 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADC32950C12BBEE23AA069C /* ProfileView.swift */; };
-		D9C0E5E85EC5B7FF45530FFB /* StatsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED0979C5BF1EB4DE9122B7C /* StatsService.swift */; };
-		E0FA7C52081459AD4860FCC9 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5F348E1F820731B3193170CD /* Config.plist */; };
-		E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7623913BA99093EBB4AB0B6 /* AuthManager.swift */; };
-		E879BDC38CBBA54D76CAF323 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28B3247AAF2285B6BD3DD63 /* ForgotPasswordView.swift */; };
-		E9DB772961E1A4E1690205FC /* SecretsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */; };
-		F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */ = {isa = PBXBuildFile; fileRef = E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */; };
-		F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */; };
-		FB1D89CB04FB2C883B1AB49B /* SharedUsersToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14AD12FA0227CF918093FD9 /* SharedUsersToggleView.swift */; };
 		COMP001A1B2C3D4E5F6G7H8I /* RatingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = COMP101A1B2C3D4E5F6G7H8I /* RatingCard.swift */; };
 		COMP002A1B2C3D4E5F6G7H8I /* RatingsComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = COMP102A1B2C3D4E5F6G7H8I /* RatingsComparisonView.swift */; };
 		COMP003A1B2C3D4E5F6G7H8I /* RatingBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = COMP103A1B2C3D4E5F6G7H8I /* RatingBadge.swift */; };
 		COMP006A1B2C3D4E5F6G7H8I /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = COMP106A1B2C3D4E5F6G7H8I /* FlowLayout.swift */; };
 		COMP007A1B2C3D4E5F6G7H8I /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = COMP107A1B2C3D4E5F6G7H8I /* Tag.swift */; };
+		D395E84F03884C77674AC9FC /* WineQuickStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40F3796ED1798D6C56CC525 /* WineQuickStats.swift */; };
+		D3BB06606878BCD99DE22F0A /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */; };
+		D5BABE4E94AA4B281632F7A8 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADC32950C12BBEE23AA069C /* ProfileView.swift */; };
+		D9C0E5E85EC5B7FF45530FFB /* StatsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED0979C5BF1EB4DE9122B7C /* StatsService.swift */; };
+		E0FA7C52081459AD4860FCC9 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5F348E1F820731B3193170CD /* Config.plist */; };
+		E50272EAC2A76CAD97B3B0DA /* WineHeaderSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E2CF24A3B1324370FE41A9 /* WineHeaderSection.swift */; };
+		E768505360AD4DD096CEE4FA /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7623913BA99093EBB4AB0B6 /* AuthManager.swift */; };
+		E879BDC38CBBA54D76CAF323 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E28B3247AAF2285B6BD3DD63 /* ForgotPasswordView.swift */; };
+		E9DB772961E1A4E1690205FC /* SecretsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79BF82BC4C82D3CC0C95B88A /* SecretsManager.swift */; };
+		EB8E4FD73623CC3F749DA2A5 /* ScanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8C1150350B374D114707DE /* ScanService.swift */; };
+		F6D9873BF5A171DC10EABFBB /* Config.xcconfig.template in Resources */ = {isa = PBXBuildFile; fileRef = E1A87DFDF10ECE50FD1AEE33 /* Config.xcconfig.template */; };
+		F7B0D9373E984E9E0A862F4B /* FeedDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */; };
+		FB1D89CB04FB2C883B1AB49B /* SharedUsersToggleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14AD12FA0227CF918093FD9 /* SharedUsersToggleView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		001D0CF7E2DD3ECD1480C924 /* BiometricAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthService.swift; sourceTree = "<group>"; };
 		02C9057D8AF0972213CD07D5 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		10E2CF24A3B1324370FE41A9 /* WineHeaderSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineHeaderSection.swift; sourceTree = "<group>"; };
+		12E81111C2D07E3459F51E12 /* TastingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TastingService.swift; sourceTree = "<group>"; };
 		12FEDCBA0987654321ABCDEF /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 		1B403AF88C91D4FE9794F8B6 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		1E15B49CEBFCECD16455CBB9 /* WineDetailViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineDetailViewModel.swift; sourceTree = "<group>"; };
+		1E5AE3D1AB6B639713AE8B8A /* ProfileService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileService.swift; sourceTree = "<group>"; };
 		1FD2D458C30F544F9DC95FC2 /* SharingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingService.swift; sourceTree = "<group>"; };
 		22AD192CA1ACFC90988C8864 /* SuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionsView.swift; sourceTree = "<group>"; };
+		237FFD2981959BF8F38845D0 /* WineActionButtons.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineActionButtons.swift; sourceTree = "<group>"; };
 		24ACE8A61FC77F5216858D38 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		29F95413CC6E037BB02200FD /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		3B2590B0AAF412E2772E4D21 /* Vinho.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Vinho.entitlements; sourceTree = "<group>"; };
@@ -81,7 +102,10 @@
 		4C5FF736994778CE20D63418 /* Wine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wine.swift; sourceTree = "<group>"; };
 		502BA12366C095B71BC59DC7 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		503A1A0527BA0496BFAA8753 /* PlaceAutocompleteField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceAutocompleteField.swift; sourceTree = "<group>"; };
+		513CB22477D196C82CD6AED8 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		521D3070D8745ED050F907A6 /* DeepLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkHandler.swift; sourceTree = "<group>"; };
+		54483147FC32531D3BB921E3 /* WineHeroSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineHeroSection.swift; sourceTree = "<group>"; };
+		54B958261C7D65969139CF6E /* AddTastingNoteView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AddTastingNoteView.swift; sourceTree = "<group>"; };
 		5D4E98265B16E5F972A19092 /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
 		5F348E1F820731B3193170CD /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Config.plist; sourceTree = "<group>"; };
 		5F381A633A953D96111A3722 /* Vinho.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vinho.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,18 +118,32 @@
 		7A27E917BF1FA98E3754F275 /* ProfileSubViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSubViews.swift; sourceTree = "<group>"; };
 		8380926523C07A9EB6D6FF80 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		83CB6219A0D2570AA75FC72B /* FeedDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedDetailView.swift; sourceTree = "<group>"; };
+		85EFC8658DCF1E74177E81B6 /* WineDetailsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineDetailsTab.swift; sourceTree = "<group>"; };
+		878B22B0D9281C7077794E78 /* WineDetailViewModel+Save.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "WineDetailViewModel+Save.swift"; sourceTree = "<group>"; };
+		8AE27D9EBE5289435994AE66 /* SearchService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SearchService.swift; sourceTree = "<group>"; };
 		8FF4D04198FB8957C739FEE1 /* WineListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineListView.swift; sourceTree = "<group>"; };
 		9035CE3E87A566DBD5591517 /* Sharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
 		90C8394DD2C607793EEF947A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9574995E43BE2A729EA653A7 /* WinePairingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WinePairingsTab.swift; sourceTree = "<group>"; };
 		96E81AE2E53674E7F6EDA972 /* PreviewContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContainer.swift; sourceTree = "<group>"; };
 		9AA9F21C724462525631A2AA /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		9BEC72F0D3874AA49272849F /* WineDetailComponents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineDetailComponents.swift; sourceTree = "<group>"; };
+		A40F3796ED1798D6C56CC525 /* WineQuickStats.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineQuickStats.swift; sourceTree = "<group>"; };
 		AADC32950C12BBEE23AA069C /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		B148593675AB8A0C77F55433 /* DataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataService.swift; sourceTree = "<group>"; };
 		B373E89CE0B31F12198AA339 /* SharingManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingManagementView.swift; sourceTree = "<group>"; };
 		B5CA3B36B6C96D776DE7016D /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		CA7DBD5E26182C7B042BA880 /* WineTastingsTab.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineTastingsTab.swift; sourceTree = "<group>"; };
 		CB249AF6EFC0328F7E44F181 /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
+		CB8C1150350B374D114707DE /* ScanService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScanService.swift; sourceTree = "<group>"; };
 		CD0F362198C0FA80A60FE635 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CED0979C5BF1EB4DE9122B7C /* StatsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsService.swift; sourceTree = "<group>"; };
+		COMP101A1B2C3D4E5F6G7H8I /* RatingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingCard.swift; sourceTree = "<group>"; };
+		COMP102A1B2C3D4E5F6G7H8I /* RatingsComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingsComparisonView.swift; sourceTree = "<group>"; };
+		COMP103A1B2C3D4E5F6G7H8I /* RatingBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingBadge.swift; sourceTree = "<group>"; };
+		COMP106A1B2C3D4E5F6G7H8I /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		COMP107A1B2C3D4E5F6G7H8I /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		D1291C694F8A654BA6BE10EC /* WineService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WineService.swift; sourceTree = "<group>"; };
 		D22C09944462C17A161DFE8D /* TastingNoteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TastingNoteEditorView.swift; sourceTree = "<group>"; };
 		D67CE2111EFCEAA5471D5E3D /* PersonalInformationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalInformationView.swift; sourceTree = "<group>"; };
 		D76EC39A8B54340E597E5A1C /* WineDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WineDetailView.swift; sourceTree = "<group>"; };
@@ -118,12 +156,6 @@
 		F14AD12FA0227CF918093FD9 /* SharedUsersToggleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedUsersToggleView.swift; sourceTree = "<group>"; };
 		F35B623A39A4E69CF7377EBF /* VinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VinoApp.swift; sourceTree = "<group>"; };
 		F4B6857CCF78CD8D93E6BB81 /* AnalyticsEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsEvents.swift; sourceTree = "<group>"; };
-		513CB22477D196C82CD6AED8 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
-		COMP101A1B2C3D4E5F6G7H8I /* RatingCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingCard.swift; sourceTree = "<group>"; };
-		COMP102A1B2C3D4E5F6G7H8I /* RatingsComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingsComparisonView.swift; sourceTree = "<group>"; };
-		COMP103A1B2C3D4E5F6G7H8I /* RatingBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RatingBadge.swift; sourceTree = "<group>"; };
-		COMP106A1B2C3D4E5F6G7H8I /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
-		COMP107A1B2C3D4E5F6G7H8I /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -197,6 +229,11 @@
 				1FD2D458C30F544F9DC95FC2 /* SharingService.swift */,
 				CED0979C5BF1EB4DE9122B7C /* StatsService.swift */,
 				E0AF7394CBB4C8215CB789F5 /* VisualSimilarityService.swift */,
+				D1291C694F8A654BA6BE10EC /* WineService.swift */,
+				12E81111C2D07E3459F51E12 /* TastingService.swift */,
+				CB8C1150350B374D114707DE /* ScanService.swift */,
+				8AE27D9EBE5289435994AE66 /* SearchService.swift */,
+				1E5AE3D1AB6B639713AE8B8A /* ProfileService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -250,25 +287,6 @@
 				503A1A0527BA0496BFAA8753 /* PlaceAutocompleteField.swift */,
 			);
 			path = Components;
-			sourceTree = "<group>";
-		};
-		COMPGRP002COMMON1234567 /* Common */ = {
-			isa = PBXGroup;
-			children = (
-				COMP106A1B2C3D4E5F6G7H8I /* FlowLayout.swift */,
-				COMP107A1B2C3D4E5F6G7H8I /* Tag.swift */,
-			);
-			path = Common;
-			sourceTree = "<group>";
-		};
-		COMPGRP003RATINGS123456 /* Ratings */ = {
-			isa = PBXGroup;
-			children = (
-				COMP103A1B2C3D4E5F6G7H8I /* RatingBadge.swift */,
-				COMP101A1B2C3D4E5F6G7H8I /* RatingCard.swift */,
-				COMP102A1B2C3D4E5F6G7H8I /* RatingsComparisonView.swift */,
-			);
-			path = Ratings;
 			sourceTree = "<group>";
 		};
 		9160BA6D81AB806DB4F74659 /* Vinho */ = {
@@ -395,11 +413,41 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		COMPGRP002COMMON1234567 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				COMP106A1B2C3D4E5F6G7H8I /* FlowLayout.swift */,
+				COMP107A1B2C3D4E5F6G7H8I /* Tag.swift */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
+		COMPGRP003RATINGS123456 /* Ratings */ = {
+			isa = PBXGroup;
+			children = (
+				COMP103A1B2C3D4E5F6G7H8I /* RatingBadge.swift */,
+				COMP101A1B2C3D4E5F6G7H8I /* RatingCard.swift */,
+				COMP102A1B2C3D4E5F6G7H8I /* RatingsComparisonView.swift */,
+			);
+			path = Ratings;
+			sourceTree = "<group>";
+		};
 		DAB10B25B3BB3B2C5EC2F762 /* WineList */ = {
 			isa = PBXGroup;
 			children = (
 				D76EC39A8B54340E597E5A1C /* WineDetailView.swift */,
 				8FF4D04198FB8957C739FEE1 /* WineListView.swift */,
+				1E15B49CEBFCECD16455CBB9 /* WineDetailViewModel.swift */,
+				878B22B0D9281C7077794E78 /* WineDetailViewModel+Save.swift */,
+				54483147FC32531D3BB921E3 /* WineHeroSection.swift */,
+				10E2CF24A3B1324370FE41A9 /* WineHeaderSection.swift */,
+				A40F3796ED1798D6C56CC525 /* WineQuickStats.swift */,
+				237FFD2981959BF8F38845D0 /* WineActionButtons.swift */,
+				9BEC72F0D3874AA49272849F /* WineDetailComponents.swift */,
+				54B958261C7D65969139CF6E /* AddTastingNoteView.swift */,
+				85EFC8658DCF1E74177E81B6 /* WineDetailsTab.swift */,
+				CA7DBD5E26182C7B042BA880 /* WineTastingsTab.swift */,
+				9574995E43BE2A729EA653A7 /* WinePairingsTab.swift */,
 			);
 			path = WineList;
 			sourceTree = "<group>";
@@ -481,6 +529,7 @@
 				384366D97DF483287542A2E2 /* XCRemoteSwiftPackageReference "posthog-ios" */,
 				7635433D62507E29747941EF /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
+			productRefGroup = EABF189C77370B3F83C7648C /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -581,6 +630,22 @@
 				8A49F372DD949481276C5C1F /* WineDetailView.swift in Sources */,
 				BAEDAB496398490D44302725 /* WineListView.swift in Sources */,
 				C3C78B7299A18AF07269D223 /* YouMightLikeSection.swift in Sources */,
+				562DFD408B09C376E2484177 /* WineService.swift in Sources */,
+				9C8B32A4AB62B6D9B8CCDDA4 /* TastingService.swift in Sources */,
+				EB8E4FD73623CC3F749DA2A5 /* ScanService.swift in Sources */,
+				05EAB157886024EE6B60DB04 /* SearchService.swift in Sources */,
+				86D2B1DB22FEDED7BB6F790D /* ProfileService.swift in Sources */,
+				C2F6C5E40BE6504815E96EA3 /* WineDetailViewModel.swift in Sources */,
+				8A9EB465662C1173AEF10D89 /* WineDetailViewModel+Save.swift in Sources */,
+				B226FC1336CDB9BE895B15E6 /* WineHeroSection.swift in Sources */,
+				E50272EAC2A76CAD97B3B0DA /* WineHeaderSection.swift in Sources */,
+				D395E84F03884C77674AC9FC /* WineQuickStats.swift in Sources */,
+				B0C9DB671629D9A870B6E58C /* WineActionButtons.swift in Sources */,
+				06FA288953D8F889174CCF2C /* WineDetailComponents.swift in Sources */,
+				A857077E12A58F0AFEDA0E44 /* AddTastingNoteView.swift in Sources */,
+				9CEFDB79947947B528135982 /* WineDetailsTab.swift in Sources */,
+				826E1B7ECF7EA9289A84A427 /* WineTastingsTab.swift in Sources */,
+				9E1EA5BB02F2963E20BEDE6D /* WinePairingsTab.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

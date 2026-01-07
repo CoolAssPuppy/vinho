@@ -131,10 +131,9 @@ export async function POST(_request: NextRequest) {
     });
 
     if (!resendResponse.ok) {
-      const error = await resendResponse.text();
-      console.error("Failed to send completion email:", error);
+      const errorText = await resendResponse.text();
       return NextResponse.json(
-        { error: "Failed to send email", details: error },
+        { error: "Failed to send email", details: errorText },
         { status: 500 },
       );
     }
@@ -145,7 +144,6 @@ export async function POST(_request: NextRequest) {
       stats,
     });
   } catch (error) {
-    console.error("Error sending migration complete email:", error);
     return NextResponse.json(
       {
         error: "Failed to send completion email",

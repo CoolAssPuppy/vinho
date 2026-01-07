@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { generateEmbedding } from "@/lib/embeddings";
 
+function parseIntSafe(value: string | null, defaultValue: number, min: number, max: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) return defaultValue;
+  return Math.max(min, Math.min(max, parsed));
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("q");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseIntSafe(searchParams.get("limit"), 10, 1, 50);
 
     if (!query) {
       return NextResponse.json(
@@ -57,7 +64,6 @@ export async function GET(request: NextRequest) {
       );
 
       if (vectorError) {
-        console.error("Vector search error:", vectorError);
         return NextResponse.json({ results: [], method: "none" });
       }
 
@@ -73,17 +79,15 @@ export async function GET(request: NextRequest) {
         results: filteredResults,
         method: "vector",
       });
-    } catch (embeddingError) {
-      console.error("Embedding generation failed:", embeddingError);
+    } catch {
       // Fall back to empty results if embedding fails
       return NextResponse.json({ results: [], method: "none" });
     }
-  } catch (error) {
-    console.error("Search error:", error);
+  } catch {
     return NextResponse.json(
       {
         error: "Search failed",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "An unexpected error occurred",
       },
       { status: 500 },
     );

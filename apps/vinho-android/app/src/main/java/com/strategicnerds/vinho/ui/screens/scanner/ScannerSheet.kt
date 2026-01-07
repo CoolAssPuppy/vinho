@@ -475,22 +475,17 @@ private fun ScanResultScreen(
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Display captured image
+            // Display captured image - use ByteArray directly with Coil to avoid double decoding
             if (imageBytes != null) {
-                val bitmap = remember(imageBytes) {
-                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                }
-                if (bitmap != null) {
-                    AsyncImage(
-                        model = bitmap,
-                        contentDescription = "Captured wine",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(250.dp)
-                            .clip(RoundedCornerShape(16.dp)),
-                        contentScale = ContentScale.Fit
-                    )
-                }
+                AsyncImage(
+                    model = imageBytes,
+                    contentDescription = "Captured wine",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Fit
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

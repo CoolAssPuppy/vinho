@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Edit, MapPin, Wine, Users, Star } from "lucide-react";
 import Image from "next/image";
 import { StarDisplay } from "@/components/ui/star-rating";
@@ -20,7 +21,7 @@ interface TastingCardProps {
   onEdit?: (tasting: Tasting) => void;
 }
 
-export function TastingCard({ tasting, onEdit }: TastingCardProps) {
+export const TastingCard = memo(function TastingCard({ tasting, onEdit }: TastingCardProps) {
   const wineName = tasting.vintage.wine.name;
   const vintage = tasting.vintage.year;
   const producerName = tasting.vintage.wine.producer.name;
@@ -40,6 +41,7 @@ export function TastingCard({ tasting, onEdit }: TastingCardProps) {
               alt={`${wineName} ${vintage || "NV"}`}
               fill
               className="object-cover"
+              sizes="128px"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
@@ -146,4 +148,4 @@ export function TastingCard({ tasting, onEdit }: TastingCardProps) {
       </div>
     </Card>
   );
-}
+});

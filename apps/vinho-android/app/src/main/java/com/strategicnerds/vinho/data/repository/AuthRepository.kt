@@ -91,10 +91,15 @@ class AuthRepository @Inject constructor(
             requestMethod = "POST"
             setRequestProperty("Authorization", "Bearer $accessToken")
             setRequestProperty("Content-Type", "application/json")
+            connectTimeout = 30_000  // 30 seconds
+            readTimeout = 30_000     // 30 seconds
         }
-        connection.connect()
-        val success = connection.responseCode in 200..299
-        connection.disconnect()
-        success
+        try {
+            connection.connect()
+            val success = connection.responseCode in 200..299
+            success
+        } finally {
+            connection.disconnect()
+        }
     }
 }

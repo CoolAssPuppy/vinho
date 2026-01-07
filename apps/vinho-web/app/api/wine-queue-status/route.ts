@@ -27,7 +27,6 @@ export async function GET(_request: NextRequest) {
       .eq("user_id", user.id);
 
     if (countError) {
-      console.error("Error fetching queue status:", countError);
       return NextResponse.json(
         { error: "Failed to fetch queue status" },
         { status: 500 },
@@ -113,7 +112,6 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(status);
   } catch (error) {
-    console.error("Queue status error:", error);
     return NextResponse.json(
       {
         error: "Failed to get queue status",

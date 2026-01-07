@@ -119,6 +119,7 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
     implementation("com.google.android.gms:play-services-auth:21.2.0")

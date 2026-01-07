@@ -47,6 +47,13 @@ class WineRepository @Inject constructor(
             .select(Columns.raw("*, producers!producer_id(*), vintages(*)"))
             .decodeList()
 
+    suspend fun fetchWineById(wineId: String): Wine? =
+        client.postgrest["wines"]
+            .select(Columns.raw("*, producers!producer_id(*), vintages(*)")) {
+                filter { eq("id", wineId) }
+            }
+            .decodeSingleOrNull()
+
     suspend fun searchWines(query: String): List<Wine> {
         if (query.isBlank()) return emptyList()
         return client.postgrest["wines"]

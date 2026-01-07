@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   Wine,
   MapPin,
@@ -364,8 +364,8 @@ export default function MapPage() {
     await fetchRecentWines();
   };
 
-  // Stats cards configuration
-  const statsCards = [
+  // Stats cards configuration - memoized to prevent re-creation on every render
+  const statsCards = useMemo(() => [
     {
       title: "Unique Wines",
       value: stats?.unique_wines || 0,
@@ -394,7 +394,7 @@ export default function MapPage() {
       description: "Tastings last 30 days",
       color: "text-green-500",
     },
-  ];
+  ], [stats]);
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">

@@ -493,7 +493,7 @@ struct ScanResultView: View {
             pendingTasting = tasting
 
             // Notify that wine data has changed so other views can refresh
-            DataService.shared.notifyWineDataChanged()
+            WineService.shared.notifyWineDataChanged()
         } catch {
             // Error handled silently
         }

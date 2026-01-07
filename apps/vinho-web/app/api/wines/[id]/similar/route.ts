@@ -49,6 +49,20 @@ interface VectorQueryResult {
   metadata?: Record<string, unknown>;
 }
 
+function parseIntSafe(value: string | null, defaultValue: number, min: number, max: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) return defaultValue;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function parseFloatSafe(value: string | null, defaultValue: number, min: number, max: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseFloat(value);
+  if (isNaN(parsed)) return defaultValue;
+  return Math.max(min, Math.min(max, parsed));
+}
+
 /**
  * GET /api/wines/[id]/similar
  * Find visually similar wines based on label image embeddings
@@ -60,8 +74,8 @@ export async function GET(
   try {
     const { id: wineId } = await params;
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get("limit") || "5");
-    const threshold = parseFloat(searchParams.get("threshold") || "0.7");
+    const limit = parseIntSafe(searchParams.get("limit"), 5, 1, 20);
+    const threshold = parseFloatSafe(searchParams.get("threshold"), 0.7, 0, 1);
 
     if (!wineId) {
       return NextResponse.json(
@@ -154,7 +168,6 @@ export async function GET(
       });
 
       if (!jinaResponse.ok) {
-        console.error("Jina API error:", jinaResponse.status);
         return NextResponse.json(
           { error: "Failed to generate visual embedding" },
           { status: 500 }
@@ -180,7 +193,6 @@ export async function GET(
       });
 
       if (searchError) {
-        console.error("Vector search error:", searchError);
         return NextResponse.json(
           { error: "Visual search failed" },
           { status: 500 }
@@ -215,7 +227,6 @@ export async function GET(
     });
 
     if (searchError) {
-      console.error("Vector search error:", searchError);
       return NextResponse.json(
         { error: "Visual search failed" },
         { status: 500 }
@@ -229,12 +240,11 @@ export async function GET(
       threshold,
       limit
     );
-  } catch (error) {
-    console.error("Similar wines error:", error);
+  } catch {
     return NextResponse.json(
       {
         error: "Failed to find similar wines",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "An unexpected error occurred",
       },
       { status: 500 }
     );

@@ -76,11 +76,6 @@ export async function POST(request: NextRequest) {
 
     // Ensure wine-images bucket exists
     const bucketReady = await ensureWineImagesBucket();
-    if (!bucketReady) {
-      console.warn(
-        "Failed to create wine-images bucket - images will not be stored locally",
-      );
-    }
 
     // Migration statistics
     const stats = {
@@ -120,14 +115,12 @@ export async function POST(request: NextRequest) {
             .select("id")
             .single();
 
-          if (error) {
-            console.error(`Failed to create region ${regionName}:`, error);
-          } else if (newRegion) {
+          if (!error && newRegion) {
             regionMap.set(regionKey, newRegion.id);
           }
         }
-      } catch (error) {
-        console.error(`Error processing region ${regionKey}:`, error);
+      } catch {
+        // Skip region on error
       }
     }
 
@@ -163,7 +156,6 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (error) {
-            console.error(`Failed to create producer ${producerName}:`, error);
             stats.errors.push(`Producer ${producerName}: ${error.message}`);
             stats.failed += wines.length;
             continue;
@@ -202,10 +194,6 @@ export async function POST(request: NextRequest) {
                 .single();
 
               if (error) {
-                console.error(
-                  `Failed to create wine ${wineData.wine.name}:`,
-                  error,
-                );
                 stats.errors.push(
                   `Wine ${wineData.wine.name}: ${error.message}`,
                 );
@@ -240,7 +228,6 @@ export async function POST(request: NextRequest) {
                   .single();
 
                 if (error) {
-                  console.error(`Failed to create vintage:`, error);
                   stats.errors.push(
                     `Vintage ${wineData.vintage.year}: ${error.message}`,
                   );
@@ -266,14 +253,10 @@ export async function POST(request: NextRequest) {
                 if (imageResult.success && imageResult.localUrl) {
                   localImageUrl = imageResult.localUrl;
                 } else {
-                  console.warn(
-                    `Failed to download image for ${wineData.wine.name}: ${imageResult.error}`,
-                  );
                   // Fall back to original URL
                   localImageUrl = wineData.metadata.vivinoImageUrl;
                 }
-              } catch (error) {
-                console.error("Error downloading image:", error);
+              } catch {
                 // Fall back to original URL
                 localImageUrl = wineData.metadata.vivinoImageUrl;
               }
@@ -330,8 +313,7 @@ export async function POST(request: NextRequest) {
                   let embedding: number[] | null = null;
                   try {
                     embedding = await generateEmbedding(searchText);
-                  } catch (error) {
-                    console.error("Failed to generate embedding:", error);
+                  } catch {
                     // Continue without embedding - text search will still work
                   }
 
@@ -352,18 +334,14 @@ export async function POST(request: NextRequest) {
                     });
 
                   if (tastingError) {
-                    console.error("Failed to create tasting:", tastingError);
                     stats.errors.push(`Tasting: ${tastingError.message}`);
                     stats.failed++;
                   } else {
                     stats.imported++;
                   }
                 } else {
-                  // Skip duplicate
-                  console.log(
-                    `Skipping duplicate tasting for ${wineData.wine.name}`,
-                  );
-                  stats.imported++; // Count as success since it exists
+                  // Skip duplicate - count as success since it exists
+                  stats.imported++;
                 }
               }
             }
@@ -391,13 +369,11 @@ export async function POST(request: NextRequest) {
               });
             }
           } catch (error) {
-            console.error("Error processing wine:", error);
             stats.errors.push(`Processing error: ${error}`);
             stats.failed++;
           }
         }
       } catch (error) {
-        console.error(`Error processing producer ${producerName}:`, error);
         stats.errors.push(`Producer processing error: ${error}`);
         stats.failed += wines.length;
       }
@@ -415,8 +391,8 @@ export async function POST(request: NextRequest) {
             journalUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://vinho.app"}/journal`,
           });
 
-          // Send email via Resend API directly
-          const resendResponse = await fetch("https://api.resend.com/emails", {
+          // Send email via Resend API directly (fire and forget)
+          await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -426,22 +402,12 @@ export async function POST(request: NextRequest) {
               from:
                 process.env.RESEND_FROM_EMAIL || "Vinho <noreply@vinho.app>",
               to: userData.user.email,
-              subject: "🍷 Your Vivino Import Has Started!",
+              subject: "Your Vivino Import Has Started!",
               html: emailHtml,
             }),
           });
-
-          if (!resendResponse.ok) {
-            console.error(
-              "Failed to send migration started email:",
-              await resendResponse.text(),
-            );
-          } else {
-            console.log("Migration started email sent successfully");
-          }
         }
-      } catch (error) {
-        console.error("Error sending migration started email:", error);
+      } catch {
         // Don't fail the migration if email fails
       }
     }
@@ -462,7 +428,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Migration error:", error);
     return NextResponse.json(
       {
         error: "Migration failed",

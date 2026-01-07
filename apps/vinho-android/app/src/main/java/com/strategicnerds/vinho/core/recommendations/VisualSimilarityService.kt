@@ -15,6 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import com.strategicnerds.vinho.core.security.CertificatePinnerConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,7 +44,9 @@ sealed class SimilarityError : Exception() {
 class VisualSimilarityService @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) {
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .certificatePinner(CertificatePinnerConfig.certificatePinner)
+        .build()
     private val json = Json { ignoreUnknownKeys = true }
     // Always use www.vinho.dev - redirects from vinho.dev strip auth headers
     private val baseUrl = "https://www.vinho.dev"
@@ -118,7 +121,7 @@ class VisualSimilarityService @Inject constructor(
     }
 
     private fun makeRequest(accessToken: String, limit: Int): RequestResult {
-        Log.d(TAG, "Fetching similar wines with token: ${accessToken.take(20)}...")
+        Log.d(TAG, "Fetching similar wines...")
 
         val request = Request.Builder()
             .url("$baseUrl/api/wines/similar-for-user?limit=$limit")

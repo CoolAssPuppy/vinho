@@ -91,6 +91,20 @@ interface SourceWine {
 
 type RecommendationType = "personalized" | "your_favorites";
 
+function parseIntSafe(value: string | null, defaultValue: number, min: number, max: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) return defaultValue;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function parseFloatSafe(value: string | null, defaultValue: number, min: number, max: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseFloat(value);
+  if (isNaN(parsed)) return defaultValue;
+  return Math.max(min, Math.min(max, parsed));
+}
+
 /**
  * GET /api/wines/similar-for-user
  *
@@ -102,23 +116,15 @@ type RecommendationType = "personalized" | "your_favorites";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 20);
-    const threshold = parseFloat(searchParams.get("threshold") || "0.60");
+    const limit = parseIntSafe(searchParams.get("limit"), 10, 1, 20);
+    const threshold = parseFloatSafe(searchParams.get("threshold"), 0.60, 0, 1);
 
     const supabase = await getAuthenticatedSupabase(request);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError) {
-      console.error("Auth error:", authError);
+    if (authError || !user) {
       return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
     }
-
-    if (!user) {
-      console.error("No user found in session");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    console.log("[similar-for-user] User authenticated:", user.id);
 
     // Get ALL user's wines (not just highly-rated)
     const { data: allTastings, error: tastingsError } = await supabase
@@ -137,7 +143,6 @@ export async function GET(request: NextRequest) {
       .limit(20);
 
     if (tastingsError) {
-      console.error("Error fetching tastings:", tastingsError);
       return NextResponse.json(
         { error: "Failed to fetch user tastings" },
         { status: 500 }
@@ -213,20 +218,17 @@ export async function GET(request: NextRequest) {
     const serviceRoleKey = process.env.VINHO_SERVICE_ROLE_KEY;
 
     if (!serviceRoleKey) {
-      console.error("[similar-for-user] VINHO_SERVICE_ROLE_KEY not configured");
       return NextResponse.json(
         { error: "Recommendations service not configured" },
         { status: 503 }
       );
     }
 
-    console.log("[similar-for-user] Using service role client for vectors");
     const vectorSupabase = getServiceRoleSupabase();
 
     const storage = vectorSupabase.storage as unknown as StorageWithVectors;
 
     if (!storage?.vectors) {
-      console.error("[similar-for-user] Vectors API not available on storage client");
       return NextResponse.json(
         { error: "Vector storage not available" },
         { status: 500 }
@@ -234,13 +236,10 @@ export async function GET(request: NextRequest) {
     }
 
     const index = storage.vectors.from(VECTOR_BUCKET).index(VECTOR_INDEX);
-    console.log("[similar-for-user] Querying vectors for", sourceWines.length, "source wines");
 
     const candidateWines = new Map<string, SimilarWine>();
 
     for (const sourceWine of sourceWines) {
-      console.log("[similar-for-user] Getting embedding for wine:", sourceWine.id);
-
       // Fetch embedding from database (getVectors doesn't return float32 data)
       const { data: embedRow, error: embedError } = await vectorSupabase
         .from("label_embeddings")
@@ -250,7 +249,6 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (embedError || !embedRow?.label_embedding) {
-        console.log("[similar-for-user] No embedding for wine", sourceWine.id, ":", embedError?.message);
         continue;
       }
 
@@ -262,15 +260,11 @@ export async function GET(request: NextRequest) {
         } else if (Array.isArray(embedRow.label_embedding)) {
           embedding = embedRow.label_embedding;
         } else {
-          console.log("[similar-for-user] Unknown embedding format for", sourceWine.id);
           continue;
         }
       } catch {
-        console.log("[similar-for-user] Failed to parse embedding for", sourceWine.id);
         continue;
       }
-
-      console.log("[similar-for-user] Got embedding for", sourceWine.id, "- dimensions:", embedding.length);
 
       const { data: searchResults, error: searchError } = await index.queryVectors({
         queryVector: { float32: embedding },
@@ -366,15 +360,11 @@ export async function GET(request: NextRequest) {
       based_on_count: sourceWines.length,
       recommendation_type: recommendationType,
     });
-  } catch (error) {
-    console.error("[similar-for-user] Caught error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    console.error("[similar-for-user] Error details:", { message: errorMessage, stack: errorStack });
+  } catch {
     return NextResponse.json(
       {
         error: "Failed to find similar wines",
-        details: errorMessage,
+        details: "An unexpected error occurred",
       },
       { status: 500 }
     );

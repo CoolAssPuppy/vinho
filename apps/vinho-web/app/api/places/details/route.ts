@@ -23,8 +23,7 @@ export async function GET(req: NextRequest) {
     );
     const data = await res.json();
     return NextResponse.json({ data });
-  } catch (err) {
-    console.error("Place details error", err);
+  } catch {
     return NextResponse.json(
       { data: null, error: "Place lookup failed" },
       { status: 500 },

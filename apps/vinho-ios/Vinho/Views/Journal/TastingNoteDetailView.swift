@@ -296,7 +296,7 @@ struct TastingNoteDetailView: View {
             isLoadingExpertRating = true
         }
 
-        let rating = await DataService.shared.fetchExpertRating(
+        let rating = await WineService.shared.fetchExpertRating(
             vintageId: note.vintageId,
             wineName: note.wineName,
             producerName: note.producer,

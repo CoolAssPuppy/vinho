@@ -29,8 +29,7 @@ export async function GET(req: NextRequest) {
     );
     const data = await res.json();
     return NextResponse.json({ data: data.suggestions || [] });
-  } catch (err) {
-    console.error("Autocomplete error", err);
+  } catch {
     return NextResponse.json(
       { data: [], error: "Autocomplete failed" },
       { status: 500 },

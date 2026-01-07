@@ -119,8 +119,7 @@ class WineListViewModel @Inject constructor(
         viewModelScope.launch {
             _detailState.value = WineDetailState(isLoading = true)
             runCatching {
-                val wines = wineRepository.fetchWines()
-                val wine = wines.find { it.id == wineId }
+                val wine = wineRepository.fetchWineById(wineId)
                 val tastings = if (wine != null) {
                     tastingRepository.fetchTastingsForWine(wineId)
                 } else emptyList()
