@@ -1,6 +1,6 @@
 {
   "name": "vinho-web",
-  "version": "0.1.0",
+  "version": "1.0.2",
   "private": true,
   "scripts": {
     "dev": "if command -v doppler >/dev/null 2>&1; then doppler run -- next dev; else next dev; fi",
