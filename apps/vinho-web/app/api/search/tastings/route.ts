@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { generateEmbedding } from "@/lib/embeddings";
-
-function parseIntSafe(value: string | null, defaultValue: number, min: number, max: number): number {
-  if (!value) return defaultValue;
-  const parsed = parseInt(value, 10);
-  if (isNaN(parsed)) return defaultValue;
-  return Math.max(min, Math.min(max, parsed));
-}
+import { parseIntSafe } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, X, Loader2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
+
+const SEARCH_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const SEARCH_CACHE_MAX_SIZE = 20;
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
 
 interface SearchResult {
   tasting_id: string;
@@ -24,11 +32,19 @@ export function SearchBar({ onResults, onClear }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const debouncedQuery = useDebounce(query, 500);
+  const cacheRef = useRef<Map<string, CacheEntry<SearchResult[]>>>(new Map());
 
   useEffect(() => {
     const performSearch = async () => {
       if (!debouncedQuery.trim()) {
         onClear?.();
+        return;
+      }
+
+      const cacheKey = debouncedQuery.trim().toLowerCase();
+      const cached = cacheRef.current.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
+        onResults?.(cached.data);
         return;
       }
 
@@ -39,7 +55,17 @@ export function SearchBar({ onResults, onClear }: SearchBarProps) {
         );
         if (response.ok) {
           const data = await response.json();
-          onResults?.(data.results || []);
+          const results = data.results || [];
+
+          // Evict oldest entries if cache is full
+          if (cacheRef.current.size >= SEARCH_CACHE_MAX_SIZE) {
+            const oldest = [...cacheRef.current.entries()]
+              .sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+            if (oldest) cacheRef.current.delete(oldest[0]);
+          }
+          cacheRef.current.set(cacheKey, { data: results, timestamp: Date.now() });
+
+          onResults?.(results);
         }
       } catch (error) {
         console.error("Search failed:", error);

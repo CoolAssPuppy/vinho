@@ -180,6 +180,8 @@ struct PlaceLocation {
 // MARK: - Google Places Service
 class GooglePlacesService: ObservableObject {
     private let apiKey: String
+    private let cacheTTL: TimeInterval = 300 // 5 minutes
+    private var resultsCache: [String: (results: [GooglePlaceSuggestion], timestamp: Date)] = [:]
 
     init() {
         // Get API key from Doppler via SecretsManager
@@ -204,7 +206,20 @@ class GooglePlacesService: ObservableObject {
         return nil
     }
 
+    /// Builds a cache key from the query and types to distinguish different searches
+    private func cacheKey(query: String, types: [String]) -> String {
+        let typesKey = types.sorted().joined(separator: ",")
+        return "\(query)|\(typesKey)"
+    }
+
     func searchPlaces(query: String, types: [String] = []) async throws -> [GooglePlaceSuggestion] {
+        // Check cache first
+        let key = cacheKey(query: query, types: types)
+        if let cached = resultsCache[key],
+           Date().timeIntervalSince(cached.timestamp) < cacheTTL {
+            return cached.results
+        }
+
         guard !apiKey.isEmpty else {
             throw PlacesError.missingAPIKey
         }
@@ -224,13 +239,18 @@ class GooglePlacesService: ObservableObject {
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(PlacesAutocompleteResponse.self, from: data)
 
-        return response.suggestions?.compactMap { suggestion in
+        let results: [GooglePlaceSuggestion] = response.suggestions?.compactMap { suggestion in
             guard let placeId = suggestion.placePrediction?.placeId,
                   let text = suggestion.placePrediction?.text?.text else {
                 return nil
             }
             return GooglePlaceSuggestion(placeId: placeId, description: text)
         } ?? []
+
+        // Store in cache
+        resultsCache[key] = (results: results, timestamp: Date())
+
+        return results
     }
 
     func getPlaceDetails(placeId: String) async throws -> GooglePlaceDetails {

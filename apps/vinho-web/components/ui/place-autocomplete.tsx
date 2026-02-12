@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Command,
   CommandGroup,
@@ -10,6 +10,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { MapPin, CheckCircle } from "lucide-react";
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
 
 interface PlaceAutocompleteProps {
   value: string;
@@ -25,6 +32,13 @@ interface PlaceAutocompleteProps {
   types?: string;
 }
 
+interface Suggestion {
+  placePrediction?: {
+    placeId: string;
+    text?: { text: string };
+  };
+}
+
 export function PlaceAutocomplete({
   value,
   onChange,
@@ -38,27 +52,34 @@ export function PlaceAutocomplete({
     name: string;
     address: string;
   } | null>(null);
-  interface Suggestion {
-    placePrediction?: {
-      placeId: string;
-      text?: { text: string };
-    };
-  }
   const [results, setResults] = useState<Suggestion[]>([]);
   const debounced = useDebounce(query, 300);
+  const cacheRef = useRef<Map<string, CacheEntry<Suggestion[]>>>(new Map());
 
   useEffect(() => {
     if (!debounced) {
       setResults([]);
       return;
     }
+
+    const cacheKey = `${debounced}|${types || ""}`;
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      setResults(cached.data);
+      return;
+    }
+
     const controller = new AbortController();
     fetch(
       `/api/places/autocomplete?input=${encodeURIComponent(debounced)}${types ? `&types=${types}` : ""}`,
       { signal: controller.signal },
     )
       .then((r) => r.json())
-      .then((d) => setResults((d.data as Suggestion[]) || []))
+      .then((d) => {
+        const suggestions = (d.data as Suggestion[]) || [];
+        cacheRef.current.set(cacheKey, { data: suggestions, timestamp: Date.now() });
+        setResults(suggestions);
+      })
       .catch(() => {});
     return () => controller.abort();
   }, [debounced, types]);

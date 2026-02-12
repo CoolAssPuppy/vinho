@@ -19,3 +19,17 @@ export function formatPrice(cents: number) {
     currency: "USD"
   }).format(cents / 100)
 }
+
+export function parseIntSafe(value: string | null, defaultValue: number, min: number, max: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) return defaultValue;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+export function parseFloatSafe(value: string | null, defaultValue: number, min: number, max: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseFloat(value);
+  if (isNaN(parsed)) return defaultValue;
+  return Math.max(min, Math.min(max, parsed));
+}

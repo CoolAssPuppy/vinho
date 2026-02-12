@@ -6,6 +6,10 @@ actor VisualSimilarityService {
     static let shared = VisualSimilarityService()
 
     private let baseURL: String
+    private let cacheTTL: TimeInterval = 300 // 5 minutes
+
+    private var cachedResult: SimilarWinesResult?
+    private var cacheTimestamp: Date?
 
     private init() {
         baseURL = "https://www.vinho.dev"
@@ -21,8 +25,25 @@ actor VisualSimilarityService {
         let recommendationType: RecommendationType
     }
 
+    /// Clears the cached result so the next fetch hits the API
+    func clearCache() {
+        cachedResult = nil
+        cacheTimestamp = nil
+    }
+
+    /// Returns true if the cache exists and has not expired
+    private var isCacheValid: Bool {
+        guard let timestamp = cacheTimestamp else { return false }
+        return Date().timeIntervalSince(timestamp) < cacheTTL
+    }
+
     /// Fetches wines visually similar to the user's wines
     func fetchSimilarWines(limit: Int = 6) async throws -> SimilarWinesResult {
+        // Return cached result if still valid
+        if let cachedResult, isCacheValid {
+            return cachedResult
+        }
+
         let session: Session
         do {
             session = try await supabase.auth.session
@@ -47,11 +68,14 @@ actor VisualSimilarityService {
 
         switch httpResponse.statusCode {
         case 200:
-            let result = try JSONDecoder().decode(SimilarWinesResponse.self, from: data)
-            return SimilarWinesResult(
-                wines: result.similarWines,
-                recommendationType: result.recommendationType ?? .yourFavorites
+            let decoded = try JSONDecoder().decode(SimilarWinesResponse.self, from: data)
+            let result = SimilarWinesResult(
+                wines: decoded.similarWines,
+                recommendationType: decoded.recommendationType ?? .yourFavorites
             )
+            cachedResult = result
+            cacheTimestamp = Date()
+            return result
         case 401:
             throw SimilarityError.notAuthenticated
         default:

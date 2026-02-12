@@ -1,32 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createServerSupabase } from "@/lib/supabase-server";
+import { getAuthenticatedClient } from "@/lib/supabase-server";
 import type { Database } from "@/lib/database.types";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SERVICE_ROLE_KEY = process.env.VINHO_SERVICE_ROLE_KEY;
-
-async function getAuthenticatedUser(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-
-  if (authHeader?.toLowerCase().startsWith("bearer ")) {
-    const token = authHeader.replace(/bearer /i, "");
-    const supabase = createClient<Database>(SUPABASE_URL, ANON_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
-
-    return supabase.auth.getUser();
-  }
-
-  const supabase = await createServerSupabase();
-  return supabase.auth.getUser();
-}
 
 async function purgeUserData(admin: SupabaseClient<Database>, userId: string) {
   const errors: string[] = [];
@@ -57,7 +36,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Service role key not configured" }, { status: 500 });
   }
 
-  const { data: authData, error: authError } = await getAuthenticatedUser(request);
+  const supabase = await getAuthenticatedClient(request);
+  const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData?.user) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });

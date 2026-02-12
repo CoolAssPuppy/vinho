@@ -1,38 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
+import { getAuthenticatedClient } from "@/lib/supabase-server";
 import { createClient } from "@supabase/supabase-js";
+import { parseIntSafe, parseFloatSafe } from "@/lib/utils";
 import type { Database } from "@/lib/database.types";
 
 const VECTOR_BUCKET = "wine-labels";
 const VECTOR_INDEX = "visual-embeddings";
-
-/**
- * Create a Supabase client that works for both:
- * 1. Web clients using cookies
- * 2. iOS/mobile clients using Bearer token
- */
-async function getAuthenticatedSupabase(request: NextRequest) {
-  // Check for Bearer token first (mobile clients)
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.substring(7);
-    const supabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    );
-    return supabase;
-  }
-
-  // Fall back to cookie-based auth (web clients)
-  return createServerSupabase();
-}
 
 /**
  * Create a service role client for vector operations
@@ -91,20 +64,6 @@ interface SourceWine {
 
 type RecommendationType = "personalized" | "your_favorites";
 
-function parseIntSafe(value: string | null, defaultValue: number, min: number, max: number): number {
-  if (!value) return defaultValue;
-  const parsed = parseInt(value, 10);
-  if (isNaN(parsed)) return defaultValue;
-  return Math.max(min, Math.min(max, parsed));
-}
-
-function parseFloatSafe(value: string | null, defaultValue: number, min: number, max: number): number {
-  if (!value) return defaultValue;
-  const parsed = parseFloat(value);
-  if (isNaN(parsed)) return defaultValue;
-  return Math.max(min, Math.min(max, parsed));
-}
-
 /**
  * GET /api/wines/similar-for-user
  *
@@ -119,7 +78,7 @@ export async function GET(request: NextRequest) {
     const limit = parseIntSafe(searchParams.get("limit"), 10, 1, 20);
     const threshold = parseFloatSafe(searchParams.get("threshold"), 0.60, 0, 1);
 
-    const supabase = await getAuthenticatedSupabase(request);
+    const supabase = await getAuthenticatedClient(request);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -359,6 +318,10 @@ export async function GET(request: NextRequest) {
       count: enrichedWines.length,
       based_on_count: sourceWines.length,
       recommendation_type: recommendationType,
+    }, {
+      headers: {
+        "Cache-Control": "private, max-age=300",
+      },
     });
   } catch {
     return NextResponse.json(

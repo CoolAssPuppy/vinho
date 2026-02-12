@@ -404,73 +404,93 @@ struct ScanResultView: View {
 
 
     private func checkProcessingStatus() async {
-        // Poll for status changes with exponential backoff
         guard let winesAddedId = winesAddedId else { return }
 
-        struct QueueStatus: Decodable {
-            let status: String
-        }
+        let client = SupabaseManager.shared.client
+        let channel = client.channel("wine-queue-\(winesAddedId)")
 
-        let maxAttempts = 60  // Poll for up to 60 seconds
-        var attempt = 0
+        // Register for UPDATE events on the specific queue item before subscribing
+        let changes = channel.postgresChange(
+            UpdateAction.self,
+            schema: "public",
+            table: "wines_added_queue",
+            filter: .eq("id", value: winesAddedId)
+        )
 
-        while attempt < maxAttempts && isProcessingImage {
-            do {
-                let queueItem: QueueStatus = try await SupabaseManager.shared.client
-                    .from("wines_added_queue")
-                    .select("status")
-                    .eq("id", value: winesAddedId)
-                    .single()
-                    .execute()
-                    .value
+        try? await channel.subscribeWithError()
 
-                if queueItem.status == "completed" {
-                    isProcessingImage = false
-                    await getVintageId()
-                    return
-                } else if queueItem.status == "failed" {
-                    isProcessingImage = false
-                    errorMessage = "Wine processing failed. Please try again."
-                    showingError = true
-                    return
+        // Race between realtime updates and a 60-second timeout
+        await withTaskGroup(of: Void.self) { group in
+            // Task 1: Listen for realtime changes
+            group.addTask { [self] in
+                for await change in changes {
+                    let status = change.record["status"]?.stringValue
+
+                    if status == "completed" {
+                        await MainActor.run {
+                            isProcessingImage = false
+                        }
+                        await getVintageId()
+                        return
+                    } else if status == "failed" {
+                        await MainActor.run {
+                            isProcessingImage = false
+                            errorMessage = "Wine processing failed. Please try again."
+                            showingError = true
+                        }
+                        return
+                    }
+                }
+            }
+
+            // Task 2: Timeout safety fallback after 60 seconds
+            group.addTask { [self] in
+                try? await Task.sleep(for: .seconds(60))
+
+                guard await isProcessingImage else { return }
+
+                // Check one final time via REST before giving up
+                struct QueueStatus: Decodable {
+                    let status: String
                 }
 
-                // Wait 1 second before next poll
-                try await Task.sleep(for: .seconds(1))
-                attempt += 1
+                do {
+                    let queueItem: QueueStatus = try await client
+                        .from("wines_added_queue")
+                        .select("status")
+                        .eq("id", value: winesAddedId)
+                        .single()
+                        .execute()
+                        .value
 
-            } catch {
-                // Continue polling even on errors
-                try? await Task.sleep(for: .seconds(1))
-                attempt += 1
-            }
-        }
-
-        // Timeout - check one final time
-        if isProcessingImage {
-            do {
-                let queueItem: QueueStatus = try await SupabaseManager.shared.client
-                    .from("wines_added_queue")
-                    .select("status")
-                    .eq("id", value: winesAddedId)
-                    .single()
-                    .execute()
-                    .value
-
-                if queueItem.status == "completed" {
-                    isProcessingImage = false
-                    await getVintageId()
-                } else {
-                    isProcessingImage = false
-                    errorMessage = "Processing is taking longer than expected. Your wine will appear in your list shortly."
-                    showingError = true
+                    if queueItem.status == "completed" {
+                        await MainActor.run {
+                            isProcessingImage = false
+                        }
+                        await getVintageId()
+                    } else {
+                        await MainActor.run {
+                            isProcessingImage = false
+                            errorMessage = "Processing is taking longer than expected. Your wine will appear in your list shortly."
+                            showingError = true
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        isProcessingImage = false
+                        errorMessage = "Unable to verify processing status. Check your wine list in a moment."
+                        showingError = true
+                    }
                 }
-            } catch {
-                isProcessingImage = false
-                errorMessage = "Unable to verify processing status. Check your wine list in a moment."
-                showingError = true
             }
+
+            // Wait for the first task to complete, then cancel the remaining one
+            await group.next()
+            group.cancelAll()
         }
+
+        // Clean up the realtime channel
+        await client.removeChannel(channel)
     }
 
     private func getVintageId() async {
