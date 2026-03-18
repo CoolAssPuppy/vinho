@@ -3,13 +3,6 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,12 +13,20 @@ import { SocialButtons, type OAuthProvider } from "@/components/auth/SocialButto
 import { HCaptcha, type HCaptchaRef } from "@/components/auth/HCaptcha";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import {
-  validateEmail,
-  validatePassword,
-  validatePasswordMatch,
-  validateRequired,
-  getAuthErrorMessage,
+  validateEmail, validatePassword, validatePasswordMatch,
+  validateRequired, getAuthErrorMessage,
 } from "@/lib/validation/auth";
+import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
+
+const inputStyle = {
+  height: "48px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  color: "white",
+  paddingLeft: "40px",
+};
+const labelStyle = { color: "rgba(255,255,255,0.8)" };
+const iconStyle = { color: "rgba(255,255,255,0.5)" };
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -38,106 +39,58 @@ export default function RegisterPage() {
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [confirmError, setConfirmError] = useState<string>();
   const [captchaToken, setCaptchaToken] = useState<string>();
+  const [isLegalAge, setIsLegalAge] = useState(false);
   const captchaRef = useRef<HCaptchaRef>(null);
   const router = useRouter();
   const supabase = createClient();
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
-    if (emailError) {
-      const validation = validateEmail(value);
-      if (validation.isValid) {
-        setEmailError(undefined);
-      }
-    }
+    if (emailError) { const v = validateEmail(value); if (v.isValid) setEmailError(undefined); }
   };
-
   const handlePasswordChange = (value: string) => {
     setPassword(value);
-    // Clear errors as user types
-    if (passwordErrors.length > 0) {
-      const validation = validatePassword(value);
-      if (validation.isValid) {
-        setPasswordErrors([]);
-      }
-    }
-    // Re-validate confirm password match
-    if (confirmPassword && value !== confirmPassword) {
-      setConfirmError("Passwords do not match");
-    } else if (confirmPassword) {
-      setConfirmError(undefined);
-    }
+    if (passwordErrors.length > 0) { const v = validatePassword(value); if (v.isValid) setPasswordErrors([]); }
+    if (confirmPassword && value !== confirmPassword) setConfirmError("Passwords do not match");
+    else if (confirmPassword) setConfirmError(undefined);
   };
-
   const handleConfirmChange = (value: string) => {
     setConfirmPassword(value);
-    const matchValidation = validatePasswordMatch(password, value);
-    setConfirmError(matchValidation.error);
+    setConfirmError(validatePasswordMatch(password, value).error);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate all fields
-    const firstNameValidation = validateRequired(firstName, "First name");
-    const lastNameValidation = validateRequired(lastName, "Last name");
-    const emailValidation = validateEmail(email);
-    const passwordValidation = validatePassword(password);
-    const matchValidation = validatePasswordMatch(password, confirmPassword);
-
-    if (!firstNameValidation.isValid) {
-      toast.error(firstNameValidation.error);
-      return;
-    }
-    if (!lastNameValidation.isValid) {
-      toast.error(lastNameValidation.error);
-      return;
-    }
-    if (!emailValidation.isValid) {
-      setEmailError(emailValidation.error);
-      return;
-    }
-    if (!passwordValidation.isValid) {
-      setPasswordErrors(passwordValidation.errors);
-      return;
-    }
-    if (!matchValidation.isValid) {
-      setConfirmError(matchValidation.error);
-      return;
-    }
-
-    // Check captcha (only if site key is configured)
+    const fv = validateRequired(firstName, "First name");
+    const lv = validateRequired(lastName, "Last name");
+    const ev = validateEmail(email);
+    const pv = validatePassword(password);
+    const mv = validatePasswordMatch(password, confirmPassword);
+    if (!fv.isValid) { toast.error(fv.error); return; }
+    if (!lv.isValid) { toast.error(lv.error); return; }
+    if (!ev.isValid) { setEmailError(ev.error); return; }
+    if (!pv.isValid) { setPasswordErrors(pv.errors); return; }
+    if (!mv.isValid) { setConfirmError(mv.error); return; }
     const hasCaptcha = !!process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
-    if (hasCaptcha && !captchaToken) {
-      toast.error("Please complete the captcha verification.");
-      return;
-    }
+    if (hasCaptcha && !captchaToken) { toast.error("Please complete the captcha."); return; }
 
     setIsLoading(true);
-
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
+        data: { first_name: firstName, last_name: lastName },
         emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
         captchaToken: captchaToken || undefined,
       },
     });
-
     if (error) {
       toast.error(getAuthErrorMessage(error));
-      // Reset captcha on error
       captchaRef.current?.reset();
       setCaptchaToken(undefined);
     } else {
       toast.success("Check your email to confirm your account");
       router.push("/auth/verify-email");
     }
-
     setIsLoading(false);
   };
 
@@ -150,234 +103,107 @@ export default function RegisterPage() {
         scopes: provider === "apple" ? "name email" : "email profile",
       },
     });
-
-    if (error) {
-      toast.error(error.message);
-      setIsLoading(false);
-    }
+    if (error) { toast.error(error.message); setIsLoading(false); }
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0f0b1f] via-[#0b0a17] to-[#120f2f] text-white">
-      <div className="pointer-events-none absolute -left-12 top-10 h-72 w-72 rounded-full bg-vino-accent/20 blur-[120px]" />
-      <div className="pointer-events-none absolute right-0 bottom-8 h-64 w-64 rounded-full bg-primary/30 blur-[120px]" />
-      <div className="pointer-events-none absolute left-1/4 top-20 h-40 w-40 rounded-full bg-white/5 blur-[90px]" />
-
-      <div className="relative flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-4xl overflow-hidden border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl">
-          <div className="grid gap-0 md:grid-cols-[1fr_1fr]">
-            <div className="relative overflow-hidden bg-gradient-to-br from-vino-accent/20 via-vino-primary/10 to-transparent p-8 md:p-10">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_0,rgba(255,255,255,0.08),transparent_30%)]" />
-              <div className="relative z-10 flex flex-col gap-6 text-white">
-                <CardTitle className="text-3xl font-bold leading-tight sm:text-4xl">
-                  Vinho
-                </CardTitle>
-                <CardDescription className="text-lg text-white/80">
-                  Scan wines, log tastings, and build your personal cellar.
-                </CardDescription>
-
-                <ul className="space-y-3 text-sm text-white/80">
-                  <li className="flex items-start gap-3">
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
-                    <span>Scan any bottle label to instantly identify wines</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
-                    <span>Record tasting notes with ratings, aromas, and food pairings</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
-                    <span>Discover similar wines based on your taste preferences</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-vino-accent" />
-                    <span>Sync your cellar across iOS and web seamlessly</span>
-                  </li>
-                </ul>
-
-                <div className="mt-auto rounded-2xl border border-white/10 bg-black/30 p-4 shadow-lg shadow-black/20">
-                  <p className="text-sm font-medium text-white">
-                    Nearly all features are free, forever.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative bg-black/40 p-8 md:p-10">
-              <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              <CardHeader className="space-y-3 px-0 pt-2 pb-1">
-                <CardTitle className="text-2xl">Start for free</CardTitle>
-                <CardDescription className="text-base text-white/70">
-                  Create your account in seconds.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5 px-0">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="first-name" className="text-white/80">
-                        First Name
-                      </Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                        <Input
-                          id="first-name"
-                          type="text"
-                          placeholder="First name"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="last-name" className="text-white/80">
-                        Last Name
-                      </Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                        <Input
-                          id="last-name"
-                          type="text"
-                          placeholder="Last name"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white/80">
-                      Email
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="wine@example.com"
-                        value={email}
-                        onChange={(e) => handleEmailChange(e.target.value)}
-                        className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                        required
-                      />
-                    </div>
-                    {emailError && (
-                      <p className="text-sm text-red-400">{emailError}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-white/80">
-                        Password
-                      </Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="At least 8 characters"
-                          value={password}
-                          onChange={(e) => handlePasswordChange(e.target.value)}
-                          className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                          required
-                          minLength={8}
-                        />
-                      </div>
-                      <PasswordStrengthIndicator password={password} />
-                      {passwordErrors.length > 0 && (
-                        <ul className="text-sm text-red-400">
-                          {passwordErrors.map((error) => (
-                            <li key={error}>{error}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password" className="text-white/80">
-                        Confirm Password
-                      </Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                        <Input
-                          id="confirm-password"
-                          type="password"
-                          placeholder="Confirm your password"
-                          value={confirmPassword}
-                          onChange={(e) => handleConfirmChange(e.target.value)}
-                          className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                          required
-                          minLength={8}
-                        />
-                      </div>
-                      {confirmError && (
-                        <p className="text-sm text-red-400">{confirmError}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-white/70">
-                    By creating an account, you agree to our {" "}
-                    <Link href="/terms" className="underline hover:text-vino-accent">
-                      Terms of Service
-                    </Link>{" "}
-                    and {" "}
-                    <Link href="/privacy" className="underline hover:text-vino-accent">
-                      Privacy Policy
-                    </Link>
-                    .
-                  </div>
-
-                  <HCaptcha
-                    ref={captchaRef}
-                    onVerify={(token) => setCaptchaToken(token)}
-                    onExpire={() => setCaptchaToken(undefined)}
-                    onError={() => {
-                      setCaptchaToken(undefined);
-                      toast.error("Captcha error. Please try again.");
-                    }}
-                    className="py-2"
-                  />
-
-                  <Button
-                    type="submit"
-                    className="w-full justify-center bg-gradient-to-r from-vino-primary to-vino-accent text-base shadow-lg shadow-vino-primary/30"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Creating account..." : "Create Account"}
-                  </Button>
-                </form>
-
-                <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center gap-3 text-sm text-white/70">
-                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                    <span>or continue with</span>
-                    <span className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                  </div>
-                  <SocialButtons onSelect={handleOAuth} disabled={isLoading} />
-                  <p className="text-center text-xs text-white/60">
-                    We only request your email and basic profile to authenticate.
-                  </p>
-                </div>
-
-                <div className="text-center text-sm text-white/70">
-                  Already have an account?{" "}
-                  <Link href="/auth/login" className="text-vino-accent hover:underline">
-                    Sign in
-                  </Link>
-                </div>
-              </CardContent>
+    <AuthPageWrapper title="Create account" subtitle="Free. Takes 30 seconds." showMarketing>
+      <form onSubmit={handleSignUp} className="space-y-4">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div className="space-y-2">
+            <Label htmlFor="first-name" style={labelStyle}>First name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4" style={iconStyle} />
+              <Input id="first-name" type="text" placeholder="First" value={firstName}
+                onChange={(e) => setFirstName(e.target.value)} style={inputStyle} required />
             </div>
           </div>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="last-name" style={labelStyle}>Last name</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 h-4 w-4" style={iconStyle} />
+              <Input id="last-name" type="text" placeholder="Last" value={lastName}
+                onChange={(e) => setLastName(e.target.value)} style={inputStyle} required />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email" style={labelStyle}>Email</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-3 h-4 w-4" style={iconStyle} />
+            <Input id="email" type="email" placeholder="wine@example.com" value={email}
+              onChange={(e) => handleEmailChange(e.target.value)} style={inputStyle} required />
+          </div>
+          {emailError && <p style={{ fontSize: "14px", color: "#f87171" }}>{emailError}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password" style={labelStyle}>Password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 h-4 w-4" style={iconStyle} />
+            <Input id="password" type="password" placeholder="At least 8 characters" value={password}
+              onChange={(e) => handlePasswordChange(e.target.value)} style={inputStyle} required minLength={8} />
+          </div>
+          <PasswordStrengthIndicator password={password} />
+          {passwordErrors.length > 0 && (
+            <ul style={{ fontSize: "14px", color: "#f87171" }}>
+              {passwordErrors.map((err) => <li key={err}>{err}</li>)}
+            </ul>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password" style={labelStyle}>Confirm password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 h-4 w-4" style={iconStyle} />
+            <Input id="confirm-password" type="password" placeholder="Confirm" value={confirmPassword}
+              onChange={(e) => handleConfirmChange(e.target.value)} style={inputStyle} required minLength={8} />
+          </div>
+          {confirmError && <p style={{ fontSize: "14px", color: "#f87171" }}>{confirmError}</p>}
+        </div>
+
+        <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>
+          By signing up you agree to our{" "}
+          <Link href="/terms" style={{ textDecoration: "underline" }}>Terms</Link> and{" "}
+          <Link href="/privacy" style={{ textDecoration: "underline" }}>Privacy Policy</Link>.
+        </p>
+
+        <HCaptcha ref={captchaRef}
+          onVerify={(token) => setCaptchaToken(token)}
+          onExpire={() => setCaptchaToken(undefined)}
+          onError={() => { setCaptchaToken(undefined); toast.error("Captcha error."); }}
+          className="py-2" />
+
+        <Button type="submit" disabled={isLoading || !isLegalAge}
+          style={{ width: "100%", background: isLegalAge ? "white" : "rgba(255,255,255,0.2)", color: isLegalAge ? "black" : "rgba(255,255,255,0.4)", fontWeight: 600, cursor: isLegalAge ? "pointer" : "not-allowed" }}>
+          {isLoading ? "Creating account..." : "Create account"}
+        </Button>
+
+        <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "13px", color: "rgba(255,255,255,0.7)" }}>
+          <input
+            type="checkbox"
+            checked={isLegalAge}
+            onChange={(e) => setIsLegalAge(e.target.checked)}
+            style={{ width: "16px", height: "16px", accentColor: "white", cursor: "pointer" }}
+          />
+          I certify that I am of legal drinking age
+        </label>
+      </form>
+
+      <div style={{ marginTop: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+          <span style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.1)" }} />
+          <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)" }}>or</span>
+          <span style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.1)" }} />
+        </div>
+        <SocialButtons onSelect={handleOAuth} disabled={isLoading} />
       </div>
-    </div>
+
+      <p style={{ textAlign: "center", fontSize: "14px", color: "rgba(255,255,255,0.6)", marginTop: "24px" }}>
+        Have an account?{" "}
+        <Link href="/auth/login" style={{ color: "white", textDecoration: "underline" }}>Sign in</Link>
+      </p>
+    </AuthPageWrapper>
   );
 }

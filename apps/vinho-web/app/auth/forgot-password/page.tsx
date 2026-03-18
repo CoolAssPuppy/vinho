@@ -2,13 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +9,15 @@ import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { validateEmail, getAuthErrorMessage } from "@/lib/validation/auth";
+import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
+
+const inputStyle = {
+  height: "48px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  color: "white",
+  paddingLeft: "40px",
+};
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,146 +28,65 @@ export default function ForgotPasswordPage() {
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
-    if (emailError) {
-      const validation = validateEmail(value);
-      if (validation.isValid) {
-        setEmailError(undefined);
-      }
-    }
+    if (emailError) { const v = validateEmail(value); if (v.isValid) setEmailError(undefined); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate email
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.isValid) {
-      setEmailError(emailValidation.error);
-      return;
-    }
-
+    const ev = validateEmail(email);
+    if (!ev.isValid) { setEmailError(ev.error); return; }
     setIsLoading(true);
-    setEmailError(undefined);
-
     try {
-      const redirectUrl = `${window.location.origin}/auth/update-password`;
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+        redirectTo: `${window.location.origin}/auth/update-password`,
       });
-
-      if (error) {
-        toast.error(getAuthErrorMessage(error));
-      } else {
-        setSuccess(true);
-      }
-    } catch {
-      toast.error("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+      if (error) toast.error(getAuthErrorMessage(error));
+      else setSuccess(true);
+    } catch { toast.error("Something went wrong."); }
+    finally { setIsLoading(false); }
   };
 
+  if (success) {
+    return (
+      <AuthPageWrapper title="Check your email">
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <CheckCircle style={{ width: "48px", height: "48px", color: "#4ade80", margin: "0 auto" }} />
+        </div>
+        <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", textAlign: "center", marginBottom: "24px" }}>
+          If an account exists for {email}, you&apos;ll get a reset link. Check spam if needed.
+        </p>
+        <Button onClick={() => setSuccess(false)}
+          style={{ width: "100%", background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.1)" }}>
+          Try another email
+        </Button>
+        <Link href="/auth/login" style={{ display: "block", textAlign: "center", fontSize: "14px", color: "rgba(255,255,255,0.6)", marginTop: "16px" }}>
+          Back to sign in
+        </Link>
+      </AuthPageWrapper>
+    );
+  }
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0f0b1f] via-[#0b0a17] to-[#120f2f] text-white">
-      <div className="pointer-events-none absolute -left-10 -top-24 h-72 w-72 rounded-full bg-primary/30 blur-[120px]" />
-      <div className="pointer-events-none absolute -right-6 bottom-0 h-64 w-64 rounded-full bg-vino-accent/25 blur-[120px]" />
-
-      <div className="relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md overflow-hidden border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl">
-          {success ? (
-            <>
-              <CardHeader className="space-y-3 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
-                  <CheckCircle className="h-8 w-8 text-green-400" />
-                </div>
-                <CardTitle className="text-2xl">Check your email</CardTitle>
-                <CardDescription className="text-base text-white/70">
-                  If an account exists for {email}, you will receive a password
-                  reset link shortly.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-center text-sm text-white/60">
-                  Did not receive an email? Check your spam folder or make sure
-                  you entered the correct email address.
-                </p>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
-                    onClick={() => setSuccess(false)}
-                  >
-                    Try another email
-                  </Button>
-                  <Link href="/auth/login" className="w-full">
-                    <Button
-                      variant="ghost"
-                      className="w-full text-white/70 hover:text-white"
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to sign in
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </>
-          ) : (
-            <>
-              <CardHeader className="space-y-3">
-                <CardTitle className="text-2xl">Reset your password</CardTitle>
-                <CardDescription className="text-base text-white/70">
-                  Enter your email address and we will send you a link to reset
-                  your password.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white/80">
-                      Email
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="wine@example.com"
-                        value={email}
-                        onChange={(e) => handleEmailChange(e.target.value)}
-                        className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                        required
-                        autoComplete="email"
-                      />
-                    </div>
-                    {emailError && (
-                      <p className="text-sm text-red-400">{emailError}</p>
-                    )}
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full justify-center bg-gradient-to-r from-vino-primary to-vino-accent text-base shadow-lg shadow-vino-primary/30"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Sending..." : "Send reset link"}
-                  </Button>
-
-                  <div className="text-center">
-                    <Link
-                      href="/auth/login"
-                      className="inline-flex items-center text-sm text-white/70 transition hover:text-vino-accent"
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to sign in
-                    </Link>
-                  </div>
-                </form>
-              </CardContent>
-            </>
-          )}
-        </Card>
-      </div>
-    </div>
+    <AuthPageWrapper title="Reset password" subtitle="We'll send you a reset link.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email" style={{ color: "rgba(255,255,255,0.8)" }}>Email</Label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-3 h-4 w-4" style={{ color: "rgba(255,255,255,0.5)" }} />
+            <Input id="email" type="email" placeholder="wine@example.com" value={email}
+              onChange={(e) => handleEmailChange(e.target.value)} style={inputStyle} required autoComplete="email" />
+          </div>
+          {emailError && <p style={{ fontSize: "14px", color: "#f87171" }}>{emailError}</p>}
+        </div>
+        <Button type="submit" disabled={isLoading}
+          style={{ width: "100%", background: "white", color: "black", fontWeight: 600 }}>
+          {isLoading ? "Sending..." : "Send reset link"}
+        </Button>
+      </form>
+      <Link href="/auth/login" style={{ display: "block", textAlign: "center", fontSize: "14px", color: "rgba(255,255,255,0.6)", marginTop: "24px" }}>
+        <ArrowLeft style={{ display: "inline", width: "14px", height: "14px", marginRight: "6px", verticalAlign: "middle" }} />
+        Back to sign in
+      </Link>
+    </AuthPageWrapper>
   );
 }

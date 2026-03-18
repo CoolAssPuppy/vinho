@@ -1,59 +1,25 @@
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
+import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
 
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <Mail className="h-10 w-10 text-primary" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl text-center">
-            Check your email
-          </CardTitle>
-          <CardDescription className="text-center">
-            We&apos;ve sent you a confirmation link
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center text-sm text-muted-foreground space-y-2">
-            <p>
-              We&apos;ve sent a confirmation email to your inbox. Please click the
-              link in the email to verify your account.
-            </p>
-            <p>If you don&apos;t see the email, check your spam folder.</p>
-          </div>
-
-          <div className="space-y-2">
-            <Link href="/auth/login" className="block">
-              <Button variant="outline" className="w-full">
-                Back to Sign In
-              </Button>
-            </Link>
-            <Link href="/" className="block">
-              <Button variant="ghost" className="w-full">
-                Return to Homepage
-              </Button>
-            </Link>
-          </div>
-
-          <div className="text-xs text-center text-muted-foreground pt-4 border-t">
-            <p>Didn&apos;t receive the email?</p>
-            <p>You can request a new one from the sign in page.</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthPageWrapper title="Check your email" subtitle="Click the link we sent to verify your account.">
+      <div style={{ textAlign: "center", marginBottom: "24px" }}>
+        <Mail style={{ width: "48px", height: "48px", color: "rgba(255,255,255,0.6)", margin: "0 auto" }} />
+      </div>
+      <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", textAlign: "center", marginBottom: "24px" }}>
+        Check your spam folder if you don&apos;t see it.
+      </p>
+      <Link href="/auth/login">
+        <Button style={{ width: "100%", background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.1)" }}>
+          Back to sign in
+        </Button>
+      </Link>
+      <Link href="/" style={{ display: "block", textAlign: "center", fontSize: "14px", color: "rgba(255,255,255,0.5)", marginTop: "16px" }}>
+        Home
+      </Link>
+    </AuthPageWrapper>
   );
 }

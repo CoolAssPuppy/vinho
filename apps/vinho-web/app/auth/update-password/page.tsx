@@ -3,13 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +11,15 @@ import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { validatePassword, validatePasswordMatch, getAuthErrorMessage } from "@/lib/validation/auth";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
+import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
+
+const inputStyle = {
+  height: "48px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  color: "white",
+  paddingLeft: "40px",
+};
 
 export default function UpdatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -31,181 +33,87 @@ export default function UpdatePasswordPage() {
 
   const handlePasswordChange = (value: string) => {
     setPassword(value);
-    if (passwordErrors.length > 0) {
-      const validation = validatePassword(value);
-      if (validation.isValid) {
-        setPasswordErrors([]);
-      }
-    }
-    // Re-validate confirm password match
-    if (confirmPassword && value !== confirmPassword) {
-      setConfirmError("Passwords do not match");
-    } else {
-      setConfirmError(undefined);
-    }
+    if (passwordErrors.length > 0) { const v = validatePassword(value); if (v.isValid) setPasswordErrors([]); }
+    if (confirmPassword && value !== confirmPassword) setConfirmError("Passwords do not match");
+    else setConfirmError(undefined);
   };
-
   const handleConfirmChange = (value: string) => {
     setConfirmPassword(value);
-    const matchValidation = validatePasswordMatch(password, value);
-    setConfirmError(matchValidation.error);
+    setConfirmError(validatePasswordMatch(password, value).error);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate password
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      setPasswordErrors(passwordValidation.errors);
-      return;
-    }
-
-    // Validate password match
-    const matchValidation = validatePasswordMatch(password, confirmPassword);
-    if (!matchValidation.isValid) {
-      setConfirmError(matchValidation.error);
-      return;
-    }
-
+    const pv = validatePassword(password);
+    const mv = validatePasswordMatch(password, confirmPassword);
+    if (!pv.isValid) { setPasswordErrors(pv.errors); return; }
+    if (!mv.isValid) { setConfirmError(mv.error); return; }
     setIsLoading(true);
-    setPasswordErrors([]);
-    setConfirmError(undefined);
-
     try {
       const { error } = await supabase.auth.updateUser({ password });
-
       if (error) {
-        if (error.message.includes("should be different")) {
-          toast.error("New password must be different from your current password.");
-        } else {
-          toast.error(getAuthErrorMessage(error));
-        }
+        if (error.message.includes("should be different")) toast.error("New password must be different from your current one.");
+        else toast.error(getAuthErrorMessage(error));
       } else {
         setSuccess(true);
-        toast.success("Password updated successfully!");
-        // Redirect to journal after a brief delay
-        setTimeout(() => {
-          router.push("/journal");
-        }, 2000);
+        toast.success("Password updated!");
+        setTimeout(() => router.push("/journal"), 2000);
       }
-    } catch {
-      toast.error("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    } catch { toast.error("Something went wrong."); }
+    finally { setIsLoading(false); }
   };
 
+  if (success) {
+    return (
+      <AuthPageWrapper title="Password updated">
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <CheckCircle style={{ width: "48px", height: "48px", color: "#4ade80", margin: "0 auto" }} />
+        </div>
+        <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", textAlign: "center", marginBottom: "24px" }}>
+          Redirecting to your journal...
+        </p>
+        <Link href="/journal">
+          <Button style={{ width: "100%", background: "white", color: "black", fontWeight: 600 }}>
+            Go to journal
+          </Button>
+        </Link>
+      </AuthPageWrapper>
+    );
+  }
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0f0b1f] via-[#0b0a17] to-[#120f2f] text-white">
-      <div className="pointer-events-none absolute -left-10 -top-24 h-72 w-72 rounded-full bg-primary/30 blur-[120px]" />
-      <div className="pointer-events-none absolute -right-6 bottom-0 h-64 w-64 rounded-full bg-vino-accent/25 blur-[120px]" />
-
-      <div className="relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md overflow-hidden border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl">
-          {success ? (
-            <>
-              <CardHeader className="space-y-3 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
-                  <CheckCircle className="h-8 w-8 text-green-400" />
-                </div>
-                <CardTitle className="text-2xl">Password updated</CardTitle>
-                <CardDescription className="text-base text-white/70">
-                  Your password has been successfully updated. Redirecting you
-                  to your journal...
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/journal" className="w-full">
-                  <Button className="w-full justify-center bg-gradient-to-r from-vino-primary to-vino-accent text-base shadow-lg shadow-vino-primary/30">
-                    Go to Journal
-                  </Button>
-                </Link>
-              </CardContent>
-            </>
-          ) : (
-            <>
-              <CardHeader className="space-y-3">
-                <CardTitle className="text-2xl">Create new password</CardTitle>
-                <CardDescription className="text-base text-white/70">
-                  Choose a strong password with at least 8 characters, including
-                  uppercase, lowercase, and a number.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-white/80">
-                      New password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Enter new password"
-                        value={password}
-                        onChange={(e) => handlePasswordChange(e.target.value)}
-                        className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                        required
-                        autoComplete="new-password"
-                      />
-                    </div>
-                    <PasswordStrengthIndicator password={password} />
-                    {passwordErrors.length > 0 && (
-                      <ul className="text-sm text-red-400">
-                        {passwordErrors.map((error) => (
-                          <li key={error}>{error}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password" className="text-white/80">
-                      Confirm password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-white/50" />
-                      <Input
-                        id="confirm-password"
-                        type="password"
-                        placeholder="Confirm new password"
-                        value={confirmPassword}
-                        onChange={(e) => handleConfirmChange(e.target.value)}
-                        className="h-12 border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
-                        required
-                        autoComplete="new-password"
-                      />
-                    </div>
-                    {confirmError && (
-                      <p className="text-sm text-red-400">{confirmError}</p>
-                    )}
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full justify-center bg-gradient-to-r from-vino-primary to-vino-accent text-base shadow-lg shadow-vino-primary/30"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Updating..." : "Update password"}
-                  </Button>
-
-                  <div className="text-center">
-                    <Link
-                      href="/auth/login"
-                      className="inline-flex items-center text-sm text-white/70 transition hover:text-vino-accent"
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to sign in
-                    </Link>
-                  </div>
-                </form>
-              </CardContent>
-            </>
+    <AuthPageWrapper title="New password" subtitle="At least 8 characters with uppercase, lowercase, and a number.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="password" style={{ color: "rgba(255,255,255,0.8)" }}>New password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 h-4 w-4" style={{ color: "rgba(255,255,255,0.5)" }} />
+            <Input id="password" type="password" placeholder="New password" value={password}
+              onChange={(e) => handlePasswordChange(e.target.value)} style={inputStyle} required autoComplete="new-password" />
+          </div>
+          <PasswordStrengthIndicator password={password} />
+          {passwordErrors.length > 0 && (
+            <ul style={{ fontSize: "14px", color: "#f87171" }}>{passwordErrors.map((e) => <li key={e}>{e}</li>)}</ul>
           )}
-        </Card>
-      </div>
-    </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password" style={{ color: "rgba(255,255,255,0.8)" }}>Confirm password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-3 h-4 w-4" style={{ color: "rgba(255,255,255,0.5)" }} />
+            <Input id="confirm-password" type="password" placeholder="Confirm" value={confirmPassword}
+              onChange={(e) => handleConfirmChange(e.target.value)} style={inputStyle} required autoComplete="new-password" />
+          </div>
+          {confirmError && <p style={{ fontSize: "14px", color: "#f87171" }}>{confirmError}</p>}
+        </div>
+        <Button type="submit" disabled={isLoading}
+          style={{ width: "100%", background: "white", color: "black", fontWeight: 600 }}>
+          {isLoading ? "Updating..." : "Update password"}
+        </Button>
+      </form>
+      <Link href="/auth/login" style={{ display: "block", textAlign: "center", fontSize: "14px", color: "rgba(255,255,255,0.6)", marginTop: "24px" }}>
+        <ArrowLeft style={{ display: "inline", width: "14px", height: "14px", marginRight: "6px", verticalAlign: "middle" }} />
+        Back to sign in
+      </Link>
+    </AuthPageWrapper>
   );
 }
