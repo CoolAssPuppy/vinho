@@ -1,63 +1,54 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Wine } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Background Image */}
+      {/* Background image */}
       <div className="absolute inset-0 z-0">
         <Image
           src="/images/hero.jpg"
-          alt="Wine vineyard"
+          alt="Wine glass raised against alpine vineyard landscape"
           fill
-          className="object-cover"
+          className="object-cover object-bottom"
           priority
-          quality={100}
+          sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/30" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4">
-        {/* Logo */}
-        <div className="mb-8 flex items-center justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-md">
-            <Wine className="h-10 w-10 text-white" />
+      {/* Content -- left-aligned to avoid the wine glass */}
+      <div className="relative z-10 flex min-h-screen items-center px-8 sm:px-16 lg:px-24">
+        <div className="max-w-xl">
+          <h1 className="text-7xl font-bold tracking-tight text-white sm:text-8xl lg:text-9xl">
+            Vinho
+          </h1>
+
+          <p className="mt-4 whitespace-nowrap text-lg font-light text-white/80 sm:text-xl">
+            Learn wine through terroir, history, and taste.
+          </p>
+
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link href="/auth/register">
+              <Button
+                size="lg"
+                className="bg-white px-8 py-6 text-sm font-semibold text-black transition-all hover:bg-white/90"
+              >
+                Get started
+              </Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button
+                size="lg"
+                variant="ghost"
+                className="px-8 py-6 text-sm font-medium text-white/80 transition-all hover:bg-white/10 hover:text-white"
+              >
+                I have an account
+              </Button>
+            </Link>
           </div>
-        </div>
-
-        {/* Brand Name */}
-        <h1 className="mb-6 text-7xl font-bold text-white md:text-8xl lg:text-9xl tracking-tight">
-          Vinho
-        </h1>
-
-        {/* Tagline */}
-        <p className="mb-12 max-w-lg text-center text-2xl font-light text-white md:text-3xl lg:text-4xl">
-          Learn wine through terroir, history, and taste
-        </p>
-
-        {/* Auth Buttons */}
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <Link href="/auth/login">
-            <Button
-              size="lg"
-              variant="default"
-              className="min-w-[140px] bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md font-semibold"
-            >
-              Sign In
-            </Button>
-          </Link>
-          <Link href="/auth/register">
-            <Button
-              size="lg"
-              variant="default"
-              className="min-w-[140px] bg-primary hover:bg-primary/90 text-white border-0 font-semibold"
-            >
-              Get Started
-            </Button>
-          </Link>
         </div>
       </div>
     </div>

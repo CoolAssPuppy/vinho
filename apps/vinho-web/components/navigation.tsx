@@ -43,6 +43,8 @@ export function Navigation() {
   const pathname = usePathname();
   const { user, profile } = useUser();
 
+  if (!user) return null;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto max-w-7xl">
