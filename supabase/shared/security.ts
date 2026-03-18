@@ -126,10 +126,14 @@ export function verifyAdminRequest(req: Request, envKeyName: string = "CLEANUP_A
  * Only allows HTTPS URLs from trusted domains
  */
 export function isValidImageUrl(url: string): boolean {
+  // Local development: skip URL validation entirely
+  const isLocalDev = Deno.env.get("VINHO_LOCAL_DEV") === "true";
+  if (isLocalDev) return true;
+
   try {
     const parsed = new URL(url);
 
-    // Only allow HTTPS
+    // Only allow HTTPS in production
     if (parsed.protocol !== "https:") {
       console.log(`Rejected non-HTTPS URL: ${url}`);
       return false;

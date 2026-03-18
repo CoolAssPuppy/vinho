@@ -3,14 +3,17 @@
   "private": true,
   "packageManager": "pnpm@9.12.2",
   "scripts": {
-    "dev": "if command -v doppler >/dev/null 2>&1; then doppler run -- next dev; else next dev; fi",
-    "build": "if command -v doppler >/dev/null 2>&1; then doppler run -- next build; else next build; fi",
-    "start": "if command -v doppler >/dev/null 2>&1; then doppler run -- next start; else next start; fi",
+    "dev": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next dev",
+    "build": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next build",
+    "start": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next start",
     "lint": "pnpm --filter vinho-web run lint",
     "doctor": "node scripts/doctor.mjs",
     "supa:push": "supabase db push",
     "supa:types": "supabase gen types typescript --project-id aghiopwrzzvamssgcwpv > packages/db-types/src/database.types.ts",
-    "supa:dump": "supabase db dump --project-ref aghiopwrzzvamssgcwpv > supabase/vinho.sql"
+    "supa:dump": "supabase db dump --project-ref aghiopwrzzvamssgcwpv > supabase/vinho.sql",
+    "simulate": "pnpm --filter vinho-web run simulate",
+    "simulate:process": "pnpm --filter vinho-web run simulate:process",
+    "simulate:doppler": "doppler run -p vinho -c dev -- pnpm --filter vinho-web run simulate:process"
   },
   "devDependencies": {
     "@types/node": "^22.5.1",

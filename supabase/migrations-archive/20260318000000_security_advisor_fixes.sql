@@ -1,9 +1,11 @@
 -- Security fixes based on Supabase Security Advisor recommendations
 -- 1. Enable RLS on reference tables
 -- 2. Drop overly permissive INSERT policies
--- 3. Enable RLS on spatial_ref_sys
--- 4. Revoke materialized view access
--- 5. Move extensions out of public schema
+-- 3. Revoke materialized view access
+--
+-- SKIPPED on Supabase Cloud (not applicable):
+-- - ALTER EXTENSION SET SCHEMA: Cloud manages extension schemas; permission denied.
+-- - ALTER TABLE spatial_ref_sys ENABLE RLS: Owned by superuser on Cloud; permission denied.
 
 -- =============================================================================
 -- 1a. Enable RLS on reference tables
@@ -34,33 +36,9 @@ DROP POLICY IF EXISTS "Authenticated users can insert wine varietals" ON wine_va
 DROP POLICY IF EXISTS "Authenticated users can insert wines" ON wines;
 
 -- =============================================================================
--- 2. Enable RLS on spatial_ref_sys (PostGIS system table)
--- No policies = blocks all API access while PostGIS internals still work.
--- =============================================================================
-
-ALTER TABLE IF EXISTS spatial_ref_sys ENABLE ROW LEVEL SECURITY;
-
--- =============================================================================
--- 3. Revoke direct access to materialized view
+-- 2. Revoke direct access to materialized view
 -- The app uses user_wine_stats (regular view filtered by auth.uid()).
 -- The materialized view should not be directly queryable.
 -- =============================================================================
 
 REVOKE SELECT ON user_wine_stats_materialized FROM anon, authenticated;
-
--- =============================================================================
--- 4. Move extensions out of public schema into extensions schema
--- config.toml already has extra_search_path = ["public", "extensions"]
--- so function resolution continues to work.
--- =============================================================================
-
-CREATE SCHEMA IF NOT EXISTS extensions;
-
--- Move flagged extensions
-ALTER EXTENSION postgis SET SCHEMA extensions;
-ALTER EXTENSION http SET SCHEMA extensions;
-
--- Move remaining public-schema extensions for consistency
-ALTER EXTENSION pg_trgm SET SCHEMA extensions;
-ALTER EXTENSION "uuid-ossp" SET SCHEMA extensions;
-ALTER EXTENSION vector SET SCHEMA extensions;

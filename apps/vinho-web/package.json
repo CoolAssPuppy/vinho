@@ -7,10 +7,14 @@
     "build": "if command -v doppler >/dev/null 2>&1; then doppler run -- next build; else next build; fi",
     "start": "if command -v doppler >/dev/null 2>&1; then doppler run -- next start; else next start; fi",
     "lint": "eslint . --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "typecheck": "tsc --noEmit"
+    "test": "jest --testPathIgnorePatterns='integration'",
+    "test:watch": "jest --watch --testPathIgnorePatterns='integration'",
+    "test:integration": "jest --testPathPatterns='__tests__/integration/.+\\.test\\.' --testPathIgnorePatterns='edge-functions'",
+    "test:ci": "jest --ci --testPathIgnorePatterns='edge-functions'",
+    "test:coverage": "jest --coverage --testPathIgnorePatterns='integration'",
+    "typecheck": "tsc --noEmit",
+    "simulate": "tsx scripts/simulate-wine-upload.ts",
+    "simulate:process": "tsx scripts/simulate-wine-upload.ts --process"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.17.1",
