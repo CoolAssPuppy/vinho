@@ -20,11 +20,7 @@ interface SimilarWine {
 
 type RecommendationType = "personalized" | "your_favorites" | "none";
 
-interface YouMightLikeProps {
-  hasTastings: boolean;
-}
-
-export function YouMightLike({ hasTastings }: YouMightLikeProps) {
+function useWineSuggestions(hasTastings: boolean) {
   const [wines, setWines] = useState<SimilarWine[]>([]);
   const [recommendationType, setRecommendationType] = useState<RecommendationType>("none");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +57,17 @@ export function YouMightLike({ hasTastings }: YouMightLikeProps) {
       fetchSimilarWines();
     }
   }, [hasTastings, hasLoaded, fetchSimilarWines]);
+
+  return { wines, recommendationType, isLoading, hasLoaded, error, fetchSimilarWines };
+}
+
+interface YouMightLikeProps {
+  hasTastings: boolean;
+}
+
+export function YouMightLike({ hasTastings }: YouMightLikeProps) {
+  const { wines, recommendationType, isLoading, hasLoaded, error, fetchSimilarWines } =
+    useWineSuggestions(hasTastings);
 
   if (!hasTastings) {
     return null;

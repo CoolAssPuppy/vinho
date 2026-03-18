@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -109,7 +110,7 @@ export function TastingNoteForm({
 
   const supabase = createClient();
 
-  useEffect(() => {
+  useMountEffect(() => {
     const fetchUserProfile = async () => {
       setIsLoading(true);
       const {
@@ -132,8 +133,7 @@ export function TastingNoteForm({
     };
 
     fetchUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   const handleSave = async () => {
     setIsSaving(true);

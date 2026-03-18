@@ -28,23 +28,29 @@ interface SearchBarProps {
   onClear?: () => void;
 }
 
-export function SearchBar({ onResults, onClear }: SearchBarProps) {
-  const [query, setQuery] = useState("");
+function useJournalSearch(
+  debouncedQuery: string,
+  onResults?: (results: SearchResult[]) => void,
+  onClear?: () => void,
+) {
   const [isSearching, setIsSearching] = useState(false);
-  const debouncedQuery = useDebounce(query, 500);
   const cacheRef = useRef<Map<string, CacheEntry<SearchResult[]>>>(new Map());
+  const onResultsRef = useRef(onResults);
+  const onClearRef = useRef(onClear);
+  onResultsRef.current = onResults;
+  onClearRef.current = onClear;
 
   useEffect(() => {
     const performSearch = async () => {
       if (!debouncedQuery.trim()) {
-        onClear?.();
+        onClearRef.current?.();
         return;
       }
 
       const cacheKey = debouncedQuery.trim().toLowerCase();
       const cached = cacheRef.current.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
-        onResults?.(cached.data);
+        onResultsRef.current?.(cached.data);
         return;
       }
 
@@ -57,7 +63,6 @@ export function SearchBar({ onResults, onClear }: SearchBarProps) {
           const data = await response.json();
           const results = data.results || [];
 
-          // Evict oldest entries if cache is full
           if (cacheRef.current.size >= SEARCH_CACHE_MAX_SIZE) {
             const oldest = [...cacheRef.current.entries()]
               .sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
@@ -65,19 +70,26 @@ export function SearchBar({ onResults, onClear }: SearchBarProps) {
           }
           cacheRef.current.set(cacheKey, { data: results, timestamp: Date.now() });
 
-          onResults?.(results);
+          onResultsRef.current?.(results);
         }
       } catch (error) {
         console.error("Search failed:", error);
-        onResults?.([]);
+        onResultsRef.current?.([]);
       } finally {
         setIsSearching(false);
       }
     };
 
     performSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery]); // Only depend on debouncedQuery, not the callbacks
+  }, [debouncedQuery]);
+
+  return isSearching;
+}
+
+export function SearchBar({ onResults, onClear }: SearchBarProps) {
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 500);
+  const isSearching = useJournalSearch(debouncedQuery, onResults, onClear);
 
   const handleClear = () => {
     setQuery("");

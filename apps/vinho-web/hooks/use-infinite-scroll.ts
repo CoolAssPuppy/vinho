@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 
 interface UseInfiniteScrollOptions {
   loading: boolean;
@@ -40,13 +41,13 @@ export function useInfiniteScroll({
     [loading, hasMore, onLoadMore, threshold],
   );
 
-  useEffect(() => {
+  useMountEffect(() => {
     return () => {
       if (observerRef.current) {
         observerRef.current.disconnect();
       }
     };
-  }, []);
+  });
 
   return loadMoreRef;
 }

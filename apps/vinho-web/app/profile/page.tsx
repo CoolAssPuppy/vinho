@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { Camera } from "lucide-react";
 import type { UserProfile, ProfileStats } from "@/lib/types/shared";
 import { ProfileTabs } from "@/components/profile/ProfileTabs";
@@ -23,7 +24,7 @@ export default function ProfilePage() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useMountEffect(() => {
     let mounted = true;
 
     const loadStats = async () => {
@@ -147,7 +148,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [supabase]);
+  });
 
   async function updateProfile(
     firstName: string,

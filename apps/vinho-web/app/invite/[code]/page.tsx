@@ -1,12 +1,65 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Wine, Loader2 } from "lucide-react"
+
+type SupabaseClient = ReturnType<typeof createClient>
+
+function useInviteLoader({
+  params,
+  supabase,
+  acceptInvite,
+  setInviteCode,
+  setIsAuthenticated,
+  setInvite,
+  setLoading,
+}: {
+  params: Promise<{ code: string }>
+  supabase: SupabaseClient
+  acceptInvite: () => Promise<void>
+  setInviteCode: (code: string) => void
+  setIsAuthenticated: (v: boolean) => void
+  setInvite: (v: InviteDetails) => void
+  setLoading: (v: boolean) => void
+}) {
+  useEffect(() => {
+    async function loadInvite() {
+      try {
+        const resolvedParams = await params
+        setInviteCode(resolvedParams.code)
+
+        const { data: { session } } = await supabase.auth.getSession()
+        setIsAuthenticated(!!session)
+
+        const { data, error } = await supabase.rpc('get_invite_by_code', { code: resolvedParams.code })
+        if (error) throw error
+
+        const inviteData = data as unknown as InviteDetails
+        setInvite(inviteData)
+
+        if (session && inviteData.success) {
+          await acceptInvite()
+        }
+      } catch (err) {
+        console.error('Error loading invite:', err)
+        setInvite({
+          success: false,
+          error: err instanceof Error ? err.message : 'Failed to load invitation'
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadInvite()
+  }, [params, supabase, acceptInvite, setInviteCode, setIsAuthenticated, setInvite, setLoading])
+}
 
 interface InviteDetails {
   success: boolean
@@ -57,42 +110,7 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     }
   }, [inviteCode, router, supabase])
 
-  useEffect(() => {
-    async function loadInvite() {
-      try {
-        // Await params
-        const resolvedParams = await params
-        setInviteCode(resolvedParams.code)
-
-        // Check if user is already logged in
-        const { data: { session } } = await supabase.auth.getSession()
-        setIsAuthenticated(!!session)
-
-        // Get invite details
-        const { data, error } = await supabase.rpc('get_invite_by_code', { code: resolvedParams.code })
-
-        if (error) throw error
-
-        const inviteData = data as unknown as InviteDetails
-        setInvite(inviteData)
-
-        // If user is logged in, auto-accept the invite
-        if (session && inviteData.success) {
-          await acceptInvite()
-        }
-      } catch (err) {
-        console.error('Error loading invite:', err)
-        setInvite({
-          success: false,
-          error: err instanceof Error ? err.message : 'Failed to load invitation'
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadInvite()
-  }, [params, supabase, acceptInvite])
+  useInviteLoader({ params, supabase, acceptInvite, setInviteCode, setIsAuthenticated, setInvite, setLoading })
 
   async function handleSignUp() {
     // Store invite code in localStorage for post-signup processing

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { createClient } from "@/lib/supabase";
 import {
   Upload,
@@ -411,7 +412,7 @@ function useQueueStatus() {
   }, []);
 
   // Initial fetch + Realtime subscription
-  useEffect(() => {
+  useMountEffect(() => {
     fetchQueueStatus();
 
     const setupRealtime = async () => {
@@ -446,8 +447,7 @@ function useQueueStatus() {
         supabase.removeChannel(channelRef.current);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   return { queueStatus, fetchQueueStatus };
 }

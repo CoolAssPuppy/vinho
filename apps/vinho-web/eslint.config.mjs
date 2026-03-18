@@ -23,6 +23,20 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "warn",
     },
   },
+  // Disallow direct useEffect in component/page files
+  {
+    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: 'CallExpression[callee.name="useEffect"]',
+          message:
+            "Do not use useEffect directly. Use useMountEffect or a purpose-named custom hook.",
+        },
+      ],
+    },
+  },
   // Allow require() in CommonJS config files
   {
     files: ["**/*.js"],

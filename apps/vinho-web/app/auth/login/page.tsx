@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState, useRef } from "react";
+import type { ReadonlyURLSearchParams } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -20,6 +21,14 @@ import { SocialButtons, type OAuthProvider } from "@/components/auth/SocialButto
 import { HCaptcha, type HCaptchaRef } from "@/components/auth/HCaptcha";
 import { validateEmail, getAuthErrorMessage } from "@/lib/validation/auth";
 
+function useVerifiedToast(searchParams: ReadonlyURLSearchParams) {
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      toast.success("Email verified! You can now sign in.");
+    }
+  }, [searchParams]);
+}
+
 function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -30,11 +39,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  useEffect(() => {
-    if (searchParams.get("verified") === "true") {
-      toast.success("Email verified! You can now sign in.");
-    }
-  }, [searchParams]);
+  useVerifiedToast(searchParams);
 
   const handleEmailChange = (value: string) => {
     setEmail(value);

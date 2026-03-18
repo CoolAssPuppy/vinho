@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface RealtimeContextType {
@@ -12,36 +13,15 @@ interface RealtimeContextType {
 
 const RealtimeContext = createContext<RealtimeContextType>({});
 
-export function RealtimeProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
+function useWineQueueSubscription(
+  currentUserId: string | null,
+) {
   const supabase = createClient();
-
-  // Get current user ID
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id || null);
-    };
-    getUser();
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setCurrentUserId(session?.user?.id || null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+  const router = useRouter();
 
   useEffect(() => {
     if (!currentUserId) return;
 
-    // Subscribe to wine processing queue updates for current user only
     const channel = supabase
       .channel("global-wine-updates")
       .on(
@@ -61,10 +41,8 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
           if (newData.status === "completed") {
             toast.success(
-              "🍷 Wine analysis complete! Your collection has been updated.",
+              "Wine analysis complete! Your collection has been updated.",
             );
-
-            // Refresh the current page to show new data
             router.refresh();
           } else if (newData.status === "failed") {
             toast.error(
@@ -81,7 +59,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           table: "wines",
         },
         () => {
-          // When a new wine is added, refresh the page
           router.refresh();
         },
       )
@@ -93,7 +70,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           table: "vintages",
         },
         () => {
-          // When a new vintage is added, refresh the page
           router.refresh();
         },
       )
@@ -103,6 +79,32 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(channel);
     };
   }, [supabase, router, currentUserId]);
+}
+
+export function RealtimeProvider({ children }: { children: React.ReactNode }) {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const supabase = createClient();
+
+  useMountEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    getUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUserId(session?.user?.id || null);
+    });
+
+    return () => subscription.unsubscribe();
+  });
+
+  useWineQueueSubscription(currentUserId);
 
   return (
     <RealtimeContext.Provider value={{}}>{children}</RealtimeContext.Provider>

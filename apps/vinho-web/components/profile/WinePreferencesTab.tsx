@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -281,30 +282,18 @@ const WINE_STYLES = [
 
 import type { WinePreferences } from "@/lib/types/shared";
 
-interface WinePreferencesTabProps {
-  onPreferencesChange?: (preferences: WinePreferences) => void;
-}
+const DEFAULT_PREFERENCES: WinePreferences = {
+  wine_types: [],
+  favorite_regions: [],
+  favorite_varietals: [],
+  favorite_styles: [],
+  price_range: { low: 20, high: 100 },
+  tasting_note_style: "Casual",
+};
 
-export function WinePreferencesTab({
-  onPreferencesChange,
-}: WinePreferencesTabProps) {
-  const { user } = useUser();
-  const [preferences, setPreferences] = useState<WinePreferences>({
-    wine_types: [],
-    favorite_regions: [],
-    favorite_varietals: [],
-    favorite_styles: [],
-    price_range: { low: 20, high: 100 },
-    tasting_note_style: "Casual",
-  });
+function useWinePreferences(user: User | null) {
+  const [preferences, setPreferences] = useState<WinePreferences>(DEFAULT_PREFERENCES);
 
-  const [customRegion, setCustomRegion] = useState("");
-  const [showCustomRegion, setShowCustomRegion] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
-    "idle",
-  );
-
-  // Load existing preferences
   useEffect(() => {
     if (!user) return;
 
@@ -337,6 +326,25 @@ export function WinePreferencesTab({
 
     loadPreferences();
   }, [user]);
+
+  return [preferences, setPreferences] as const;
+}
+
+interface WinePreferencesTabProps {
+  onPreferencesChange?: (preferences: WinePreferences) => void;
+}
+
+export function WinePreferencesTab({
+  onPreferencesChange,
+}: WinePreferencesTabProps) {
+  const { user } = useUser();
+  const [preferences, setPreferences] = useWinePreferences(user);
+
+  const [customRegion, setCustomRegion] = useState("");
+  const [showCustomRegion, setShowCustomRegion] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
+    "idle",
+  );
 
   const savePreferences = async () => {
     if (!user) return;

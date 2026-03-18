@@ -4,9 +4,9 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   ReactNode,
 } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { createClient } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
@@ -81,7 +81,7 @@ export function UserProvider({ children }: UserProviderProps) {
     await fetchUserData();
   };
 
-  useEffect(() => {
+  useMountEffect(() => {
     fetchUserData();
 
     const {
@@ -110,8 +110,7 @@ export function UserProvider({ children }: UserProviderProps) {
     });
 
     return () => subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   return (
     <UserContext.Provider

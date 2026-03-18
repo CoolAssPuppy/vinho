@@ -39,21 +39,8 @@ interface Suggestion {
   };
 }
 
-export function PlaceAutocomplete({
-  value,
-  onChange,
-  onSelect,
-  placeholder,
-  types,
-}: PlaceAutocompleteProps) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [selectedPlace, setSelectedPlace] = useState<{
-    name: string;
-    address: string;
-  } | null>(null);
+function usePlaceSuggestions(debounced: string, types?: string) {
   const [results, setResults] = useState<Suggestion[]>([]);
-  const debounced = useDebounce(query, 300);
   const cacheRef = useRef<Map<string, CacheEntry<Suggestion[]>>>(new Map());
 
   useEffect(() => {
@@ -83,6 +70,28 @@ export function PlaceAutocomplete({
       .catch(() => {});
     return () => controller.abort();
   }, [debounced, types]);
+
+  return results;
+}
+
+export function PlaceAutocomplete({
+  value,
+  onChange,
+  onSelect,
+  placeholder,
+  types,
+}: PlaceAutocompleteProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<{
+    name: string;
+    address: string;
+  } | null>(null);
+  const debounced = useDebounce(query, 300);
+  const results = usePlaceSuggestions(debounced, types);
+
+  // Derive displayed place from value prop (Category B: no effect needed)
+  const displayedPlace = value ? selectedPlace : null;
 
   const handleSelect = useCallback(
     async (placeId: string, primaryText: string) => {
@@ -124,18 +133,11 @@ export function PlaceAutocomplete({
     [onChange, onSelect],
   );
 
-  // Clear selected place when value changes
-  useEffect(() => {
-    if (!value) {
-      setSelectedPlace(null);
-    }
-  }, [value]);
-
   return (
     <Command shouldFilter={false} className="overflow-visible">
       <div className="space-y-2">
         <div className="flex w-full items-center justify-between rounded-lg border bg-background text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-          {selectedPlace && (
+          {displayedPlace && (
             <CheckCircle className="ml-3 h-4 w-4 text-green-500 flex-shrink-0" />
           )}
           <Input
@@ -143,21 +145,21 @@ export function PlaceAutocomplete({
             onChange={(e) => {
               onChange(e.target.value);
               setQuery(e.target.value);
-              setSelectedPlace(null); // Clear selected place when typing
+              setSelectedPlace(null);
             }}
             onFocus={() => setOpen(true)}
             onBlur={() => setOpen(false)}
-            placeholder={selectedPlace ? selectedPlace.name : placeholder}
+            placeholder={displayedPlace ? displayedPlace.name : placeholder}
             className="w-full border-0 focus-visible:ring-0"
           />
-          {!selectedPlace && query && (
+          {!displayedPlace && query && (
             <MapPin className="mr-3 h-4 w-4 text-muted-foreground" />
           )}
         </div>
-        {selectedPlace && selectedPlace.address && (
+        {displayedPlace && displayedPlace.address && (
           <div className="px-3 py-1 text-xs text-muted-foreground bg-muted rounded-md">
             <MapPin className="inline h-3 w-3 mr-1" />
-            {selectedPlace.address}
+            {displayedPlace.address}
           </div>
         )}
       </div>

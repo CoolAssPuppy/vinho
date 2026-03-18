@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useCallback } from "react";
+import { useReducer, useRef, useCallback } from "react";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { createClient } from "@/lib/supabase";
 import type { Tasting } from "@/lib/types/shared";
 
@@ -208,7 +209,7 @@ export function useJournalTastings() {
   }, []);
 
   // Set up initial data fetch and debounced realtime subscription
-  useEffect(() => {
+  useMountEffect(() => {
     const setupData = async () => {
       await fetchTastings();
       await fetchPendingWines();
@@ -250,8 +251,7 @@ export function useJournalTastings() {
     };
 
     setupData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   const handleEditTasting = useCallback((tasting: Tasting) => {
     dispatch({ type: "SET_SELECTED_TASTING", payload: tasting });

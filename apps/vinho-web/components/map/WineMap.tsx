@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import L from "leaflet";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Wine, MapPin, Calendar, Grape } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -40,6 +41,46 @@ interface WineMapProps {
   }) => void;
 }
 
+// Custom hook: track map bounds changes
+function useMapBoundsListener(
+  map: L.Map | null,
+  onBoundsChange?: (bounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  }) => void,
+) {
+  const savedCallback = useCallback(() => {
+    if (!map || !onBoundsChange) return;
+    try {
+      const bounds = map.getBounds();
+      if (bounds) {
+        onBoundsChange({
+          north: bounds.getNorth(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          west: bounds.getWest(),
+        });
+      }
+    } catch (error) {
+      console.error("Error updating bounds:", error);
+    }
+  }, [map, onBoundsChange]);
+
+  useEffect(() => {
+    if (!map || !onBoundsChange) return;
+
+    map.on("moveend", savedCallback);
+    map.on("zoomend", savedCallback);
+
+    return () => {
+      map.off("moveend", savedCallback);
+      map.off("zoomend", savedCallback);
+    };
+  }, [map, onBoundsChange, savedCallback]);
+}
+
 // Custom wine marker icon
 function createWineIcon(isSelected: boolean = false) {
   const iconHtml = renderToStaticMarkup(
@@ -75,7 +116,7 @@ function MapViewController({
   const map = useMap();
 
   // Fit bounds on initial load if wines exist
-  useEffect(() => {
+  useMountEffect(() => {
     if (!map) return;
 
     if (initialFit && wines.length > 0) {
@@ -93,39 +134,10 @@ function MapViewController({
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFit]); // Intentionally omit map and wines to avoid re-runs
+  });
 
   // Handle map events with proper cleanup
-  useEffect(() => {
-    if (!map || !onBoundsChange) return;
-
-    const updateBounds = () => {
-      try {
-        const bounds = map.getBounds();
-        if (bounds) {
-          onBoundsChange({
-            north: bounds.getNorth(),
-            south: bounds.getSouth(),
-            east: bounds.getEast(),
-            west: bounds.getWest(),
-          });
-        }
-      } catch (error) {
-        console.error("Error updating bounds:", error);
-      }
-    };
-
-    // Add event listeners
-    map.on("moveend", updateBounds);
-    map.on("zoomend", updateBounds);
-
-    // Cleanup function
-    return () => {
-      map.off("moveend", updateBounds);
-      map.off("zoomend", updateBounds);
-    };
-  }, [map, onBoundsChange]);
+  useMapBoundsListener(map, onBoundsChange);
 
   return null;
 }
