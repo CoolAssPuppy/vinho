@@ -9,7 +9,7 @@
     "lint": "pnpm --filter vinho-web run lint",
     "doctor": "node scripts/doctor.mjs",
     "supa:push": "supabase db push",
-    "supa:types": "supabase gen types typescript --project-id aghiopwrzzvamssgcwpv > packages/db-types/src/database.types.ts",
+    "supa:types": "supabase gen types typescript --local 2>/dev/null > apps/vinho-web/lib/database.types.ts",
     "supa:dump": "supabase db dump --project-ref aghiopwrzzvamssgcwpv > supabase/vinho.sql",
     "simulate": "pnpm --filter vinho-web run simulate",
     "simulate:process": "pnpm --filter vinho-web run simulate:process",
