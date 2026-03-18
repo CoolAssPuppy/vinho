@@ -1,5 +1,3 @@
-WARN: no SMS provider is enabled. Disabling phone login
-Connecting to db 5432
 export type Json =
   | string
   | number
