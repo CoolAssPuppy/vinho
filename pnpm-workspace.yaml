@@ -1,3 +1,25 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# pnpm 11 reads `allowBuilds` (a map). pnpm 10 reads `onlyBuiltDependencies`
+# (a list). Keep both so the file works on either major during the rollout.
+allowBuilds:
+  # @tailwindcss/oxide postinstall fetches the platform-specific Rust binary
+  # used by the Tailwind v4 engine.
+  '@tailwindcss/oxide': true
+  # core-js postinstall just prints a sponsor banner; safe to skip.
+  core-js: false
+  # esbuild postinstall fetches the platform-specific binary that next/vite use.
+  esbuild: true
+  # sharp ships native image-processing binaries that next/image loads.
+  sharp: true
+  # unrs-resolver downloads the platform-specific native binary used by
+  # eslint-plugin-import and Next.js tooling for module resolution.
+  unrs-resolver: true
+
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+  - sharp
+  - unrs-resolver
