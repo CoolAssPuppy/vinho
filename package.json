@@ -1,8 +1,15 @@
 {
   "name": "vinho",
   "private": true,
-  "packageManager": "pnpm@9.12.2",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.18",
+    "pnpm": ">=10",
+    "npm": "please-use-pnpm",
+    "yarn": "please-use-pnpm"
+  },
   "scripts": {
+    "preinstall": "npx --yes only-allow pnpm",
     "dev": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next dev",
     "build": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next build",
     "start": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next start",
