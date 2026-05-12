@@ -55,22 +55,22 @@ Add these secrets in the [Doppler Dashboard](https://dashboard.doppler.com):
 
 ```bash
 doppler setup --project vinho --config dev
-npm run dev:doppler
+pnpm run dev
 ```
 
 ### Staging
 
 ```bash
 doppler setup --project vinho --config stg
-npm run build:doppler
+pnpm run build
 ```
 
 ### Production
 
 ```bash
 doppler setup --project vinho --config prd
-npm run build:doppler
-npm run start:doppler
+pnpm run build
+pnpm run start
 ```
 
 ## Vercel Integration
@@ -119,7 +119,7 @@ If you prefer not to use Doppler locally:
 
 1. Copy `.env.local.example` to `.env.local`
 2. Fill in your values
-3. Run `npm run dev` (without `:doppler`)
+3. Run `pnpm run dev` (without `:doppler`)
 
 ## Security Best Practices
 
