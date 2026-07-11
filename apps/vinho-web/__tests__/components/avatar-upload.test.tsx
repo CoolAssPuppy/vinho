@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { toast } from "sonner";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase";
 
 // Mock dependencies
 jest.mock("sonner", () => ({
@@ -11,8 +11,9 @@ jest.mock("sonner", () => ({
   },
 }));
 
-jest.mock("@supabase/ssr", () => ({
-  createBrowserClient: jest.fn(),
+// AvatarUpload builds its client via createClient() from "@/lib/supabase".
+jest.mock("@/lib/supabase", () => ({
+  createClient: jest.fn(),
 }));
 
 const mockSupabaseClient = {
@@ -39,7 +40,7 @@ describe("AvatarUpload Component", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (createBrowserClient as jest.Mock).mockReturnValue(mockSupabaseClient);
+    (createClient as jest.Mock).mockReturnValue(mockSupabaseClient);
   });
 
   it("renders upload button and file input", () => {
@@ -302,7 +303,7 @@ describe("AvatarUpload Component", () => {
   it("handles upload errors gracefully", async () => {
     const mockStorageFrom = mockSupabaseClient.storage.from as jest.Mock;
     const mockUpload = jest.fn().mockResolvedValue({
-      error: { message: "Upload failed" },
+      error: new Error("Upload failed"),
     });
 
     mockStorageFrom.mockReturnValue({
@@ -348,7 +349,7 @@ describe("AvatarUpload Component", () => {
 
     const mockFromUpdate = mockSupabaseClient.from as jest.Mock;
     const mockEq = jest.fn().mockResolvedValue({
-      error: { message: "Database update failed" },
+      error: new Error("Database update failed"),
     });
     const mockUpdate = jest.fn().mockReturnValue({ eq: mockEq });
     mockFromUpdate.mockReturnValue({ update: mockUpdate });

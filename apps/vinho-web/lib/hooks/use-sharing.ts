@@ -1,13 +1,28 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase';
+import type { Database } from '@/lib/database.types';
 import type { SharingConnection, UserSharingPreferences, SendInvitationResult } from '@/lib/types/sharing';
 
-// type DbSharingConnection = Database['public']['Functions']['get_sharing_connections_with_profiles']['Returns'][number];
-// type DbUserSharingPreferences = Database['public']['Tables']['user_sharing_preferences']['Row'];
+type SharingPreferencesRow = Database['public']['Tables']['user_sharing_preferences']['Row'];
+
+// The DB stores visible_sharers as jsonb (typed as Json). Narrow it to the
+// string[] the app uses, defaulting to [] if the column is malformed.
+function toUserSharingPreferences(row: SharingPreferencesRow): UserSharingPreferences {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    visible_sharers: Array.isArray(row.visible_sharers)
+      ? (row.visible_sharers as string[])
+      : [],
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
 
 export function useSharing() {
   const [connections, setConnections] = useState<SharingConnection[]>([]);
   const [preferences, setPreferences] = useState<UserSharingPreferences | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,32 +39,7 @@ export function useSharing() {
     }
   }, [supabase]);
 
-  const fetchPreferences = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('user_sharing_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        setPreferences(data as UserSharingPreferences);
-      } else {
-        // Create default preferences
-        await createDefaultPreferences(user.id);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch preferences');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase]);
-
-  const createDefaultPreferences = async (userId: string) => {
+  const createDefaultPreferences = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('user_sharing_preferences')
       .insert({
@@ -60,9 +50,34 @@ export function useSharing() {
       .single();
 
     if (!error && data) {
-      setPreferences(data as UserSharingPreferences);
+      setPreferences(toUserSharingPreferences(data));
     }
-  };
+  }, [supabase]);
+
+  const fetchPreferences = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
+
+      const { data, error } = await supabase
+        .from('user_sharing_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        setPreferences(toUserSharingPreferences(data));
+      } else {
+        // Create default preferences
+        await createDefaultPreferences(user.id);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch preferences');
+    }
+  }, [supabase, createDefaultPreferences]);
 
   const sendInvitation = async (
     viewerEmail: string
@@ -200,13 +215,19 @@ export function useSharing() {
     return connections.filter(c => c.status === 'pending');
   }, [connections]);
 
+  // "Sent" shares are ones where the current user is the sharer; "received"
+  // ones are where the current user is the viewer.
   const getActiveSharesSent = useCallback(() => {
-    return connections.filter(c => c.status === 'accepted');
-  }, [connections]);
+    return connections.filter(
+      c => c.status === 'accepted' && c.sharer_id === currentUserId
+    );
+  }, [connections, currentUserId]);
 
   const getActiveSharesReceived = useCallback(() => {
-    return connections.filter(c => c.status === 'accepted');
-  }, [connections]);
+    return connections.filter(
+      c => c.status === 'accepted' && c.viewer_id === currentUserId
+    );
+  }, [connections, currentUserId]);
 
   useEffect(() => {
     const load = async () => {

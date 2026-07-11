@@ -301,10 +301,14 @@ final class TastingService {
     func createTasting(vintageId: String, verdict: Int?, notes: String?, tastedAt: Date) async -> Bool {
         guard let userId = try? await client.auth.session.user.id else { return false }
 
+        // Fail on a malformed vintage id rather than fabricating a random UUID,
+        // which would create a tasting pointing at a nonexistent vintage (orphan).
+        guard let vintageUUID = UUID(uuidString: vintageId) else { return false }
+
         let newTasting = Tasting(
             id: UUID(),
             userId: userId,
-            vintageId: UUID(uuidString: vintageId) ?? UUID(),
+            vintageId: vintageUUID,
             verdict: verdict,
             notes: notes,
             detailedNotes: nil,

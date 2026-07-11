@@ -17,8 +17,6 @@ export async function scanWineLabel(imageBase64: string) {
     const buffer = Buffer.from(imageData, "base64");
     const fileName = `${user.id}/${Date.now()}.jpg`;
 
-    console.log("Uploading image to storage:", fileName);
-
     const { error: uploadError } = await supabase.storage
       .from("scans")
       .upload(fileName, buffer, {
@@ -35,8 +33,6 @@ export async function scanWineLabel(imageBase64: string) {
     const {
       data: { publicUrl },
     } = supabase.storage.from("scans").getPublicUrl(fileName);
-
-    console.log("Public URL:", publicUrl);
 
     // Create a scan record
     const { data: scan, error: scanError } = await supabase
@@ -56,8 +52,6 @@ export async function scanWineLabel(imageBase64: string) {
       throw new Error(`Failed to create scan record: ${scanError.message}`);
     }
 
-    console.log("Scan created:", scan.id);
-
     // Add to processing queue
     const { data: queueItem, error: queueError } = await supabase
       .from("wines_added_queue")
@@ -75,12 +69,10 @@ export async function scanWineLabel(imageBase64: string) {
       throw new Error(`Failed to add to processing queue: ${queueError.message}`);
     }
 
-    console.log("Queue item created:", queueItem.id);
-
-    // Invoke the edge function to process the queue immediately
+    // Invoke the edge function to process the queue immediately. A failure
+    // here is non-fatal: the item is queued and the cron sweep will pick it up.
     try {
-      console.log("Invoking edge function process-wine-queue");
-      const { data, error: functionError } = await supabase.functions.invoke(
+      const { error: functionError } = await supabase.functions.invoke(
         "process-wine-queue",
         {
           body: {},
@@ -88,13 +80,10 @@ export async function scanWineLabel(imageBase64: string) {
       );
 
       if (functionError) {
-        console.error("Failed to invoke edge function:", functionError);
-      } else {
-        console.log("Edge function invoked successfully:", data);
+        console.error("Failed to invoke process-wine-queue:", functionError);
       }
     } catch (error) {
-      console.error("Error invoking edge function:", error);
-      // Don't throw - the item is already in the queue and can be processed later
+      console.error("Error invoking process-wine-queue:", error);
     }
 
     return {

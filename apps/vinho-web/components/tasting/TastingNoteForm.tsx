@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useMountEffect } from "@/hooks/use-mount-effect";
 import { Label } from "@/components/ui/label";
 import {
@@ -116,7 +117,10 @@ export function TastingNoteForm({
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -141,7 +145,11 @@ export function TastingNoteForm({
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setIsSaving(false);
+      toast.error("You must be signed in to save a tasting.");
+      return;
+    }
 
     const tastingData = {
       user_id: user.id,
@@ -178,7 +186,7 @@ export function TastingNoteForm({
 
     if (error) {
       console.error("Error saving tasting:", error);
-      alert("Failed to save tasting. Please try again.");
+      toast.error("Failed to save tasting. Please try again.");
     } else {
       if (onSave) onSave();
     }

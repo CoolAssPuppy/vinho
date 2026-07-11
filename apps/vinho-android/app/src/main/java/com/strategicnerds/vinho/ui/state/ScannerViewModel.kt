@@ -145,8 +145,10 @@ class ScannerViewModel @Inject constructor(
                 val queueId = UUID.randomUUID().toString()
                 val fileName = "$userId/${System.currentTimeMillis()}.jpg"
 
-                // Upload image to storage
-                client.storage["scans"].upload(fileName, imageData) { upsert = true }
+                // Upload image to storage. upsert=false matches iOS/web: the
+                // filename is unique (userId + timestamp), and surfacing a rare
+                // collision beats silently overwriting a prior scan.
+                client.storage["scans"].upload(fileName, imageData) { upsert = false }
                 val publicUrl = client.storage["scans"].publicUrl(fileName)
 
                 // Insert into scans table

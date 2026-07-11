@@ -4,7 +4,9 @@ import SwiftUI
 struct PrivacySecurityView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var hapticManager: HapticManager
-    @AppStorage("biometricsEnabled") private var biometricsEnabled = true
+    // Must match the key BiometricAuthService reads ("biometric_auth_enabled"),
+    // otherwise this toggle controls nothing. Default off to match the service.
+    @AppStorage("biometric_auth_enabled") private var biometricsEnabled = false
     @AppStorage("autoLock") private var autoLock = true
     @State private var showingChangePassword = false
     @State private var showingDeleteAccount = false

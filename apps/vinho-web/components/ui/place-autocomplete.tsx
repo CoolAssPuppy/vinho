@@ -67,7 +67,14 @@ function usePlaceSuggestions(debounced: string, types?: string) {
         cacheRef.current.set(cacheKey, { data: suggestions, timestamp: Date.now() });
         setResults(suggestions);
       })
-      .catch(() => {});
+      .catch((error) => {
+        // Aborts are expected as the user keeps typing; log anything else so a
+        // broken places API isn't silently invisible.
+        if (error?.name !== "AbortError") {
+          console.error("Place autocomplete request failed:", error);
+        }
+        setResults([]);
+      });
     return () => controller.abort();
   }, [debounced, types]);
 

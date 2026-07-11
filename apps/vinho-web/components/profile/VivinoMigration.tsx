@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useMountEffect } from "@/hooks/use-mount-effect";
 import { createClient } from "@/lib/supabase";
 import {
@@ -318,7 +318,7 @@ function EnhancementStatus({
 
 function useQueueStatus() {
   const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const fetchQueueStatus = useCallback(async () => {
@@ -408,8 +408,7 @@ function useQueueStatus() {
     }
 
     return status;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [supabase]);
 
   // Initial fetch + Realtime subscription
   useMountEffect(() => {

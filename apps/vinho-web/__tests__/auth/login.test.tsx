@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import LoginPage from '@/app/auth/login/page'
 import { createClient } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 jest.mock('@/lib/supabase')
 jest.mock('sonner', () => ({
@@ -12,13 +13,12 @@ jest.mock('sonner', () => ({
 }))
 
 const mockPush = jest.fn()
-const mockRefresh = jest.fn()
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
-    refresh: mockRefresh,
   }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 describe('LoginPage', () => {
@@ -37,11 +37,11 @@ describe('LoginPage', () => {
   it('renders login form correctly', () => {
     render(<LoginPage />)
 
-    expect(screen.getByText('Welcome back')).toBeInTheDocument()
+    expect(screen.getByText('Welcome back.')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
-    expect(screen.getByText(/don't have an account/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /sign up/i })).toBeInTheDocument()
   })
 
   it('validates email format', async () => {
@@ -49,10 +49,8 @@ describe('LoginPage', () => {
     render(<LoginPage />)
 
     const emailInput = screen.getByLabelText('Email')
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
 
     await user.type(emailInput, 'invalid-email')
-    await user.click(submitButton)
 
     expect(emailInput).toBeInvalid()
   })
@@ -65,20 +63,24 @@ describe('LoginPage', () => {
 
     const emailInput = screen.getByLabelText('Email')
     const passwordInput = screen.getByLabelText('Password')
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
 
     await user.type(emailInput, 'test@example.com')
     await user.type(passwordInput, 'password123')
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123',
-      })
-      expect(mockPush).toHaveBeenCalledWith('/')
-      expect(mockRefresh).toHaveBeenCalled()
+      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'test@example.com',
+          password: 'password123',
+        }),
+      )
     })
+
+    // safeNext(null) falls back to "/journal" when no ?next param is present.
+    expect(mockPush).toHaveBeenCalledWith('/journal')
+    expect(toast.success).toHaveBeenCalledWith('Welcome back!')
   })
 
   it('handles login error', async () => {
@@ -90,7 +92,7 @@ describe('LoginPage', () => {
 
     const emailInput = screen.getByLabelText('Email')
     const passwordInput = screen.getByLabelText('Password')
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
 
     await user.type(emailInput, 'test@example.com')
     await user.type(passwordInput, 'wrongpassword')
@@ -98,8 +100,9 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalled()
-      expect(mockPush).not.toHaveBeenCalled()
     })
+    expect(toast.error).toHaveBeenCalled()
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('handles Google OAuth login', async () => {
@@ -108,28 +111,32 @@ describe('LoginPage', () => {
 
     render(<LoginPage />)
 
-    const googleButton = screen.getByRole('button', { name: /continue with google/i })
+    const googleButton = screen.getByRole('button', {
+      name: /sign in with google/i,
+    })
     await user.click(googleButton)
 
     await waitFor(() => {
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'google',
-        options: {
-          redirectTo: expect.stringContaining('/auth/callback'),
-        },
-      })
+      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'google',
+          options: expect.objectContaining({
+            redirectTo: expect.stringContaining('/auth/callback'),
+          }),
+        }),
+      )
     })
   })
 
   it('disables form during submission', async () => {
     const user = userEvent.setup()
     mockSupabase.auth.signInWithPassword.mockImplementation(
-      () => new Promise(resolve => setTimeout(resolve, 100))
+      () => new Promise((resolve) => setTimeout(() => resolve({ error: null }), 100)),
     )
 
     render(<LoginPage />)
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
     const emailInput = screen.getByLabelText('Email')
     const passwordInput = screen.getByLabelText('Password')
 

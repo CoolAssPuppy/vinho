@@ -184,59 +184,8 @@ export async function downloadVivinoImage(
   return downloadAndStoreImage(imageUrl, fileName);
 }
 
-/**
- * Create wine-images bucket if it doesn't exist
- */
-export async function ensureWineImagesBucket(): Promise<boolean> {
-  try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options),
-              );
-            } catch {}
-          },
-        },
-      },
-    );
-
-    // Check if bucket exists
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some(
-      (bucket) => bucket.name === "wine-images",
-    );
-
-    if (!bucketExists) {
-      // Create bucket
-      const { error } = await supabase.storage.createBucket("wine-images", {
-        public: true,
-        allowedMimeTypes: [
-          "image/jpeg",
-          "image/jpg",
-          "image/png",
-          "image/webp",
-        ],
-        fileSizeLimit: 5 * 1024 * 1024, // 5MB limit
-      });
-
-      if (error) {
-        console.error("Failed to create wine-images bucket:", error);
-        return false;
-      }
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error ensuring wine-images bucket:", error);
-    return false;
-  }
-}
+// The wine-images bucket is provisioned by migration (20260711005337). It is
+// infrastructure, so there is no runtime create/verify step: a non-service
+// client can't list or create buckets anyway. If an upload ever fails,
+// downloadAndStoreImage returns success:false and the caller falls back to the
+// source image URL.

@@ -45,9 +45,12 @@ import com.strategicnerds.vinho.ui.screens.journal.JournalScreen
 import com.strategicnerds.vinho.ui.screens.journal.TastingDetailScreen
 import com.strategicnerds.vinho.ui.screens.journal.TastingEditorScreen
 import com.strategicnerds.vinho.ui.screens.map.MapScreen
+import com.strategicnerds.vinho.ui.screens.profile.NotificationsScreen
 import com.strategicnerds.vinho.ui.screens.profile.ProfileEditScreen
 import com.strategicnerds.vinho.ui.screens.profile.ProfileSheet
 import com.strategicnerds.vinho.ui.screens.scanner.ScannerSheet
+import com.strategicnerds.vinho.ui.screens.sharing.SharingScreen
+import com.strategicnerds.vinho.ui.screens.wines.WineDetailScreen
 import com.strategicnerds.vinho.ui.state.HomeViewModel
 import com.strategicnerds.vinho.ui.state.ScannerViewModel
 import com.strategicnerds.vinho.ui.state.SessionUiState
@@ -77,6 +80,9 @@ fun HomeScreen(
     var showTastingEditor by remember { mutableStateOf(false) }
     var showProfileEdit by remember { mutableStateOf(false) }
     var showScannerTastingEditor by remember { mutableStateOf(false) }
+    var selectedWineId by remember { mutableStateOf<String?>(null) }
+    var showSharing by remember { mutableStateOf(false) }
+    var showNotifications by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessionState.userProfile?.id) {
         sessionState.userProfile?.id?.let { homeViewModel.load(it) }
@@ -127,12 +133,16 @@ fun HomeScreen(
                         onRefreshSuggestions = {
                             suggestionsViewModel.refresh()
                         },
-                        onSimilarWineClick = { /* TODO: Navigate to wine detail */ }
+                        onSimilarWineClick = { similar -> selectedWineId = similar.wineId }
                     )
 
                     else -> MapScreen(
                         tastings = homeState.tastings,
-                        stats = homeState.stats
+                        stats = homeState.stats,
+                        onTastingClick = { tasting ->
+                            selectedTasting = tasting
+                            showTastingDetail = true
+                        }
                     )
                 }
             }
@@ -158,7 +168,38 @@ fun HomeScreen(
                 onEditProfile = {
                     showProfile = false
                     showProfileEdit = true
+                },
+                onManageSharing = {
+                    showProfile = false
+                    showSharing = true
+                },
+                onManageNotifications = {
+                    showProfile = false
+                    showNotifications = true
                 }
+            )
+        }
+    }
+
+    if (showSharing) {
+        ModalBottomSheet(
+            onDismissRequest = { showSharing = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            SharingScreen(
+                userId = sessionState.userProfile?.id.orEmpty(),
+                onDismiss = { showSharing = false }
+            )
+        }
+    }
+
+    if (showNotifications) {
+        ModalBottomSheet(
+            onDismissRequest = { showNotifications = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            NotificationsScreen(
+                onDismiss = { showNotifications = false }
             )
         }
     }
@@ -291,6 +332,30 @@ fun HomeScreen(
                 onSaved = {
                     showProfileEdit = false
                     // Refresh session to pick up profile changes
+                }
+            )
+        }
+    }
+
+    // Wine detail (reached from the "You might like" recommendations). Previously
+    // the wine catalog/detail screens were built but unreachable.
+    selectedWineId?.let { wineId ->
+        ModalBottomSheet(
+            onDismissRequest = { selectedWineId = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            WineDetailScreen(
+                wineId = wineId,
+                onDismiss = { selectedWineId = null },
+                onTastingClick = { tasting ->
+                    selectedWineId = null
+                    selectedTasting = tasting
+                    showTastingDetail = true
+                },
+                onAddTasting = {
+                    selectedWineId = null
+                    editingTasting = null
+                    showTastingEditor = true
                 }
             )
         }

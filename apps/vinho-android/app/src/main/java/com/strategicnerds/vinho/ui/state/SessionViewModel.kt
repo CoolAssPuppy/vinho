@@ -46,6 +46,7 @@ class SessionViewModel @Inject constructor(
     private fun observePreferences() {
         viewModelScope.launch {
             preferences.flow.collect { prefs ->
+                biometricLockController.setEnabled(prefs.biometricsEnabled)
                 _uiState.value = _uiState.value.copy(preferences = prefs)
             }
         }

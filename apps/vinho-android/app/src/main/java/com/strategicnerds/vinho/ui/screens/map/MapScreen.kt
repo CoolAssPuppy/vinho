@@ -64,6 +64,13 @@ enum class MapViewMode {
     REGIONS
 }
 
+private data class MapPoint(
+    val position: LatLng,
+    val title: String,
+    val snippet: String?,
+    val tasting: Tasting
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
@@ -75,16 +82,41 @@ fun MapScreen(
     var selectedTasting by remember { mutableStateOf<Tasting?>(null) }
     var showTastingSheet by remember { mutableStateOf(false) }
 
-    val tastingsWithLocation = tastings.filter {
-        it.locationLatitude != null && it.locationLongitude != null
+    // Tastings mode: markers where the wine was tasted.
+    val tastingPoints = tastings.mapNotNull { tasting ->
+        val lat = tasting.locationLatitude
+        val lng = tasting.locationLongitude
+        if (lat != null && lng != null) {
+            MapPoint(
+                position = LatLng(lat, lng),
+                title = tasting.vintage?.wine?.name ?: "Wine Tasting",
+                snippet = tasting.locationName ?: tasting.locationCity,
+                tasting = tasting
+            )
+        } else null
     }
 
-    val defaultLocation = if (tastingsWithLocation.isNotEmpty()) {
-        val first = tastingsWithLocation.first()
-        LatLng(first.locationLatitude!!, first.locationLongitude!!)
-    } else {
-        LatLng(48.8566, 2.3522)
+    // Regions mode: markers at each wine's producer origin (mirrors iOS "Wine Origins").
+    val originPoints = tastings.mapNotNull { tasting ->
+        val producer = tasting.vintage?.wine?.producer
+        val lat = producer?.latitude
+        val lng = producer?.longitude
+        if (lat != null && lng != null) {
+            val regionLabel = listOfNotNull(producer.region?.name, producer.region?.country)
+                .joinToString(", ")
+                .ifBlank { producer.name }
+            MapPoint(
+                position = LatLng(lat, lng),
+                title = tasting.vintage?.wine?.name ?: "Wine",
+                snippet = regionLabel,
+                tasting = tasting
+            )
+        } else null
     }
+
+    val mapPoints = if (mapViewMode == MapViewMode.REGIONS) originPoints else tastingPoints
+
+    val defaultLocation = mapPoints.firstOrNull()?.position ?: LatLng(48.8566, 2.3522)
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultLocation, 4f)
@@ -112,16 +144,13 @@ fun MapScreen(
             properties = mapProperties,
             uiSettings = mapUiSettings
         ) {
-            tastingsWithLocation.forEach { tasting ->
-                val position = LatLng(tasting.locationLatitude!!, tasting.locationLongitude!!)
-                val wineName = tasting.vintage?.wine?.name ?: "Wine Tasting"
-
+            mapPoints.forEach { point ->
                 Marker(
-                    state = MarkerState(position = position),
-                    title = wineName,
-                    snippet = tasting.locationName ?: tasting.locationCity,
+                    state = MarkerState(position = point.position),
+                    title = point.title,
+                    snippet = point.snippet,
                     onClick = {
-                        selectedTasting = tasting
+                        selectedTasting = point.tasting
                         showTastingSheet = true
                         true
                     }
@@ -141,10 +170,10 @@ fun MapScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            StatsCard(stats = stats, tastingsWithLocation = tastingsWithLocation.size)
+            StatsCard(stats = stats, tastingsWithLocation = mapPoints.size)
         }
 
-        if (tastingsWithLocation.isEmpty()) {
+        if (mapPoints.isEmpty()) {
             EmptyMapOverlay()
         }
     }

@@ -1,5 +1,9 @@
 # Vinho performance, readability, and documentation
 
+> Archived: this plan was completed on 2026-02-12. All items below are done.
+> It is kept for history. Active tech-debt work lives in `tech-debt-audit.md`.
+> Note: command references below predate the pnpm migration — use `pnpm`, not `npm`.
+
 ## Phase 1 + 3: Web changes (shared utilities, caching, refactoring)
 
 - [x] 3.5 Extract parseIntSafe/parseFloatSafe to lib/utils.ts

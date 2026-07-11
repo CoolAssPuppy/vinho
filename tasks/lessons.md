@@ -1,0 +1,38 @@
+# Lessons
+
+Patterns worth remembering, captured as they come up. Newest first.
+
+## Scan pipeline: client-orchestrated multi-step writes lose data
+
+All three clients (iOS, Android, web) submitted a scan as four sequential
+network calls (storage upload, scans insert, queue insert, edge-function
+invoke). If the client is interrupted after the upload, the photo lands in
+storage but no scan/queue row is ever created, and nothing recovers it. This
+lost real user data in July 2026.
+
+How to apply: multi-step writes that must all-or-nothing succeed belong behind
+a single atomic operation (an RPC or edge function that creates the rows in one
+transaction after the upload), not stitched together on the client. Add a
+server-side sweep (`repair_orphaned_scans`, 10-min cron) as a safety net.
+
+## pg_cron does not accept 6-field cron expressions
+
+`'*/15 * * * * *'` (6 fields, intending every 15 seconds) is silently parsed as
+the 5-field `'*/15 * * * *'` — every 15 minutes. For sub-minute cadence use
+pg_cron's interval syntax `'15 seconds'` (valid range 1-59 seconds). Anything
+`>= 60` seconds must use standard 5-field cron (`'* * * * *'` = every minute).
+
+## Public Supabase buckets don't need a broad SELECT policy
+
+For a public bucket, object access via the public URL never consults RLS. A
+broad `SELECT` policy (`bucket_id = '...'`) only governs the list/search API,
+where it lets any user enumerate everyone's files. Scope SELECT to the owner
+folder; public URLs keep working.
+
+## Revoking a function's EXECUTE from PUBLIC also drops service_role
+
+Postgres grants function EXECUTE to PUBLIC by default. When locking a
+SECURITY DEFINER function down (`revoke ... from public, anon, authenticated`),
+service_role loses its inherited grant too. Re-grant explicitly
+(`grant execute ... to service_role`) for any function cron/edge functions call
+with the service key.

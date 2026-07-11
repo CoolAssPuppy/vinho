@@ -17,8 +17,25 @@ class BiometricLockController @Inject constructor() {
     private val _isLocked = MutableStateFlow(false)
     val isLocked: StateFlow<Boolean> = _isLocked
 
+    /** Whether the user has enabled the biometric app lock. Kept in sync by SessionViewModel. */
+    @Volatile
+    private var enabled = false
+
+    /** Guards against launching two prompts at once (e.g. resume + overlay both firing). */
+    @Volatile
+    private var isPrompting = false
+
+    fun setEnabled(value: Boolean) {
+        enabled = value
+    }
+
     fun lock() {
         _isLocked.value = true
+    }
+
+    /** Re-lock when the app is backgrounded, but only if the lock is enabled. */
+    fun lockIfEnabled() {
+        if (enabled) _isLocked.value = true
     }
 
     fun unlock() {
@@ -31,6 +48,9 @@ class BiometricLockController @Inject constructor() {
         subtitle: String = "Authenticate to continue",
         onSuccess: () -> Unit = {}
     ) {
+        if (isPrompting) return
+        isPrompting = true
+
         val executor: Executor = ContextCompat.getMainExecutor(activity)
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
@@ -44,8 +64,15 @@ class BiometricLockController @Inject constructor() {
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
+                    isPrompting = false
                     _isLocked.value = false
                     onSuccess()
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    // Stay locked; the overlay lets the user retry.
+                    isPrompting = false
                 }
             }
         )

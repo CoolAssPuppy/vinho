@@ -1,11 +1,11 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { useUser, UserProvider } from "@/components/providers/user-provider";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
-// Mock dependencies
-jest.mock("@supabase/ssr", () => ({
-  createBrowserClient: jest.fn(),
+// UserProvider builds its client via createClient() from "@/lib/supabase".
+jest.mock("@/lib/supabase", () => ({
+  createClient: jest.fn(),
 }));
 
 // Test component to use the hook
@@ -71,7 +71,7 @@ const mockSupabaseClient = {
 describe("UserProvider", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (createBrowserClient as jest.Mock).mockReturnValue(mockSupabaseClient);
+    (createClient as jest.Mock).mockReturnValue(mockSupabaseClient);
   });
 
   it("throws error when useUser is used outside UserProvider", () => {

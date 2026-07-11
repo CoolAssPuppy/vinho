@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase";
 import { EditableField } from "./EditableField";
 import { WineDetailsEditor } from "./WineDetailsEditor";
@@ -47,7 +48,7 @@ export function WineInfoEditor({
 
     if (error) {
       console.error("Error updating wine name:", error);
-      alert("Failed to update wine name. Please try again.");
+      toast.error("Failed to update wine name. Please try again.");
     } else {
       setIsEditingWineName(false);
       onWineDataChange?.({ name: editedWineName });
@@ -70,7 +71,7 @@ export function WineInfoEditor({
 
     if (error) {
       console.error("Error updating wine description:", error);
-      alert("Failed to update wine description. Please try again.");
+      toast.error("Failed to update wine description. Please try again.");
     } else {
       setIsEditingDescription(false);
       setCurrentDescription(editedDescription);
@@ -123,7 +124,7 @@ export function WineInfoEditor({
       onWineDataChange?.({ producerName: editedProducerName });
     } catch (error) {
       console.error("Error updating producer:", error);
-      alert("Failed to update producer. Please try again.");
+      toast.error("Failed to update producer. Please try again.");
     } finally {
       setIsSavingWine(false);
     }

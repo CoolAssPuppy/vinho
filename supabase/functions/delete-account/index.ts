@@ -10,7 +10,11 @@ const corsHeaders = {
 
 function createSupabaseClient() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  // Prefer the project's own VINHO_SERVICE_ROLE_KEY (used by every other
+  // function); fall back to the platform-injected SUPABASE_SERVICE_ROLE_KEY.
+  const supabaseServiceKey =
+    Deno.env.get("VINHO_SERVICE_ROLE_KEY") ??
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error("Missing Supabase environment variables");

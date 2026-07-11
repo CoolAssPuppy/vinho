@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,20 +15,15 @@ import {
 } from "lucide-react";
 import { scanWineLabel } from "@/lib/actions/scan";
 import { toast } from "sonner";
-// import type { Database } from "@/lib/database.types";
 import type { ScanStatus, ScanResult } from "@/lib/types/shared";
 
 export default function ScanPage() {
+  const router = useRouter();
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [processingMessage, setProcessingMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // const supabase = createBrowserClient<Database>(
-  //   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  // );
 
   // Note: Global Realtime provider handles background processing notifications
 
@@ -98,33 +94,25 @@ export default function ScanPage() {
       setScanStatus("processing");
       setProcessingMessage("Analyzing wine label...");
 
-      try {
-        const result = await scanWineLabel(base64);
+      const result = await scanWineLabel(base64);
 
-        setScanResult({
-          scanId: result.scanId,
-          queueItemId: result.queueItemId,
-          wineData: result.wineData,
-        });
+      setScanResult({
+        scanId: result.scanId,
+        queueItemId: result.queueItemId,
+        wineData: result.wineData,
+      });
 
-        // Immediately show success and let processing happen in background
-        setScanStatus("completed");
-        setProcessingMessage("Wine successfully uploaded!");
+      // Immediately show success and let processing happen in background
+      setScanStatus("completed");
+      setProcessingMessage("Wine successfully uploaded!");
 
-        toast.success(
-          "Wine uploaded! Our expert sommeliers are analyzing your wine and it will be added to your collection shortly.",
-        );
-      } catch (error: unknown) {
-        console.error("Scan failed:", error);
-        setScanStatus("error");
-        const errorMessage = error instanceof Error ? error.message : "Failed to process wine label";
-        setScanResult({ scanId: "", error: errorMessage });
-        toast.error(errorMessage);
-      }
+      toast.success(
+        "Wine uploaded! Our expert sommeliers are analyzing your wine and it will be added to your collection shortly.",
+      );
     } catch (error: unknown) {
-      console.error("Upload failed:", error);
+      console.error("Scan failed:", error);
       setScanStatus("error");
-      const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
+      const errorMessage = error instanceof Error ? error.message : "Failed to process wine label";
       setScanResult({ scanId: "", error: errorMessage });
       toast.error(errorMessage);
     }
@@ -300,7 +288,7 @@ export default function ScanPage() {
                   {scanStatus === "completed" ? (
                     <div className="flex gap-4">
                       <Button
-                        onClick={() => (window.location.href = "/journal")}
+                        onClick={() => router.push("/journal")}
                         className="bg-green-600 hover:bg-green-700"
                       >
                         <Wine className="mr-2 h-4 w-4" />

@@ -15,15 +15,20 @@ const ALLOWED_ORIGINS = [
  * Only allows requests from whitelisted origins
  */
 export function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
-  const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
-    ? requestOrigin
-    : ALLOWED_ORIGINS[0]; // Default to production origin
-
-  return {
-    "Access-Control-Allow-Origin": origin,
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
+
+  // Only echo an Access-Control-Allow-Origin for whitelisted origins. Unknown
+  // origins get no ACAO header, so browsers block them instead of receiving a
+  // mismatched production origin. Server-to-server callers (no Origin) don't
+  // need CORS at all.
+  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) {
+    headers["Access-Control-Allow-Origin"] = requestOrigin;
+  }
+
+  return headers;
 }
 
 /**
@@ -50,22 +55,10 @@ export function isServiceRoleRequest(req: Request): boolean {
   const token = authHeader.replace("Bearer ", "");
   const serviceRoleKey = Deno.env.get("VINHO_SERVICE_ROLE_KEY");
 
-  // Direct comparison with service role key
-  if (token === serviceRoleKey) return true;
-
-  // Also check if this is a cron job (Supabase cron uses service role)
-  // The service role JWT has role: "service_role" in its payload
-  try {
-    const parts = token.split(".");
-    if (parts.length === 3) {
-      const payload = JSON.parse(atob(parts[1]));
-      return payload.role === "service_role";
-    }
-  } catch {
-    // Not a valid JWT, not a service role request
-  }
-
-  return false;
+  // Strict comparison with the configured service role key. Never trust a
+  // decoded-but-unverified JWT payload: role claims in an unsigned or
+  // foreign-signed token are attacker-controlled.
+  return Boolean(serviceRoleKey) && token === serviceRoleKey;
 }
 
 /**
@@ -176,15 +169,15 @@ export function isValidImageUrl(url: string): boolean {
       return false;
     }
 
-    // Allow trusted domains for image storage
+    // Allow trusted domains for image storage. The leading-dot suffixes match
+    // any subdomain (e.g. <project>.supabase.co) via endsWith.
     const trustedDomains = [
       ".supabase.co",
       ".supabase.in",
       ".supabase.net",
-      "aghiopwrzzvamssgcwpv.supabase.co", // Your Supabase project
     ];
 
-    if (!trustedDomains.some(d => hostname.endsWith(d) || hostname === d.replace(".", ""))) {
+    if (!trustedDomains.some(d => hostname.endsWith(d))) {
       console.log(`Rejected untrusted domain: ${hostname}`);
       return false;
     }

@@ -62,7 +62,9 @@ fun ProfileSheet(
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit,
     onToggleBiometrics: (Boolean) -> Unit,
-    onEditProfile: () -> Unit = {}
+    onEditProfile: () -> Unit = {},
+    onManageSharing: () -> Unit = {},
+    onManageNotifications: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -87,6 +89,8 @@ fun ProfileSheet(
             SettingsSection(
                 biometricsEnabled = sessionState.preferences.biometricsEnabled,
                 onToggleBiometrics = onToggleBiometrics,
+                onManageSharing = onManageSharing,
+                onManageNotifications = onManageNotifications,
                 onRateApp = {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.strategicnerds.vinho"))
                     context.startActivity(intent)
@@ -210,6 +214,8 @@ private fun ProfileHeader(
 private fun SettingsSection(
     biometricsEnabled: Boolean,
     onToggleBiometrics: (Boolean) -> Unit,
+    onManageNotifications: () -> Unit = {},
+    onManageSharing: () -> Unit = {},
     onRateApp: () -> Unit = {},
     onTerms: () -> Unit = {},
     onPrivacy: () -> Unit = {}
@@ -245,7 +251,7 @@ private fun SettingsSection(
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 },
-                onClick = { }
+                onClick = onManageNotifications
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -261,7 +267,7 @@ private fun SettingsSection(
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 },
-                onClick = { }
+                onClick = onManageSharing
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))

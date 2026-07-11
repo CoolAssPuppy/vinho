@@ -7,6 +7,9 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     kotlin("kapt")
+    // Google Play publishing (Triple-T). Drives release-android.sh's
+    // :app:publishReleaseBundle. Inert unless play-service-account.json exists.
+    id("com.github.triplet.play") version "3.12.1"
 }
 
 fun loadLocalProperties(): Properties {
@@ -21,6 +24,12 @@ fun loadLocalProperties(): Properties {
 val localProperties = loadLocalProperties()
 fun localSecret(key: String, defaultValue: String = ""): String =
     (localProperties.getProperty(key) ?: defaultValue).ifBlank { defaultValue }
+
+// Release keystore is materialized by scripts/sync-android-config.sh from
+// Doppler. Signing is wired only when the keystore file is actually present so
+// debug builds and CI checks don't require secrets.
+val releaseStoreFile = localSecret("RELEASE_STORE_FILE")
+val hasReleaseKeystore = releaseStoreFile.isNotBlank() && file(releaseStoreFile).exists()
 
 android {
     namespace = "com.strategicnerds.vinho"
@@ -46,6 +55,17 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = localSecret("RELEASE_STORE_PASSWORD")
+                keyAlias = localSecret("RELEASE_KEY_ALIAS")
+                keyPassword = localSecret("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -53,6 +73,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Sign with the release keystore when it's available (release-android.sh
+            // syncs it from Doppler); otherwise fall back so local builds still run.
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -161,4 +188,15 @@ dependencies {
 
 kapt {
     correctErrorTypes = true
+}
+
+// Google Play publishing (Triple-T). Uploads a signed AAB as a DRAFT to the
+// chosen track; nothing goes live until promoted in Play Console. The service
+// account JSON is materialized from Doppler by scripts/sync-android-config.sh
+// (gitignored). Publish tasks only run via scripts/release-android.sh.
+play {
+    serviceAccountCredentials.set(rootProject.file("play-service-account.json"))
+    defaultToAppBundles.set(true)
+    track.set("internal")
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
 }

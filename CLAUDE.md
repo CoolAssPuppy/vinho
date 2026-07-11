@@ -8,7 +8,7 @@ Wine tasting journal app. Next.js 16 web app + iOS + Android. Supabase backend (
 
 ### Prerequisites
 
-- Node 22+, pnpm 9.12+
+- Node 22+, pnpm 11+
 - Docker (for local Supabase)
 - Supabase CLI (`brew install supabase/tap/supabase`)
 
@@ -57,7 +57,7 @@ pnpm --filter vinho-web run test
 # Integration tests (requires local Supabase running)
 pnpm --filter vinho-web run test:integration
 
-# All tests for CI
+# Unit + integration together in CI mode (requires local Supabase; excludes edge-function suites)
 pnpm --filter vinho-web run test:ci
 ```
 
@@ -94,7 +94,7 @@ supabase/
   migrations-archive/    # Old local-only migrations
   seeds/                 # Seed source files
   seeds-archive/         # Old seeds (reference non-existent tables)
-  seed.sql               # Active seed (symlinked from seeds/06)
+  seed.sql               # Active seed (copy of seeds/06_test_wines_and_tastings.sql)
   functions/             # Edge Functions
   config.toml            # Local Supabase config
 .github/workflows/       # CI/CD pipelines

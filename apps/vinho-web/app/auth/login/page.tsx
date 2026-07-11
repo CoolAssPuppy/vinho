@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, useRef } from "react";
 import type { ReadonlyURLSearchParams } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { SocialButtons, type OAuthProvider } from "@/components/auth/SocialButtons";
 import { HCaptcha, type HCaptchaRef } from "@/components/auth/HCaptcha";
 import { validateEmail, getAuthErrorMessage } from "@/lib/validation/auth";
+import { safeNext } from "@/lib/utils";
 import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
 
 function useVerifiedToast(searchParams: ReadonlyURLSearchParams) {
@@ -31,6 +32,7 @@ function LoginForm() {
   const [captchaToken, setCaptchaToken] = useState<string>();
   const captchaRef = useRef<HCaptchaRef>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const supabase = createClient();
 
   useVerifiedToast(searchParams);
@@ -61,16 +63,18 @@ function LoginForm() {
       setCaptchaToken(undefined);
     } else {
       toast.success("Welcome back!");
-      window.location.href = "/journal";
+      router.push(safeNext(searchParams.get("next")));
     }
   };
 
   const handleOAuth = async (provider: OAuthProvider) => {
     setIsLoading(true);
+    const next = safeNext(searchParams.get("next"));
+    const callback = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callback,
         scopes: provider === "apple" ? "name email" : "email profile",
       },
     });

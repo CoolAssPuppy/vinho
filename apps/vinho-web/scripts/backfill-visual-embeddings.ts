@@ -6,13 +6,23 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// This maintenance script calls internal SECURITY DEFINER helpers
+// (get_wines_for_visual_embedding, insert_label_embedding) that are no longer
+// executable by anon/authenticated. Run it with the service role key.
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VINHO_SERVICE_ROLE_KEY;
 const JINA_API_KEY = process.env.JINA_API_KEY!;
 
 const JINA_API_URL = "https://api.jina.ai/v1/embeddings";
 const JINA_MODEL = "jina-clip-v1";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error(
+    "SUPABASE_SERVICE_ROLE_KEY (or VINHO_SERVICE_ROLE_KEY) is required to run this backfill.",
+  );
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 interface WineWithImage {
   wine_id: string;

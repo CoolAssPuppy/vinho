@@ -15,19 +15,6 @@ const PROTECTED_PATHS = [
 ];
 
 /**
- * Public routes that don't require authentication
- */
-const PUBLIC_PATHS = [
-  "/",
-  "/auth",
-  "/privacy",
-  "/terms",
-  "/support",
-  "/invite",
-  "/about",
-];
-
-/**
  * Check if a path matches any of the given prefixes
  */
 function pathMatches(pathname: string, paths: string[]): boolean {
@@ -74,6 +61,6 @@ export const config = {
      * - public folder assets (images, etc.)
      * - API routes (handled separately)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

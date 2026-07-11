@@ -85,12 +85,12 @@ export default function ProfilePage() {
               avatar_url: string | null;
               description: string | null;
             } | null;
-            error: unknown;
+            error: { code?: string } | null;
           };
 
           if (!mounted) return;
 
-          if (profileError && (profileError as any).code !== "PGRST116") { // eslint-disable-line @typescript-eslint/no-explicit-any
+          if (profileError && profileError.code !== "PGRST116") {
             console.error("Error fetching profile:", profileError);
           }
 

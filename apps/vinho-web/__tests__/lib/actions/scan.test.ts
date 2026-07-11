@@ -1,4 +1,3 @@
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import {
   scanWineLabel,
   getUserScans,
@@ -6,37 +5,44 @@ import {
   confirmWineMatch,
 } from "@/lib/actions/scan";
 
-// Mock the Supabase client
+// A chainable, awaitable stand-in for a PostgREST query builder. Every builder
+// method returns the same object so any chain (insert().select().single(),
+// select().eq().order(), update().eq().eq()) is valid, and awaiting the builder
+// resolves to the configured `{ data, error }` result.
+type QueryResult = { data?: unknown; error?: unknown };
+
+function makeQueryBuilder(result: QueryResult) {
+  const builder: Record<string, unknown> = {
+    insert: jest.fn(() => builder),
+    select: jest.fn(() => builder),
+    eq: jest.fn(() => builder),
+    order: jest.fn(() => builder),
+    update: jest.fn(() => builder),
+    single: jest.fn(() => builder),
+    then: (resolve: (value: QueryResult) => unknown) => resolve(result),
+  };
+  return builder;
+}
+
 const mockSupabase = {
   auth: {
     getUser: jest.fn(),
   },
   storage: {
-    from: jest.fn(() => ({
-      upload: jest.fn(),
-      getPublicUrl: jest.fn(),
-    })),
+    from: jest.fn(),
   },
-  from: jest.fn(() => ({
-    insert: jest.fn(() => ({
-      select: jest.fn(() => ({
-        single: jest.fn(),
-      })),
-    })),
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        order: jest.fn(),
-        single: jest.fn(),
-      })),
-    })),
-    update: jest.fn(() => ({
-      eq: jest.fn(),
-    })),
-  })),
+  from: jest.fn(),
+  functions: {
+    invoke: jest.fn().mockResolvedValue({ data: { success: true }, error: null }),
+  },
 };
 
 jest.mock("@/lib/supabase-server", () => ({
   createServerSupabase: jest.fn(() => mockSupabase),
+}));
+
+jest.mock("next/cache", () => ({
+  revalidatePath: jest.fn(),
 }));
 
 describe("Scan Actions", () => {
@@ -47,65 +53,63 @@ describe("Scan Actions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSupabase.functions.invoke.mockResolvedValue({
+      data: { success: true },
+      error: null,
+    });
   });
 
   describe("scanWineLabel", () => {
     const base64Image =
       "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD//gA7Q1JFQVRPUjogZ2QtanBlZyB2MS4w";
 
+    const mockScan = {
+      id: "scan-id",
+      user_id: mockUser.id,
+      image_path: `${mockUser.id}/1234567890.jpg`,
+      scan_image_url: "https://example.com/image.jpg",
+    };
+
+    const mockQueueItem = {
+      id: "queue-id",
+      user_id: mockUser.id,
+      image_url: "https://example.com/image.jpg",
+      scan_id: "scan-id",
+      status: "pending",
+    };
+
+    const setupSuccessfulUpload = () => {
+      mockSupabase.storage.from.mockReturnValue({
+        upload: jest.fn().mockResolvedValue({
+          data: { path: mockScan.image_path },
+          error: null,
+        }),
+        getPublicUrl: jest.fn().mockReturnValue({
+          data: { publicUrl: "https://example.com/image.jpg" },
+        }),
+      });
+    };
+
     it("should successfully scan and queue a wine label", async () => {
-      // Mock user authentication
       mockSupabase.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
-
-      // Mock storage upload
-      mockSupabase.storage.from().upload.mockResolvedValue({
-        data: { path: `${mockUser.id}/1234567890.jpg` },
-        error: null,
-      });
-
-      // Mock public URL generation
-      mockSupabase.storage.from().getPublicUrl.mockReturnValue({
-        data: { publicUrl: "https://example.com/image.jpg" },
-      });
-
-      // Mock scan insertion
-      const mockScan = {
-        id: "scan-id",
-        user_id: mockUser.id,
-        image_path: `${mockUser.id}/1234567890.jpg`,
-        scan_image_url: "https://example.com/image.jpg",
-      };
-      mockSupabase.from().insert().select().single.mockResolvedValue({
-        data: mockScan,
-        error: null,
-      });
-
-      // Mock queue insertion
-      const mockQueueItem = {
-        id: "queue-id",
-        user_id: mockUser.id,
-        image_url: "https://example.com/image.jpg",
-        scan_id: "scan-id",
-        status: "pending",
-      };
-      mockSupabase.from().insert().select().single.mockResolvedValue({
-        data: mockQueueItem,
-        error: null,
-      });
+      setupSuccessfulUpload();
+      mockSupabase.from.mockImplementation((table: string) =>
+        makeQueryBuilder({
+          data: table === "scans" ? mockScan : mockQueueItem,
+          error: null,
+        }),
+      );
 
       const result = await scanWineLabel(base64Image);
 
       expect(result).toEqual({
-        scan: mockScan,
-        queueItem: mockQueueItem,
-        message:
-          "Wine label added to processing queue. It will be analyzed shortly.",
-        wine: null,
-        vintage: null,
-        confidence: 0,
+        scanId: mockScan.id,
+        queueItemId: mockQueueItem.id,
+        message: "Wine label is being analyzed. Results will appear shortly.",
+        wineData: null,
       });
 
       expect(mockSupabase.storage.from).toHaveBeenCalledWith("scans");
@@ -129,26 +133,33 @@ describe("Scan Actions", () => {
         data: { user: mockUser },
         error: null,
       });
-
-      mockSupabase.storage.from().upload.mockResolvedValue({
-        data: null,
-        error: { message: "Upload failed" },
+      mockSupabase.storage.from.mockReturnValue({
+        upload: jest.fn().mockResolvedValue({
+          data: null,
+          error: { message: "Upload failed" },
+        }),
+        getPublicUrl: jest.fn(),
       });
 
-      await expect(scanWineLabel(base64Image)).rejects.toEqual({
-        message: "Upload failed",
-      });
+      await expect(scanWineLabel(base64Image)).rejects.toThrow("Upload failed");
     });
 
-    it("should handle malformed base64 image", async () => {
+    it("should throw when the scan record cannot be created", async () => {
       mockSupabase.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
+      setupSuccessfulUpload();
+      mockSupabase.from.mockImplementation(() =>
+        makeQueryBuilder({
+          data: null,
+          error: { message: "insert rejected" },
+        }),
+      );
 
-      const invalidBase64 = "invalid-base64";
-
-      await expect(scanWineLabel(invalidBase64)).rejects.toThrow();
+      await expect(scanWineLabel(base64Image)).rejects.toThrow(
+        "insert rejected",
+      );
     });
   });
 
@@ -174,10 +185,9 @@ describe("Scan Actions", () => {
         },
       ];
 
-      mockSupabase.from().select().eq().order.mockResolvedValue({
-        data: mockScans,
-        error: null,
-      });
+      mockSupabase.from.mockReturnValue(
+        makeQueryBuilder({ data: mockScans, error: null }),
+      );
 
       const result = await getUserScans();
 
@@ -202,9 +212,9 @@ describe("Scan Actions", () => {
         error: null,
       });
 
-      mockSupabase.from().update().eq().eq.mockResolvedValue({
-        error: null,
-      });
+      mockSupabase.from.mockReturnValue(
+        makeQueryBuilder({ error: null }),
+      );
 
       await expect(
         improveOcrResult("scan-id", "corrected text"),
@@ -230,9 +240,9 @@ describe("Scan Actions", () => {
         error: null,
       });
 
-      mockSupabase.from().update().eq().eq.mockResolvedValue({
-        error: null,
-      });
+      mockSupabase.from.mockReturnValue(
+        makeQueryBuilder({ error: null }),
+      );
 
       await expect(
         confirmWineMatch("scan-id", "vintage-id"),

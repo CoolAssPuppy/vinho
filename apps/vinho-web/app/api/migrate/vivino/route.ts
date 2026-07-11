@@ -8,10 +8,7 @@ import {
   generateIdempotencyKey,
 } from "@/app/lib/vivino-migration";
 import { generateEmbedding, generateTastingSearchText } from "@/lib/embeddings";
-import {
-  downloadVivinoImage,
-  ensureWineImagesBucket,
-} from "@/app/lib/image-storage";
+import { downloadVivinoImage } from "@/app/lib/image-storage";
 import { getMigrationStartedEmail } from "@/lib/emails/templates";
 import type { MigrationResult } from "@/lib/types/shared";
 
@@ -74,9 +71,6 @@ export async function POST(request: NextRequest) {
     // Extract unique regions for batch creation
     const uniqueRegions = extractUniqueRegions(processedEntries);
 
-    // Ensure wine-images bucket exists
-    const bucketReady = await ensureWineImagesBucket();
-
     // Migration statistics
     const stats = {
       totalEntries: processedEntries.length,
@@ -119,8 +113,9 @@ export async function POST(request: NextRequest) {
             regionMap.set(regionKey, newRegion.id);
           }
         }
-      } catch {
-        // Skip region on error
+      } catch (error) {
+        // Skip region on error, but record it.
+        console.error("Vivino import: failed to upsert region", regionKey, error);
       }
     }
 
@@ -241,7 +236,7 @@ export async function POST(request: NextRequest) {
 
             // Download and store image locally if it exists
             let localImageUrl: string | null = null;
-            if (wineData.metadata.vivinoImageUrl && bucketReady) {
+            if (wineData.metadata.vivinoImageUrl) {
               try {
                 const imageResult = await downloadVivinoImage(
                   wineData.metadata.vivinoImageUrl,
@@ -256,8 +251,9 @@ export async function POST(request: NextRequest) {
                   // Fall back to original URL
                   localImageUrl = wineData.metadata.vivinoImageUrl;
                 }
-              } catch {
-                // Fall back to original URL
+              } catch (error) {
+                // Fall back to original URL, but record why.
+                console.error("Vivino import: image download failed, using source URL", error);
                 localImageUrl = wineData.metadata.vivinoImageUrl;
               }
             } else {
@@ -313,8 +309,9 @@ export async function POST(request: NextRequest) {
                   let embedding: number[] | null = null;
                   try {
                     embedding = await generateEmbedding(searchText);
-                  } catch {
-                    // Continue without embedding - text search will still work
+                  } catch (error) {
+                    // Continue without embedding - text search will still work.
+                    console.error("Vivino import: embedding generation failed", error);
                   }
 
                   const { error: tastingError } = await supabase
@@ -407,8 +404,9 @@ export async function POST(request: NextRequest) {
             }),
           });
         }
-      } catch {
-        // Don't fail the migration if email fails
+      } catch (error) {
+        // Don't fail the migration if the "import started" email fails, but log it.
+        console.error("Vivino import: failed to send start-notification email", error);
       }
     }
 
@@ -428,11 +426,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    // Log the real error server-side; return a generic message to the client.
+    console.error("Vivino migration failed:", error);
     return NextResponse.json(
-      {
-        error: "Migration failed",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
+      { error: "Migration failed. Please try again." },
       { status: 500 },
     );
   }

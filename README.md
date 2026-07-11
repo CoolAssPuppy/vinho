@@ -15,7 +15,7 @@ A terroir-first, privacy-respecting wine journal and recommender.
 ## Prerequisites
 
 - Node.js 22+
-- pnpm 9.12+
+- pnpm 11+
 - Docker (for local Supabase)
 - [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started): `brew install supabase/tap/supabase`
 - [Doppler CLI](https://docs.doppler.com/docs/install-cli): `brew install dopplerhq/cli/doppler`

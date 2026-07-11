@@ -176,37 +176,54 @@ describe("Edge Function Rate Limiting", () => {
   };
 
   it("should retry on rate limit errors", async () => {
-    let callCount = 0;
-    mockSupabaseClient.functions.invoke.mockImplementation(() => {
-      callCount++;
-      if (callCount < 3) {
+    jest.useFakeTimers();
+    try {
+      mockSupabaseClient.functions.invoke.mockReset();
+      let callCount = 0;
+      mockSupabaseClient.functions.invoke.mockImplementation(() => {
+        callCount++;
+        if (callCount < 3) {
+          return Promise.resolve({
+            data: null,
+            error: new Error("rate limit exceeded"),
+          });
+        }
         return Promise.resolve({
-          data: null,
-          error: new Error("rate limit exceeded"),
+          data: { success: true },
+          error: null,
         });
-      }
-      return Promise.resolve({
-        data: { success: true },
-        error: null,
       });
-    });
 
-    const result = await invokeWithRateLimit("process-wine-queue");
+      const resultPromise = invokeWithRateLimit("process-wine-queue");
+      // Drive the exponential-backoff delays (2s + 4s) without real waiting.
+      await jest.advanceTimersByTimeAsync(10000);
+      const result = await resultPromise;
 
-    expect(result.success).toBe(true);
-    expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledTimes(3);
+      expect(result.success).toBe(true);
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledTimes(3);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("should fail after max retries", async () => {
-    mockSupabaseClient.functions.invoke.mockResolvedValue({
-      data: null,
-      error: new Error("rate limit exceeded"),
-    });
+    jest.useFakeTimers();
+    try {
+      mockSupabaseClient.functions.invoke.mockReset();
+      mockSupabaseClient.functions.invoke.mockResolvedValue({
+        data: null,
+        error: new Error("rate limit exceeded"),
+      });
 
-    const result = await invokeWithRateLimit("process-wine-queue", 2);
+      const resultPromise = invokeWithRateLimit("process-wine-queue", 2);
+      await jest.advanceTimersByTimeAsync(10000);
+      const result = await resultPromise;
 
-    expect(result.success).toBe(false);
-    expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledTimes(2);
+      expect(result.success).toBe(false);
+      expect(mockSupabaseClient.functions.invoke).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

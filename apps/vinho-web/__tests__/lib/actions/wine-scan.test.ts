@@ -1,4 +1,15 @@
-import { describe, expect, test, jest } from "@jest/globals";
+// Builds a Supabase query-builder stub whose insert().select().single() chain
+// resolves to the provided row (mirrors the real PostgREST builder used by
+// scanWineLabel).
+type BuilderResult = { data: unknown; error: Error | null };
+
+function makeQueryBuilder(result: BuilderResult) {
+  const builder: Record<string, jest.Mock> = {};
+  builder.insert = jest.fn(() => builder);
+  builder.select = jest.fn(() => builder);
+  builder.single = jest.fn().mockResolvedValue(result);
+  return builder;
+}
 
 // Mock the Supabase client
 jest.mock("@/lib/supabase-server", () => ({
@@ -17,31 +28,15 @@ jest.mock("@/lib/supabase-server", () => ({
         }),
       })),
     },
-    from: jest.fn((table) => ({
-      insert: jest.fn().mockResolvedValue({
+    from: jest.fn((table: string) =>
+      makeQueryBuilder({
         data:
           table === "scans"
-            ? {
-                id: "scan-123",
-                user_id: "test-user-id",
-                image_path: "test.jpg",
-              }
+            ? { id: "scan-123", user_id: "test-user-id", image_path: "test.jpg" }
             : { id: "queue-123", user_id: "test-user-id", status: "pending" },
         error: null,
       }),
-      select: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({
-        data:
-          table === "scans"
-            ? {
-                id: "scan-123",
-                user_id: "test-user-id",
-                image_path: "test.jpg",
-              }
-            : { id: "queue-123", user_id: "test-user-id", status: "pending" },
-        error: null,
-      }),
-    })),
+    ),
     functions: {
       invoke: jest
         .fn()
@@ -122,17 +117,12 @@ describe("Wine Label Scanning", () => {
             }),
           })),
         },
-        from: jest.fn(() => ({
-          insert: jest.fn().mockResolvedValue({
+        from: jest.fn(() =>
+          makeQueryBuilder({
             data: null,
             error: new Error("Database connection failed"),
           }),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: new Error("Database connection failed"),
-          }),
-        })),
+        ),
       }));
 
       await expect(scanWineLabel(mockBase64Image)).rejects.toThrow(
@@ -157,23 +147,15 @@ describe("Wine Label Scanning", () => {
             }),
           })),
         },
-        from: jest.fn((table) => ({
-          insert: jest.fn().mockResolvedValue({
+        from: jest.fn((table: string) =>
+          makeQueryBuilder({
             data:
               table === "scans"
                 ? { id: "scan-456", user_id: "test-user-id" }
                 : { id: "queue-456", user_id: "test-user-id" },
             error: null,
           }),
-          select: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data:
-              table === "scans"
-                ? { id: "scan-456", user_id: "test-user-id" }
-                : { id: "queue-456", user_id: "test-user-id" },
-            error: null,
-          }),
-        })),
+        ),
         functions: {
           invoke: jest.fn().mockResolvedValue({
             data: null,

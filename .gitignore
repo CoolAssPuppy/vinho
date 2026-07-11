@@ -12,7 +12,9 @@ coverage
 Thumbs.db
 .supabase
 supabase/.branches
+supabase/.temp
 playwright-report
+playwright-results
 test-results
 xcuserdata
 DerivedData

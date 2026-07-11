@@ -9,10 +9,10 @@ import {
   type WineEnrichmentData
 } from "../../shared/wine-enrichment.ts";
 import {
-  verifyInternalRequest,
   handleCorsPreFlight,
   getCorsHeaders,
 } from "../../shared/security.ts";
+import { MAX_QUEUE_RETRIES } from "../../shared/queue.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
@@ -58,7 +58,7 @@ async function markFailed(jobId: string, error: any) {
     .single();
 
   const retryCount = (job?.retry_count || 0) + 1;
-  const status = retryCount >= 3 ? "failed" : "pending";
+  const status = retryCount >= MAX_QUEUE_RETRIES ? "failed" : "pending";
 
   await supabase
     .from("wines_enrichment_queue")
@@ -143,9 +143,10 @@ Deno.serve(async (req: Request) => {
   const origin = req.headers.get("Origin");
 
   try {
-    // This endpoint is internal-only - must be called with service role key
-    const authError = verifyInternalRequest(req);
-    if (authError) return authError;
+    // Auth is enforced at the gateway (verify_jwt): any valid project JWT
+    // may trigger a drain, matching process-wine-queue and
+    // generate-embeddings. The pg_cron scheduler invokes this with the anon
+    // key, which a service-role-only check would reject.
 
     // Parse request body for optional parameters
     let limit = 5; // Default to 5 jobs per invocation

@@ -53,8 +53,10 @@ export async function POST(request: NextRequest) {
   if (deleteError) errors.push(deleteError.message);
 
   if (errors.length > 0) {
+    // Log the internal error details server-side; don't leak them to the client.
+    console.error("Account deletion errors for user", userId, errors);
     return NextResponse.json(
-      { error: "Unable to delete account completely", details: errors },
+      { error: "Unable to delete account completely" },
       { status: 500 }
     );
   }

@@ -105,7 +105,7 @@ fun AuthScreen(
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             VinhoLogo()
             Text(
-                text = "A modern wine journal backed by Supabase.",
+                text = "Your journal for every wine worth remembering.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
             )

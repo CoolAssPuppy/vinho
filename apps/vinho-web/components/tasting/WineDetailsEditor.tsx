@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase";
+import { enrichWine } from "@/lib/wine-enrichment-client";
 import { EditableField } from "./EditableField";
 import type { WineData } from "./types";
 
@@ -71,7 +73,7 @@ export function WineDetailsEditor({
       }
     } catch (error) {
       console.error(`Error updating wine ${field}:`, error);
-      alert(`Failed to update wine ${field}. Please try again.`);
+      toast.error(`Failed to update wine ${field}. Please try again.`);
     } finally {
       setIsSavingWine(false);
     }
@@ -82,40 +84,16 @@ export function WineDetailsEditor({
 
     setIsEnrichingWithAI(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("Not authenticated");
-      }
+      const enrichment = await enrichWine(supabase, {
+        wineId: wineData.id,
+        vintageId,
+        producer: editedProducerName || wineData.producerName,
+        wineName: editedWineName || wineData.name,
+        year: wineData.year ?? null,
+        region: wineData.region ?? null,
+      });
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/enrich-wines`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            action: "enrich-single",
-            wine_id: wineData.id,
-            vintage_id: vintageId,
-            producer: editedProducerName || wineData.producerName,
-            wine_name: editedWineName || wineData.name,
-            year: wineData.year,
-            region: wineData.region,
-            overwrite: true,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to enrich wine");
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.enrichment) {
-        const enrichment = result.enrichment;
+      if (enrichment) {
         if (enrichment.varietals && enrichment.varietals.length > 0) {
           setEditedVarietal(enrichment.varietals.join(", "));
         }
@@ -134,7 +112,7 @@ export function WineDetailsEditor({
       }
     } catch (error) {
       console.error("Error enriching wine with AI:", error);
-      alert("Failed to enrich wine with AI. Please try again.");
+      toast.error("Failed to enrich wine with AI. Please try again.");
     } finally {
       setIsEnrichingWithAI(false);
     }

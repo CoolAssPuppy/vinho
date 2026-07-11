@@ -22,7 +22,8 @@ port = 54322
 shadow_port = 54320
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version_num;` on the remote database to check.
-major_version = 15
+# Production runs Postgres 17 (verified via `show server_version` -> 17.x).
+major_version = 17
 
 [db.pooler]
 enabled = false
@@ -50,7 +51,7 @@ api_url = "http://localhost:54321"
 
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
-[inbucket]
+[local_smtp]
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
@@ -139,5 +140,7 @@ enabled = true
 policy = "oneshot"
 inspector_port = 8083
 
+# Requires a valid project JWT (anon or user). The pg_cron jobs send the anon
+# key as a Bearer token, so gateway verification stays compatible with cron.
 [functions."process-wine-queue"]
-verify_jwt = false
+verify_jwt = true

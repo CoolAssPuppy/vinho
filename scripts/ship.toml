@@ -1,0 +1,51 @@
+# =============================================================================
+# Vinho iOS - ship config
+#
+# Single source of truth for the ship CLI (scripts/ship.py). Secrets come from
+# env / .env / Doppler, never this file. Ported from the Strategic Nerds
+# futurenerds ship tooling (same ASC team 955GSY56UT).
+#
+# The committed Vinho.xcodeproj (pbxproj) is the build source of truth, NOT
+# project.yml. The project.yml glob (`sources: - Vinho`) has drifted out of sync
+# with the curated pbxproj: it pulls in orphaned duplicate components
+# (Components/Common/{InfoRow,SectionHeader,StatCard,StarRating}.swift,
+# Components/Wine/WineHeader.swift, and other never-wired files) that redeclare
+# types already defined in the built files, so `xcodegen generate` produces a
+# project that fails to compile. Until that abandoned component-extraction is
+# completed (or project.yml given matching `excludes`), we do NOT regenerate:
+# `project_yml` is left unset so ship builds the committed pbxproj and version.py
+# writes MARKETING_VERSION + CURRENT_PROJECT_VERSION straight into the pbxproj.
+# =============================================================================
+
+[project]
+name        = "Vinho"
+bundle_id   = "com.strategicnerds.vinho"
+team_id     = "955GSY56UT"
+scheme      = "Vinho"
+ios_root    = "apps/vinho-ios"                # relative to repo root
+xcodeproj   = "Vinho.xcodeproj"               # relative to ios_root
+# project_yml intentionally unset — see header (xcodegen spec is stale/broken).
+dist_dir    = "dist"                          # relative to ios_root
+min_ios     = "17.0"
+
+[asc]
+# App Store Connect API .p8 private key location. File name must be
+# AuthKey_<ASC_KEY_ID>.p8. The shared Strategic Nerds key is AuthKey_AY25H65TAY.p8;
+# keep it OUT of the repo (move it to ~/.private_keys).
+key_dir = "~/.private_keys"
+
+[doppler]
+# Fallback when an ASC env var isn't set in process env or a .env file.
+project = "vinho"
+config  = "prd"
+secrets = ["ASC_KEY_ID", "ASC_ISSUER_ID", "ASC_APP_ID"]
+
+[release]
+release_type  = "AFTER_APPROVAL"
+locale        = "en-US"
+default_notes = "Bug fixes and improvements."
+
+[env_files]
+# Files searched for KEY=VALUE secret hydration, in priority order.
+# Existing process env always wins. First match wins per key.
+paths = ["apps/vinho-ios/.env", ".env"]

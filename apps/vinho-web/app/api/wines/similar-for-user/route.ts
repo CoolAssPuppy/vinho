@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedClient } from "@/lib/supabase-server";
 import { createClient } from "@supabase/supabase-js";
 import { parseIntSafe, parseFloatSafe } from "@/lib/utils";
+import {
+  VECTOR_BUCKET,
+  VECTOR_INDEX,
+  distanceToSimilarity,
+  type StorageWithVectors,
+  type SimilarWine,
+} from "@/lib/vector-search";
 import type { Database } from "@/lib/database.types";
-
-const VECTOR_BUCKET = "wine-labels";
-const VECTOR_INDEX = "visual-embeddings";
 
 /**
  * Create a service role client for vector operations
@@ -18,40 +22,8 @@ function getServiceRoleSupabase() {
   );
 }
 
-interface VectorQueryResult {
-  key: string;
-  distance?: number;
-  metadata?: Record<string, unknown>;
-}
-
-interface VectorIndex {
-  queryVectors: (params: {
-    queryVector: { float32: number[] };
-    topK: number;
-    returnDistance: boolean;
-    returnMetadata: boolean;
-  }) => Promise<{
-    data: { vectors?: VectorQueryResult[] } | null;
-    error: Error | null;
-  }>;
-}
-
-interface VectorBucket {
-  index: (name: string) => VectorIndex;
-}
-
-interface StorageWithVectors {
-  vectors: { from: (bucket: string) => VectorBucket };
-}
-
-interface SimilarWine {
-  wine_id: string;
-  wine_name: string;
-  producer_name: string;
-  similarity: number;
-  image_url?: string;
-  region?: string;
-  country?: string;
+// Per-user recommendation adds the source wine and last-tasted date.
+interface UserSimilarWine extends SimilarWine {
   source_wine_id: string;
   last_tasted?: string;
 }
@@ -196,7 +168,7 @@ export async function GET(request: NextRequest) {
 
     const index = storage.vectors.from(VECTOR_BUCKET).index(VECTOR_INDEX);
 
-    const candidateWines = new Map<string, SimilarWine>();
+    const candidateWines = new Map<string, UserSimilarWine>();
 
     for (const sourceWine of sourceWines) {
       // Fetch embedding from database (getVectors doesn't return float32 data)
@@ -248,7 +220,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        const similarity = 1 - (vector.distance || 0);
+        const similarity = distanceToSimilarity(vector.distance);
         if (similarity < threshold) {
           continue;
         }
@@ -323,7 +295,8 @@ export async function GET(request: NextRequest) {
         "Cache-Control": "private, max-age=300",
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("similar wines (for user) failed:", error);
     return NextResponse.json(
       {
         error: "Failed to find similar wines",

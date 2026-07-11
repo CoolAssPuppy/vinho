@@ -18,3 +18,8 @@ captures/
 
 # Kotlin toolchains
 .kotlin/
+
+# Android release secrets (materialized from Doppler)
+play-service-account.json
+*.jks
+app/keystore/

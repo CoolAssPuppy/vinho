@@ -14,6 +14,7 @@ import {
   getCorsHeaders,
   isValidImageUrl,
 } from "../../shared/security.ts";
+import { MAX_QUEUE_RETRIES } from "../../shared/queue.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
@@ -1069,7 +1070,11 @@ async function markCompleted(
 // Handle job failure
 async function handleFailure(job: WineQueueItem, error: Error): Promise<void> {
   const newRetryCount = job.retry_count + 1;
-  const status = newRetryCount > 3 ? "failed" : "pending";
+  // Mark failed once attempts reach the cap. Using `>=` (not `>`) matters: the
+  // claim RPC only picks up jobs with retry_count < MAX_QUEUE_RETRIES, so a job
+  // left "pending" at retry_count == MAX_QUEUE_RETRIES would never be retried
+  // nor surfaced as failed — it would stick silently.
+  const status = newRetryCount >= MAX_QUEUE_RETRIES ? "failed" : "pending";
 
   await supabase
     .from("wines_added_queue")

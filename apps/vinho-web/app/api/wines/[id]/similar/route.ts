@@ -1,67 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
+import { parseIntSafe, parseFloatSafe } from "@/lib/utils";
+import {
+  VECTOR_BUCKET,
+  VECTOR_INDEX,
+  distanceToSimilarity,
+  type StorageWithVectors,
+  type SimilarWine,
+  type VectorQueryResult,
+} from "@/lib/vector-search";
 
 const JINA_API_URL = "https://api.jina.ai/v1/embeddings";
 const JINA_MODEL = "jina-clip-v1";
-const VECTOR_BUCKET = "wine-labels";
-const VECTOR_INDEX = "visual-embeddings";
-
-// Vector Bucket types (not yet fully typed in SDK)
-interface VectorIndex {
-  getVector: (key: string) => Promise<{
-    data: { data?: { float32?: number[] } } | null;
-    error: Error | null;
-  }>;
-  queryVectors: (params: {
-    queryVector: { float32: number[] };
-    topK: number;
-    returnDistance: boolean;
-    returnMetadata: boolean;
-  }) => Promise<{
-    data: { vectors?: VectorQueryResult[] } | null;
-    error: Error | null;
-  }>;
-}
-
-interface VectorBucket {
-  index: (name: string) => VectorIndex;
-}
-
-interface StorageWithVectors {
-  vectors: {
-    from: (bucket: string) => VectorBucket;
-  };
-}
-
-interface SimilarWine {
-  wine_id: string;
-  wine_name: string;
-  producer_name: string;
-  similarity: number;
-  image_url?: string;
-  region?: string;
-  country?: string;
-}
-
-interface VectorQueryResult {
-  key: string;
-  distance?: number;
-  metadata?: Record<string, unknown>;
-}
-
-function parseIntSafe(value: string | null, defaultValue: number, min: number, max: number): number {
-  if (!value) return defaultValue;
-  const parsed = parseInt(value, 10);
-  if (isNaN(parsed)) return defaultValue;
-  return Math.max(min, Math.min(max, parsed));
-}
-
-function parseFloatSafe(value: string | null, defaultValue: number, min: number, max: number): number {
-  if (!value) return defaultValue;
-  const parsed = parseFloat(value);
-  if (isNaN(parsed)) return defaultValue;
-  return Math.max(min, Math.min(max, parsed));
-}
 
 /**
  * GET /api/wines/[id]/similar
@@ -240,7 +190,8 @@ export async function GET(
       threshold,
       limit
     );
-  } catch {
+  } catch (error) {
+    console.error("similar wines (by id) failed:", error);
     return NextResponse.json(
       {
         error: "Failed to find similar wines",
@@ -265,7 +216,7 @@ async function processSimilarResults(
   const matches = vectors
     .map((v) => ({
       key: v.key,
-      similarity: 1 - (v.distance || 0),
+      similarity: distanceToSimilarity(v.distance),
       metadata: v.metadata || {},
     }))
     .filter((v) => {

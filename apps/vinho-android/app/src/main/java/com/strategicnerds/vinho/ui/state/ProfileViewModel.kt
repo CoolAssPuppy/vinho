@@ -82,9 +82,12 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
             runCatching {
-                val fileName = "avatars/$userId/${UUID.randomUUID()}.jpg"
-                client.storage["profile-images"].upload(fileName, imageBytes) { upsert = true }
-                val publicUrl = client.storage["profile-images"].publicUrl(fileName)
+                // Bucket is "avatars" (exists in prod: avatars/scans/wine-images/
+                // wine-labels). The storage RLS policy scopes on the first path
+                // segment == auth.uid(), so the object path must be "<userId>/...".
+                val fileName = "$userId/${UUID.randomUUID()}.jpg"
+                client.storage["avatars"].upload(fileName, imageBytes) { upsert = true }
+                val publicUrl = client.storage["avatars"].publicUrl(fileName)
                 profileRepository.updateAvatar(userId, publicUrl)
                 publicUrl
             }.onSuccess { url ->

@@ -1,4 +1,3 @@
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
@@ -182,7 +181,9 @@ describe("WineMap Component", () => {
     expect(screen.getByText("Bordeaux, France")).toBeInTheDocument();
     expect(screen.getByText("2020")).toBeInTheDocument();
     expect(screen.getByText("Cabernet Sauvignon, Merlot")).toBeInTheDocument();
-    expect(screen.getByText("Vineyard: Test Vineyard")).toBeInTheDocument();
+    // The label and name render in adjacent spans ("Vineyard: " + value).
+    expect(screen.getByText(/Vineyard:/)).toBeInTheDocument();
+    expect(screen.getByText("Test Vineyard")).toBeInTheDocument();
   });
 
   it("handles wines without vineyard names", () => {

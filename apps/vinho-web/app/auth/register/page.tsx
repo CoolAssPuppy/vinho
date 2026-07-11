@@ -17,6 +17,7 @@ import {
   validateRequired, getAuthErrorMessage,
 } from "@/lib/validation/auth";
 import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
+import { safeNext } from "@/lib/utils";
 
 const inputStyle = {
   height: "48px",
@@ -75,11 +76,13 @@ export default function RegisterPage() {
     if (hasCaptcha && !captchaToken) { toast.error("Please complete the captcha."); return; }
 
     setIsLoading(true);
+    const next = safeNext(new URLSearchParams(window.location.search).get("next"));
+    const emailRedirect = `${window.location.origin}/auth/callback?type=signup&next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: { first_name: firstName, last_name: lastName },
-        emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
+        emailRedirectTo: emailRedirect,
         captchaToken: captchaToken || undefined,
       },
     });
@@ -96,10 +99,11 @@ export default function RegisterPage() {
 
   const handleOAuth = async (provider: OAuthProvider) => {
     setIsLoading(true);
+    const next = safeNext(new URLSearchParams(window.location.search).get("next"));
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         scopes: provider === "apple" ? "name email" : "email profile",
       },
     });

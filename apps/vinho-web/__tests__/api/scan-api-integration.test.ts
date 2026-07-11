@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeAll, jest } from "@jest/globals";
 import { scanWineLabel } from "../../lib/actions/scan";
 import fs from "fs";
 import path from "path";

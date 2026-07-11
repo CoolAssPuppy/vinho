@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Wine, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 type SupabaseClient = ReturnType<typeof createClient>
 
@@ -104,7 +105,7 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
       }
     } catch (err) {
       console.error('Error accepting invite:', err)
-      alert(err instanceof Error ? err.message : 'Failed to accept invitation')
+      toast.error(err instanceof Error ? err.message : 'Failed to accept invitation')
     } finally {
       setAccepting(false)
     }
@@ -112,20 +113,18 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
 
   useInviteLoader({ params, supabase, acceptInvite, setInviteCode, setIsAuthenticated, setInvite, setLoading })
 
+  // Send the user through auth and back to this invite page, which
+  // auto-accepts once a session exists (see useInviteLoader).
+  function inviteReturnPath() {
+    return inviteCode ? `?next=${encodeURIComponent(`/invite/${inviteCode}`)}` : ''
+  }
+
   async function handleSignUp() {
-    // Store invite code in localStorage for post-signup processing
-    if (inviteCode) {
-      localStorage.setItem('pending_invite_code', inviteCode)
-    }
-    router.push('/auth/signup')
+    router.push(`/auth/register${inviteReturnPath()}`)
   }
 
   async function handleSignIn() {
-    // Store invite code in localStorage for post-signin processing
-    if (inviteCode) {
-      localStorage.setItem('pending_invite_code', inviteCode)
-    }
-    router.push('/auth/login')
+    router.push(`/auth/login${inviteReturnPath()}`)
   }
 
   if (loading) {

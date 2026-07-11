@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -308,7 +309,8 @@ function useWinePreferences(user: User | null) {
         .single();
 
       if (data) {
-        const winePrefs = (data.wine_preferences as Record<string, any>) || {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const winePrefs =
+          (data.wine_preferences as { wine_types?: string[] } | null) || {};
         const priceRange = (data.price_range as {
           low: number;
           high: number;
@@ -372,6 +374,8 @@ export function WinePreferencesTab({
       // Reset to idle after 2.5 seconds
       setTimeout(() => setSaveStatus("idle"), 2500);
     } else {
+      console.error("Failed to save wine preferences:", error);
+      toast.error("Couldn't save your preferences. Please try again.");
       setSaveStatus("idle");
     }
   };
