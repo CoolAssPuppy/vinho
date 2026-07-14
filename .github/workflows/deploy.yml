@@ -29,6 +29,7 @@ jobs:
   deploy-database:
     name: Deploy database migrations
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@d347ba47d3fb7eeeddbbc793bc8d4779caf773ea
@@ -42,6 +43,7 @@ jobs:
   detect-changes:
     name: Detect function changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       shared_changed: ${{ steps.functions-check.outputs.shared_changed }}
       changed_functions: ${{ steps.functions-check.outputs.changed_functions }}
@@ -85,6 +87,7 @@ jobs:
   deploy-functions:
     name: Deploy edge functions
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [deploy-database, detect-changes]
     steps:
       - uses: actions/checkout@v4
@@ -122,6 +125,7 @@ jobs:
   notify-completion:
     name: Deployment summary
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [deploy-database, deploy-functions]
     if: always()
     steps:

@@ -22,6 +22,7 @@ jobs:
   lint-and-typecheck:
     name: Lint and type check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -39,6 +40,7 @@ jobs:
   test:
     name: Unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -53,6 +55,7 @@ jobs:
   validate-migrations:
     name: Validate migrations
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@d347ba47d3fb7eeeddbbc793bc8d4779caf773ea # v1.5.0
@@ -82,6 +85,7 @@ jobs:
   integration-and-pgtap:
     name: Integration + pgTAP
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -111,6 +115,7 @@ jobs:
   build:
     name: Build web app
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [lint-and-typecheck]
     steps:
       - uses: actions/checkout@v4
@@ -129,6 +134,7 @@ jobs:
   e2e:
     name: Playwright e2e
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
