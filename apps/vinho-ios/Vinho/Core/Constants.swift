@@ -14,13 +14,20 @@ enum Constants {
         static let supportEmail = URL(string: "mailto:hello@strategicnerds.com")!
 
         // App Store
-        static let appStoreReview = URL(string: "https://apps.apple.com/app/id1234567890?action=write-review")!
+        static let appStoreReview = URL(string: "https://apps.apple.com/app/id\(App.appStoreId)?action=write-review")!
 
         // External APIs
         static let googlePlacesAutocomplete = URL(string: "https://places.googleapis.com/v1/places:autocomplete")!
 
-        static func googlePlaceDetails(placeId: String) -> URL {
-            URL(string: "https://places.googleapis.com/v1/places/\(placeId)")!
+        /// Percent-encodes the place id before interpolating it into the path.
+        /// Returns nil rather than force-unwrapping so a malformed id surfaces as
+        /// a thrown error at the call site instead of a crash.
+        static func googlePlaceDetails(placeId: String) -> URL? {
+            guard let encoded = placeId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+                  !encoded.isEmpty else {
+                return nil
+            }
+            return URL(string: "https://places.googleapis.com/v1/places/\(encoded)")
         }
 
         // PostHog default host
@@ -33,6 +40,8 @@ enum Constants {
         static let name = "Vinho"
         static let bundleId = "dev.vinho.app"
         static let urlScheme = "vinho"
+        /// App Store Connect app id (matches ASC_APP_ID in Doppler).
+        static let appStoreId = "6752897537"
     }
 
     // MARK: - Storage Keys

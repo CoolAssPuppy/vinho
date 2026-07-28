@@ -258,7 +258,9 @@ class GooglePlacesService: ObservableObject {
             throw PlacesError.missingAPIKey
         }
 
-        let url = Constants.URLs.googlePlaceDetails(placeId: placeId)
+        guard let url = Constants.URLs.googlePlaceDetails(placeId: placeId) else {
+            throw PlacesError.invalidPlaceId
+        }
         var request = URLRequest(url: url)
         request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
         request.setValue("displayName,formattedAddress,location", forHTTPHeaderField: "X-Goog-FieldMask")
@@ -275,6 +277,7 @@ class GooglePlacesService: ObservableObject {
 
     enum PlacesError: Error {
         case missingAPIKey
+        case invalidPlaceId
     }
 }
 

@@ -6,15 +6,22 @@
 # futurenerds ship tooling (same ASC team 955GSY56UT).
 #
 # The committed Vinho.xcodeproj (pbxproj) is the build source of truth, NOT
-# project.yml. The project.yml glob (`sources: - Vinho`) has drifted out of sync
-# with the curated pbxproj: it pulls in orphaned duplicate components
-# (Components/Common/{InfoRow,SectionHeader,StatCard,StarRating}.swift,
-# Components/Wine/WineHeader.swift, and other never-wired files) that redeclare
-# types already defined in the built files, so `xcodegen generate` produces a
-# project that fails to compile. Until that abandoned component-extraction is
-# completed (or project.yml given matching `excludes`), we do NOT regenerate:
-# `project_yml` is left unset so ship builds the committed pbxproj and version.py
-# writes MARKETING_VERSION + CURRENT_PROJECT_VERSION straight into the pbxproj.
+# project.yml, and `project_yml` is intentionally left unset so version.py writes
+# MARKETING_VERSION + CURRENT_PROJECT_VERSION straight into the pbxproj.
+#
+# The xcodegen spec is no longer broken (fixed 2026-07-28). It used to pull in an
+# abandoned component extraction from commit ee9fe7d — Components/Common/{InfoRow,
+# SectionHeader,StatCard,StarRating}.swift, Components/Wine/WineHeader.swift, and
+# Core/Theme/{Styles,Typography}.swift — none of which were ever in the pbxproj,
+# several of which redeclared types defined in the built files, and one of which
+# (Styles.swift) did not compile at all. Those files were deleted and project.yml
+# was synced to the shipped 1.0.3 (build 5), so `xcodegen generate` now produces a
+# project that builds clean.
+#
+# Ship still builds the committed pbxproj because that keeps version.py as the
+# single writer of the release version. Switching ship to regenerate from
+# project.yml would mean moving version ownership into project.yml too; that is a
+# deliberate release-pipeline change, not a side effect of the xcodegen repair.
 # =============================================================================
 
 [project]

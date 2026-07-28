@@ -293,23 +293,17 @@ struct ProfileView: View {
 
                 MenuRow(icon: "star.fill", title: "Rate App", showChevron: false) {
                     hapticManager.lightImpact()
-                    if let url = URL(string: "https://apps.apple.com/app/id1234567890?action=write-review") {
-                        UIApplication.shared.open(url)
-                    }
+                    UIApplication.shared.open(Constants.URLs.appStoreReview)
                 }
 
                 MenuRow(icon: "doc.text.fill", title: "Terms of Service", showChevron: false) {
                     hapticManager.lightImpact()
-                    if let url = URL(string: "https://www.strategicnerds.com/terms") {
-                        UIApplication.shared.open(url)
-                    }
+                    UIApplication.shared.open(Constants.URLs.termsOfService)
                 }
 
                 MenuRow(icon: "hand.raised.fill", title: "Privacy Policy", showChevron: false) {
                     hapticManager.lightImpact()
-                    if let url = URL(string: "https://www.strategicnerds.com/privacy") {
-                        UIApplication.shared.open(url)
-                    }
+                    UIApplication.shared.open(Constants.URLs.privacyPolicy)
                 }
             }
         }
@@ -854,9 +848,7 @@ struct VivinoImportInfoView: View {
                         // Open Web Button
                         Button {
                             hapticManager.mediumImpact()
-                            if let url = URL(string: "https://vinho.dev") {
-                                openURL(url)
-                            }
+                            openURL(Constants.URLs.vinhoWeb)
                         } label: {
                             HStack {
                                 Image(systemName: "safari")
