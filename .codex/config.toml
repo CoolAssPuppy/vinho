@@ -1,2 +1,16 @@
+# Codex MCP configuration.
+#
+# read_only=true is deliberate. This URL points an agent straight at the
+# production database, and without it every tool call has write access to real
+# user data. Schema changes in this repo go through supabase/schemas plus a
+# generated migration (see supabase/schemas/README.md), never ad-hoc MCP writes,
+# so read-only costs nothing here.
+#
+# features limits the exposed tool groups to the ones actually used, and
+# project_ref scopes the connection to this project, which also disables the
+# account-level tools.
+#
+# If an agent genuinely needs to write, drop read_only for that one session
+# rather than leaving it off permanently.
 [mcp_servers.supabase]
-url = "https://mcp.supabase.com/mcp?project_ref=aghiopwrzzvamssgcwpv"
+url = "https://mcp.supabase.com/mcp?project_ref=aghiopwrzzvamssgcwpv&read_only=true&features=database,docs"
