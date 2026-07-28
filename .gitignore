@@ -1,5 +1,8 @@
 node_modules
 .env*
+# Committed templates documenting which variables each app needs (no secrets).
+!.env.example
+!**/.env.example
 dist
 build
 .next
@@ -32,5 +35,6 @@ apps/vinho-ios/Vinho/Config.plist
 # Apple Sign in with Apple keys
 *.p8
 
-# Android Gradle wrapper jar
-apps/vinho-android/gradle/wrapper/gradle-wrapper.jar
+# NOTE: gradle/wrapper/gradle-wrapper.jar is deliberately NOT ignored. The Gradle
+# wrapper jar must be committed or `./gradlew` fails on a fresh clone with
+# "Could not find or load main class org.gradle.wrapper.GradleWrapperMain".

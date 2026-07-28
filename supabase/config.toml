@@ -25,6 +25,14 @@ shadow_port = 54320
 # Production runs Postgres 17 (verified via `show server_version` -> 17.x).
 major_version = 17
 
+[db.migrations]
+# Declarative schema files, applied in this order to the shadow database when
+# running `supabase db diff`. See supabase/schemas/README.md for what the diff
+# engine can and cannot track.
+schema_paths = [
+  "./schemas/*.sql",
+]
+
 [db.pooler]
 enabled = false
 # Port to use for the local connection pooler.

@@ -15,10 +15,20 @@ Wine tasting journal app. Next.js 16 web app + iOS + Android. Supabase backend (
 ### Start local environment
 
 ```bash
+pnpm run doctor         # Verify toolchain, repo layout, local stack (do this first)
 supabase start          # Starts Postgres, Auth, Storage, Edge Runtime
-supabase db reset       # Reset DB, apply migration, run seeds
-cd apps/vinho-web && pnpm dev
+supabase db reset       # Reset DB, apply migrations, run seeds
+pnpm dev                # Runs the web app through Doppler for secrets
 ```
+
+Secrets come from Doppler (`doppler.yaml` pins project `vinho`, config `dev`), not
+from committed `.env` files. A new machine needs `doppler login` and access to the
+project.
+
+If `supabase start` fails to pull `storage-api`, delete `supabase/.temp/storage-version`.
+`supabase link` can write a stale image tag there that no longer exists upstream
+(supabase/cli#4148); the file is gitignored, so this only ever affects an existing
+checkout, never a fresh clone.
 
 Local Supabase endpoints:
 - API: http://127.0.0.1:54321
@@ -38,9 +48,27 @@ The project uses a single pulled migration (`supabase/migrations/20260318112806_
 
 ### Making schema changes
 
-1. Write a new migration: `supabase migration new <name>`
-2. Test locally: `supabase db reset`
-3. Apply to production: `supabase db push` (or via CI on merge to main)
+The project uses **declarative schemas**. `supabase/schemas/` describes the desired
+state; migrations are generated from it. Read `supabase/schemas/README.md` before
+changing the schema.
+
+1. Edit the files in `supabase/schemas/` (never Studio, never the SQL editor)
+2. Generate the migration: `supabase db diff -f <name>`
+3. Test locally: `supabase db reset`
+4. Apply to production: `supabase db push` (or via CI on merge to main)
+
+Some entities cannot be tracked by the diff engine and must be hand-written as
+migrations: materialized views, comments, column privileges, `alter policy`, DML,
+publications, and grants arising from default privileges. This project uses several
+of them (`user_wine_stats_materialized`, 32 `comment on` statements, the
+`SECURITY DEFINER` function-grant lockdown). After hand-writing such a migration,
+refresh `supabase/schemas/10_public.sql` and confirm `supabase db diff` prints
+"No schema changes found".
+
+`supabase/schemas/20_storage_policies.sql` exists because `supabase db dump` omits
+the storage schema. Without it, `db diff` proposes dropping all nine storage RLS
+policies, which would expose every user's scans and avatars. Never apply a diff that
+drops storage policies.
 
 ### Generating types
 

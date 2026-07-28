@@ -1,152 +1,159 @@
 #!/usr/bin/env node
 
-import { existsSync } from 'fs'
-import { resolve } from 'path'
-import { execSync } from 'child_process'
+/**
+ * Vinho doctor: verifies a checkout can actually be developed on.
+ *
+ * Meant to be the first thing you run on a fresh clone. Every external command
+ * runs with a timeout and captured stdio so a hung CLI cannot wedge the check,
+ * and every path below is asserted against the real repo layout.
+ */
 
-const REQUIRED_FILES = [
-  'packages/db-types/src/database.types.ts',
-  'supabase/vinho.sql',
-  'apps/vinho-web/src/app/page.tsx',
-  'turbo.json',
-  'pnpm-workspace.yaml'
-]
+import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
-const REQUIRED_ENV = {
-  web: [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const CMD_TIMEOUT_MS = 15_000
+
+let failures = 0
+const warnings = []
+
+const pass = (msg) => console.log(`  PASS  ${msg}`)
+const warn = (msg, hint) => {
+  console.log(`  WARN  ${msg}`)
+  if (hint) console.log(`        ${hint}`)
+  warnings.push(msg)
+}
+const fail = (msg, hint) => {
+  console.log(`  FAIL  ${msg}`)
+  if (hint) console.log(`        ${hint}`)
+  failures += 1
+}
+
+/** Run a command with a hard timeout. Returns trimmed stdout, or null on failure. */
+function run(cmd, args = []) {
+  try {
+    return execFileSync(cmd, args, {
+      timeout: CMD_TIMEOUT_MS,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      encoding: 'utf8',
+    }).trim()
+  } catch {
+    return null
+  }
+}
+
+const has = (cmd) => run('sh', ['-c', `command -v ${cmd}`]) !== null
+const major = (v) => Number.parseInt(String(v).replace(/^\D+/, '').split('.')[0], 10)
+const section = (title) => console.log(`\n${title}`)
+
+function checkToolchain() {
+  section('Toolchain')
+
+  major(process.version) >= 22
+    ? pass(`node ${process.version}`)
+    : fail(`node ${process.version} is too old`, 'This repo requires Node 22+ (package.json engines.node).')
+
+  if (!has('pnpm')) {
+    fail('pnpm not installed', 'npm install -g pnpm@11')
+  } else {
+    const v = run('pnpm', ['--version'])
+    major(v) >= 11 ? pass(`pnpm ${v}`) : fail(`pnpm ${v} is too old`, 'This repo pins pnpm 11 (packageManager).')
+  }
+
+  if (!has('docker')) {
+    fail('docker not installed', 'Docker is required to run Supabase locally.')
+  } else if (run('docker', ['info']) === null) {
+    fail('docker is installed but not running', 'Start Docker Desktop, then re-run.')
+  } else {
+    pass('docker is running')
+  }
+
+  has('supabase')
+    ? pass(`supabase CLI ${run('supabase', ['--version']) ?? 'unknown'}`)
+    : fail('supabase CLI not installed', 'brew install supabase/tap/supabase')
+
+  has('doppler')
+    ? pass('doppler installed')
+    : warn('doppler not installed', 'Secrets come from Doppler: brew install dopplerhq/cli/doppler && doppler login')
+}
+
+function checkRepoLayout() {
+  section('Repo layout')
+
+  const required = [
+    'turbo.json',
+    'pnpm-workspace.yaml',
+    'supabase/config.toml',
+    'apps/vinho-web/app/page.tsx',
+    'apps/vinho-web/lib/database.types.ts',
+    // Must be committed or ./gradlew fails on a fresh clone.
+    'apps/vinho-android/gradle/wrapper/gradle-wrapper.jar',
   ]
-}
 
-const REQUIRED_COMMANDS = [
-  { cmd: 'supabase', install: 'brew install supabase/tap/supabase' },
-  { cmd: 'pnpm', install: 'npm install -g pnpm' },
-  { cmd: 'node', install: 'Install Node.js from https://nodejs.org' }
-]
-
-function checkCommand(command) {
-  try {
-    execSync(`which ${command}`, { stdio: 'ignore' })
-    return true
-  } catch {
-    return false
-  }
-}
-
-function checkFile(path) {
-  const fullPath = resolve(process.cwd(), path)
-  return existsSync(fullPath)
-}
-
-function checkEnvVar(name) {
-  return process.env[name] !== undefined
-}
-
-async function main() {
-  console.log('🔍 Vinho Doctor - Checking project health...\n')
-
-  let hasErrors = false
-  const warnings = []
-
-  console.log('📦 Checking required commands:')
-  for (const { cmd, install } of REQUIRED_COMMANDS) {
-    if (checkCommand(cmd)) {
-      console.log(`  ✅ ${cmd} is installed`)
+  for (const rel of required) {
+    if (existsSync(resolve(ROOT, rel))) {
+      pass(rel)
+    } else if (rel.endsWith('database.types.ts')) {
+      warn(`${rel} missing`, 'pnpm run supa:types')
     } else {
-      console.log(`  ❌ ${cmd} is not installed`)
-      console.log(`     Run: ${install}`)
-      hasErrors = true
+      fail(`${rel} missing`)
     }
   }
+}
 
-  console.log('\n📁 Checking critical files:')
-  for (const file of REQUIRED_FILES) {
-    if (checkFile(file)) {
-      console.log(`  ✅ ${file} exists`)
-    } else {
-      if (file.includes('database.types.ts')) {
-        console.log(`  ⚠️  ${file} missing (run: pnpm run supa:types)`)
-        warnings.push(`Generate types: pnpm run supa:types`)
-      } else if (file.includes('vinho.sql')) {
-        console.log(`  ⚠️  ${file} missing (run: pnpm run supa:dump)`)
-        warnings.push(`Dump schema: pnpm run supa:dump`)
-      } else {
-        console.log(`  ❌ ${file} is missing`)
-        hasErrors = true
-      }
-    }
-  }
+function checkLocalSupabase() {
+  section('Local Supabase')
 
-  console.log('\n🔐 Checking environment variables:')
-
-  const webEnvPath = resolve(process.cwd(), 'apps/vinho-web/.env.local')
-  const hasWebEnv = existsSync(webEnvPath)
-
-  if (hasWebEnv) {
-    console.log('  ✅ Web .env.local exists')
+  if (run('supabase', ['status', '--workdir', ROOT]) === null) {
+    warn('local stack is not running', 'supabase start && supabase db reset')
   } else {
-    console.log('  ⚠️  Web .env.local missing')
-    console.log('     Create apps/vinho-web/.env.local with:')
-    for (const env of REQUIRED_ENV.web) {
-      console.log(`       ${env}=<value>`)
-    }
-    warnings.push('Create .env.local for web app')
+    pass('local stack is running')
   }
 
-  console.log('\n📋 Checking Node.js version:')
-  try {
-    const nodeVersion = process.version
-    const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0])
-    if (majorVersion >= 18) {
-      console.log(`  ✅ Node.js ${nodeVersion} (>= 18.0.0)`)
-    } else {
-      console.log(`  ⚠️  Node.js ${nodeVersion} (recommend >= 18.0.0)`)
-      warnings.push('Consider upgrading Node.js to v18 or later')
-    }
-  } catch (e) {
-    console.log('  ❌ Could not determine Node.js version')
-  }
-
-  console.log('\n🔧 Checking package manager:')
-  const packageJsonPath = resolve(process.cwd(), 'package.json')
-  if (existsSync(packageJsonPath)) {
-    try {
-      const pkg = await import(packageJsonPath, { assert: { type: 'json' } })
-      const pmVersion = pkg.default.packageManager
-      if (pmVersion && pmVersion.startsWith('pnpm')) {
-        console.log(`  ✅ Using ${pmVersion}`)
-      } else {
-        console.log(`  ⚠️  packageManager field not set to pnpm`)
-        warnings.push('Set packageManager in package.json')
-      }
-    } catch (e) {
-      console.log('  ⚠️  Could not check packageManager field')
-    }
-  }
-
-  console.log('\n🔗 Checking Supabase connection:')
-  try {
-    execSync('supabase projects list', { stdio: 'ignore' })
-    console.log('  ✅ Supabase CLI authenticated')
-  } catch {
-    console.log('  ⚠️  Supabase CLI not authenticated')
-    console.log('     Run: supabase login')
-    warnings.push('Authenticate Supabase CLI: supabase login')
-  }
-
-  console.log('\n' + '='.repeat(50))
-
-  if (hasErrors) {
-    console.log('\n❌ Critical issues found. Please fix them before proceeding.')
-    process.exit(1)
-  } else if (warnings.length > 0) {
-    console.log('\n⚠️  Some warnings found:')
-    warnings.forEach(w => console.log(`   - ${w}`))
-    console.log('\n✅ Project is functional but could be improved.')
-  } else {
-    console.log('\n✅ All checks passed! Project is healthy.')
+  // A stale .temp/storage-version pins a storage image tag that may no longer
+  // exist upstream, making `supabase start` fail with an opaque pull error.
+  if (existsSync(resolve(ROOT, 'supabase/.temp/storage-version'))) {
+    warn(
+      'supabase/.temp/storage-version exists',
+      'If `supabase start` cannot pull storage-api, delete this file. See supabase/cli#4148.',
+    )
   }
 }
 
-main().catch(console.error)
+async function checkDeclarativeSchemas() {
+  section('Declarative schemas')
+
+  const schemasDir = resolve(ROOT, 'supabase/schemas')
+  if (!existsSync(schemasDir)) {
+    fail('supabase/schemas missing', 'Declarative schemas are wired up via [db.migrations] schema_paths.')
+    return
+  }
+
+  for (const f of ['10_public.sql', '20_storage_policies.sql', 'README.md']) {
+    existsSync(resolve(schemasDir, f)) ? pass(`schemas/${f}`) : fail(`schemas/${f} missing`)
+  }
+
+  const config = await readFile(resolve(ROOT, 'supabase/config.toml'), 'utf8').catch(() => '')
+  config.includes('schema_paths')
+    ? pass('schema_paths configured in config.toml')
+    : fail('schema_paths not set in supabase/config.toml')
+
+  console.log('        Verify sync with: supabase db diff  (expect "No schema changes found")')
+}
+
+console.log('Vinho doctor')
+
+checkToolchain()
+checkRepoLayout()
+checkLocalSupabase()
+await checkDeclarativeSchemas()
+
+console.log(`\n${'-'.repeat(56)}`)
+if (failures > 0) {
+  console.log(`${failures} failure(s), ${warnings.length} warning(s). Fix the failures before developing.`)
+  process.exit(1)
+}
+console.log(warnings.length > 0 ? `Healthy, with ${warnings.length} warning(s).` : 'All checks passed.')

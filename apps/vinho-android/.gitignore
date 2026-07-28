@@ -7,8 +7,10 @@ local.properties
 .idea/
 *.iml
 
-# Gradle wrapper binary
-gradle/wrapper/gradle-wrapper.jar
+# NOTE: gradle/wrapper/gradle-wrapper.jar is deliberately committed. Ignoring it
+# breaks `./gradlew` on a fresh clone ("Could not find or load main class
+# org.gradle.wrapper.GradleWrapperMain"). It is a 42 KB bootstrap jar and is
+# expected to be in version control.
 
 # App artifacts
 app/build/
