@@ -25,6 +25,19 @@ Secrets come from Doppler (`doppler.yaml` pins project `vinho`, config `dev`), n
 from committed `.env` files. A new machine needs `doppler login` and access to the
 project.
 
+On CLI 2.110.0, commands that talk to the linked project (`db push`, `migration list
+--linked`) hang silently if `~/.supabase/profile` is missing. `--debug` reveals
+`NotFound: FileSystem.readFile (/Users/<you>/.supabase/profile)`; the CLI is waiting
+on a login prompt it cannot read. Fix it with `supabase login`, or export a token:
+
+```bash
+export SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -w)
+```
+
+Local commands (`start`, `db reset`, `db diff`) are unaffected. CI pins
+`supabase/setup-cli` to 2.109.0 and authenticates via `SUPABASE_ACCESS_TOKEN`, so it
+is not exposed to this.
+
 If `supabase start` fails to pull `storage-api`, delete `supabase/.temp/storage-version`.
 `supabase link` can write a stale image tag there that no longer exists upstream
 (supabase/cli#4148); the file is gitignored, so this only ever affects an existing

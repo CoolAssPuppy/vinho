@@ -24,6 +24,55 @@ Status legend: [ ] open, [x] fixed, [-] accepted/won't fix.
 - [x] IOS-18: `ProfileView` no longer re-types the App Store / terms / privacy / web URLs; it uses `Constants.URLs`.
 - [x] IOS-BUILD: fixed properly rather than worked around. Deleted seven files from abandoned commit `ee9fe7d` that were never in the pbxproj: `Components/Common/{InfoRow,SectionHeader,StatCard,StarRating}.swift`, `Components/Wine/WineHeader.swift`, and `Core/Theme/{Styles,Typography}.swift`. Several redeclared types defined in the built files (`StatCard`, `InfoRow`, `SectionHeader`, `FilterSection`, `ScaleButtonStyle`) and `Styles.swift` did not compile at all. Synced `project.yml` to the shipped 1.0.3 (build 5) so regeneration does not regress the version. `xcodegen generate` now produces a project that builds clean; `scripts/ship.toml` header updated.
 
+### Scan pipeline data loss, fixed (ARCH-1, IOS-1, IOS-2, IOS-3, IOS-6, AND-1, AND-3, AND-5, AND-6, AND-7, AND-15, AND-16 partial)
+
+The root cause of the 2026-07-04/05 lost-scan incident was still live on both
+clients. `repair_orphaned_scans()` only cleaned up after the fact.
+
+- [x] Added `public.submit_scan(p_image_path, p_image_url)` (migration
+  `20260728053316`, declared in `supabase/schemas/30_submit_scan.sql`). It creates
+  the `scans` row and its `wines_added_queue` item in one atomic call, so they can
+  no longer half-apply, and it is idempotent on `image_path` via
+  `idempotency_key = 'submit:' || image_path`, matching the `'repair:'` convention.
+  Deliberately SECURITY INVOKER so the caller's RLS applies and it does not join
+  the SECURITY DEFINER surface DB-2 locked down. It also rejects a path outside the
+  caller's own folder, mirroring the storage policy.
+- [x] IOS-1: the pipeline ran in `ScannerView`'s `.task`, which SwiftUI cancels on
+  view disappearance, so dismissing the sheet aborted it between the storage upload
+  and the `scans` insert. It now runs in `ScanService.submitScan`, inside a
+  service-owned unstructured `Task` that does not inherit the caller's cancellation.
+  A dismissed sheet only stops observing; the submission completes.
+- [x] IOS-2: deleted the inline duplicate in `ScannerView` (it diverged from
+  `ScanService.uploadScan` in field handling and returned the scan id, not the queue
+  id the view actually needs).
+- [x] IOS-3: `ScanService` no longer catches everything and returns nil with a DEBUG
+  print. `submitScan` throws, with `uploadFailed` and a new `submitFailed` case.
+- [x] IOS-6: the realtime channel was only removed after the task group, so
+  dismissal leaked it. Now removed in a `defer`. `defer` cannot `await`, so the
+  removal is handed to an unstructured task, which still runs on the cancelled path.
+- [x] AND-1 / AND-3 / AND-5 / AND-7: `ScannerViewModel` no longer does networking
+  inline. It calls `ScanRepository.submitScan`, the repository it already injected
+  but never used. The repository body runs in `NonCancellable`, so cancelling
+  `viewModelScope` cannot abandon a submission midway.
+- [x] AND-6: `ScanRepository.uploadScan` was dead code; it is now the single live
+  implementation rather than a second copy.
+- [x] AND-15: the poll timeout set `COMPLETED` and an error simultaneously, so the
+  UI could not distinguish a finished scan from one it stopped watching. Added a
+  `TIMED_OUT` status, handled explicitly in `ScannerSheet`.
+- [x] AND-16 (partial): removed the duplicate `ScanInsert`/`QueueInsert` DTOs from
+  `ScannerViewModel` and the now-unused ones in `ScanRepository`, plus the
+  write-only `successScanId` state field.
+
+Verified: 6 behavioral tests via psql (atomic create, idempotency, correct linkage,
+cross-user path rejected, unauthenticated rejected, anon denied) and 4 integration
+tests through PostgREST with a real user JWT, confirming the return is a quoted JSON
+uuid, which is what both client decode paths assume. iOS BUILD SUCCEEDED, Android
+BUILD SUCCESSFUL.
+
+Still open on the clients: the remaining error-swallowing and file-size items
+(IOS-7, IOS-10 through IOS-14, AND-8 through AND-14) are untouched. Neither client
+was runtime-tested against a simulator or device; both are build-verified only.
+
 ### Dispositioned, not fixed
 
 - [-] DB-9 (unused indexes): won't fix. The four indexes total 48 KB on tables with 0-1 rows. Zero scans reflects an unused feature, not a useless index; dropping them saves nothing and risks a future sequential scan.

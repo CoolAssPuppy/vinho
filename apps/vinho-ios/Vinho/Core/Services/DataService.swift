@@ -155,12 +155,16 @@ class DataService: ObservableObject {
         isLoading = false
     }
 
+    /// Submits a scan and returns the `wines_added_queue` id, or nil on failure.
+    /// Prefer calling `ScanService.shared.submitScan` directly so the thrown error
+    /// is available; this wrapper exists for callers that only need the optional.
     func uploadScan(imageData: Data) async -> String? {
-        let result = await ScanService.shared.uploadScan(imageData: imageData)
-        if result == nil {
-            errorMessage = "Failed to upload scan"
+        do {
+            return try await ScanService.shared.submitScan(imageData: imageData)
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
         }
-        return result
     }
 
     // MARK: - Search (Delegates to SearchService)

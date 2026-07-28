@@ -78,6 +78,17 @@ function checkToolchain() {
   has('doppler')
     ? pass('doppler installed')
     : warn('doppler not installed', 'Secrets come from Doppler: brew install dopplerhq/cli/doppler && doppler login')
+
+  // CLI 2.110.0 hangs on linked-project commands (db push, migration list --linked)
+  // when this file is missing, waiting on a login prompt it cannot read.
+  if (!existsSync(resolve(process.env.HOME ?? '', '.supabase/profile')) && !process.env.SUPABASE_ACCESS_TOKEN) {
+    warn(
+      '~/.supabase/profile missing and SUPABASE_ACCESS_TOKEN unset',
+      'Linked-project commands will hang on CLI 2.110.0. Run `supabase login`, or export SUPABASE_ACCESS_TOKEN.',
+    )
+  } else {
+    pass('supabase auth available for linked-project commands')
+  }
 }
 
 function checkRepoLayout() {

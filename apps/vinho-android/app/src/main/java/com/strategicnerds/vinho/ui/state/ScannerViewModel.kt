@@ -7,16 +7,13 @@ import com.strategicnerds.vinho.data.repository.ScanRepository
 import com.strategicnerds.vinho.data.repository.TastingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import java.util.UUID
 import javax.inject.Inject
 
 enum class ScannerStep {
@@ -29,7 +26,14 @@ enum class ProcessingStatus {
     UPLOADING,
     PROCESSING,
     COMPLETED,
-    FAILED
+    FAILED,
+
+    /**
+     * Polling gave up before the queue item reached a terminal state. The scan is
+     * safely enqueued and will still be processed, so this is distinct from both
+     * COMPLETED (which claimed success we had not observed) and FAILED.
+     */
+    TIMED_OUT
 }
 
 data class ScannerUiState(
@@ -37,7 +41,6 @@ data class ScannerUiState(
     val isUploading: Boolean = false,
     val processingStatus: ProcessingStatus = ProcessingStatus.IDLE,
     val capturedImageBytes: ByteArray? = null,
-    val successScanId: String? = null,
     val winesAddedQueueId: String? = null,
     val pendingVintageId: String? = null,
     val pendingTasting: Tasting? = null,
@@ -55,7 +58,6 @@ data class ScannerUiState(
             if (other.capturedImageBytes == null) return false
             if (!capturedImageBytes.contentEquals(other.capturedImageBytes)) return false
         } else if (other.capturedImageBytes != null) return false
-        if (successScanId != other.successScanId) return false
         if (winesAddedQueueId != other.winesAddedQueueId) return false
         if (pendingVintageId != other.pendingVintageId) return false
         if (pendingTasting != other.pendingTasting) return false
@@ -69,7 +71,6 @@ data class ScannerUiState(
         result = 31 * result + isUploading.hashCode()
         result = 31 * result + processingStatus.hashCode()
         result = 31 * result + (capturedImageBytes?.contentHashCode() ?: 0)
-        result = 31 * result + (successScanId?.hashCode() ?: 0)
         result = 31 * result + (winesAddedQueueId?.hashCode() ?: 0)
         result = 31 * result + (pendingVintageId?.hashCode() ?: 0)
         result = 31 * result + (pendingTasting?.hashCode() ?: 0)
@@ -81,23 +82,6 @@ data class ScannerUiState(
 
 @Serializable
 private data class QueueStatus(
-    val status: String
-)
-
-@Serializable
-private data class ScanInsert(
-    val id: String,
-    val user_id: String,
-    val image_path: String,
-    val scan_image_url: String
-)
-
-@Serializable
-private data class QueueInsert(
-    val id: String,
-    val user_id: String,
-    val image_url: String,
-    val scan_id: String,
     val status: String
 )
 
@@ -137,54 +121,18 @@ class ScannerViewModel @Inject constructor(
                 isUploading = true,
                 processingStatus = ProcessingStatus.UPLOADING,
                 error = null,
-                successScanId = null
             )
 
+            // Single submission path, shared with the rest of the app. The upload and
+            // the two database writes are atomic and non-cancellable inside the
+            // repository, so navigating away mid-submit can no longer strand an
+            // upload with no scan or queue row behind it.
             runCatching {
-                val scanId = UUID.randomUUID().toString()
-                val queueId = UUID.randomUUID().toString()
-                val fileName = "$userId/${System.currentTimeMillis()}.jpg"
-
-                // Upload image to storage. upsert=false matches iOS/web: the
-                // filename is unique (userId + timestamp), and surfacing a rare
-                // collision beats silently overwriting a prior scan.
-                client.storage["scans"].upload(fileName, imageData) { upsert = false }
-                val publicUrl = client.storage["scans"].publicUrl(fileName)
-
-                // Insert into scans table
-                client.from("scans").insert(
-                    ScanInsert(
-                        id = scanId,
-                        user_id = userId,
-                        image_path = fileName,
-                        scan_image_url = publicUrl
-                    )
-                )
-
-                // Insert into wines_added_queue
-                client.from("wines_added_queue").insert(
-                    QueueInsert(
-                        id = queueId,
-                        user_id = userId,
-                        image_url = publicUrl,
-                        scan_id = scanId,
-                        status = "pending"
-                    )
-                )
-
-                // Trigger edge function (non-blocking)
-                launch {
-                    runCatching {
-                        client.functions.invoke("process-wine-queue")
-                    }
-                }
-
-                Pair(scanId, queueId)
-            }.onSuccess { (scanId, queueId) ->
+                scanRepository.submitScan(imageData, userId)
+            }.onSuccess { queueId ->
                 _uiState.value = _uiState.value.copy(
                     isUploading = false,
                     processingStatus = ProcessingStatus.PROCESSING,
-                    successScanId = scanId,
                     winesAddedQueueId = queueId
                 )
                 // Start polling for completion
@@ -240,10 +188,12 @@ class ScannerViewModel @Inject constructor(
                 attempt++
             }
 
-            // Timeout - still processing
+            // Polling gave up. Previously this reported COMPLETED and an error at the
+            // same time, which is contradictory: the UI could not tell a finished scan
+            // from one we simply stopped watching.
             if (_uiState.value.processingStatus == ProcessingStatus.PROCESSING) {
                 _uiState.value = _uiState.value.copy(
-                    processingStatus = ProcessingStatus.COMPLETED,
+                    processingStatus = ProcessingStatus.TIMED_OUT,
                     error = "Processing is taking longer than expected. Your wine will appear in your list shortly."
                 )
             }

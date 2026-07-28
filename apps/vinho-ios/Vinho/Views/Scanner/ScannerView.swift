@@ -409,6 +409,14 @@ struct ScanResultView: View {
         let client = SupabaseManager.shared.client
         let channel = client.channel("wine-queue-\(winesAddedId)")
 
+        defer {
+            // Cleanup used to sit after the task group, so dismissing the sheet
+            // mid-wait cancelled this function and leaked the channel. `defer`
+            // cannot await, so hand the removal to an unstructured task: those do
+            // not inherit cancellation, so it still runs on the dismissal path.
+            Task { await client.removeChannel(channel) }
+        }
+
         // Register for UPDATE events on the specific queue item before subscribing
         let changes = channel.postgresChange(
             UpdateAction.self,
@@ -488,9 +496,6 @@ struct ScanResultView: View {
             await group.next()
             group.cancelAll()
         }
-
-        // Clean up the realtime channel
-        await client.removeChannel(channel)
     }
 
     private func getVintageId() async {
@@ -529,76 +534,26 @@ struct ScanResultView: View {
         }
 
         do {
-            // Get current user
-            let session = try await SupabaseManager.shared.client.auth.session
-            let user = session.user
-            let userIdString = user.id.uuidString.lowercased()
-            let fileName = "\(userIdString)/\(Date().timeIntervalSince1970).jpg"
+            // ScanService owns the submission in a task that does not inherit this
+            // view's cancellation, so dismissing the sheet mid-flight no longer
+            // abandons the upload without a scan or queue row. The two database
+            // writes happen atomically inside the submit_scan RPC.
+            let queueId = try await ScanService.shared.submitScan(imageData: imageData)
 
-            // Create IDs upfront
-            let scanId = UUID()
-            let queueId = UUID()
-            let publicUrl = try SupabaseManager.shared.client.storage
-                .from("scans")
-                .getPublicURL(path: fileName)
+            self.winesAddedId = queueId
+            hapticManager.success()
 
-            // Store the wines_added_queue ID immediately for tasting notes
-            self.winesAddedId = queueId.uuidString
-
-            // First, upload the image to storage
-            try await SupabaseManager.shared.client.storage
-                .from("scans")
-                .upload(
-                    fileName,
-                    data: imageData,
-                    options: .init(contentType: "image/jpeg")
-                )
-
-            // Second, insert into scans table
-            try await SupabaseManager.shared.client
-                .from("scans")
-                .insert([
-                    "id": scanId.uuidString,
-                    "user_id": userIdString,
-                    "image_path": fileName,
-                    "scan_image_url": publicUrl.absoluteString
-                ])
-                .execute()
-
-            // Finally, insert into wines_added_queue table (after scan_id exists)
-            try await SupabaseManager.shared.client
-                .from("wines_added_queue")
-                .insert([
-                    "id": queueId.uuidString,
-                    "user_id": userIdString,
-                    "image_url": publicUrl.absoluteString,
-                    "scan_id": scanId.uuidString,
-                    "status": "pending"
-                ])
-                .execute()
-
-            // Trigger edge function in background (don't wait)
-            Task {
-                struct EmptyBody: Encodable {}
-                _ = try? await SupabaseManager.shared.client.functions
-                    .invoke("process-wine-queue", options: FunctionInvokeOptions(body: EmptyBody()))
-            }
-
-            // Start checking for processing completion
-            await MainActor.run {
-                Task {
-                    await checkProcessingStatus()
-                }
-                hapticManager.success()
-            }
-
+            await checkProcessingStatus()
+        } catch is CancellationError {
+            // The sheet was dismissed while we were waiting. The submission itself
+            // is unaffected and completes in the background; there is no UI left to
+            // update, so do not surface an error.
+            return
         } catch {
-            await MainActor.run {
-                errorMessage = "Failed to upload wine: \(error.localizedDescription)"
-                isProcessingImage = false
-                showingError = true
-                hapticManager.error()
-            }
+            errorMessage = "Failed to upload wine: \(error.localizedDescription)"
+            isProcessingImage = false
+            showingError = true
+            hapticManager.error()
         }
     }
 

@@ -527,6 +527,15 @@ private fun ScanResultScreen(
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
+                        ProcessingStatus.TIMED_OUT -> {
+                            // Not a failure: the scan is enqueued, we just stopped watching.
+                            Text(
+                                text = "...",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         else -> {}
                     }
 
@@ -539,6 +548,7 @@ private fun ScanResultScreen(
                                 ProcessingStatus.PROCESSING -> "Processing wine label..."
                                 ProcessingStatus.COMPLETED -> "Wine ready for tasting notes!"
                                 ProcessingStatus.FAILED -> "Processing failed"
+                                ProcessingStatus.TIMED_OUT -> "Still processing"
                                 else -> "Preparing..."
                             },
                             style = MaterialTheme.typography.bodyLarge,
