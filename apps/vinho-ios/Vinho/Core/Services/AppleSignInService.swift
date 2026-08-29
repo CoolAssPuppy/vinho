@@ -17,11 +17,12 @@ final class AppleSignInService: NSObject {
     /// Performs native Sign in with Apple and exchanges the identity token with Supabase
     /// - Returns: The Supabase session for the authenticated user
     func signIn() async throws -> Session {
+        let nonce = try randomNonceString()
+
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
 
             // Generate a random nonce for security
-            let nonce = randomNonceString()
             currentNonce = nonce
             let hashedNonce = sha256(nonce)
 
@@ -40,12 +41,12 @@ final class AppleSignInService: NSObject {
     }
 
     /// Generates a random nonce string for PKCE security
-    private func randomNonceString(length: Int = 32) -> String {
+    private func randomNonceString(length: Int = 32) throws -> String {
         precondition(length > 0)
         var randomBytes = [UInt8](repeating: 0, count: length)
         let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
         if errorCode != errSecSuccess {
-            fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
+            throw AuthError.nonceGenerationFailed(errorCode)
         }
 
         let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
@@ -178,6 +179,7 @@ extension AppleSignInService {
         case invalidCredentials
         case noIdentityToken
         case noNonce
+        case nonceGenerationFailed(OSStatus)
         case userCanceled
         case failed(String)
         case invalidResponse
@@ -193,6 +195,8 @@ extension AppleSignInService {
                 return "No identity token received from Apple."
             case .noNonce:
                 return "Security nonce was not generated."
+            case .nonceGenerationFailed:
+                return "A secure sign-in request could not be created."
             case .userCanceled:
                 return "Sign in was canceled."
             case .failed(let message):

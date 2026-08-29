@@ -46,31 +46,45 @@ echo "Using Doppler config: ${DOPPLER_CONFIG}"
 echo "Project root: ${PROJECT_ROOT}"
 echo "Secrets file: ${SECRETS_PLIST}"
 
-# Fetch secrets from Doppler and create a plist
+# Only values intended for a public mobile client may enter the app bundle.
+# Server credentials and App Store Connect credentials stay in Doppler.
+CLIENT_CONFIG_KEYS=(
+    "GOOGLE_MAPS_API_KEY"
+    "NEXT_PUBLIC_POSTHOG_HOST"
+    "NEXT_PUBLIC_POSTHOG_KEY"
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    "NEXT_PUBLIC_SUPABASE_URL"
+)
+CLIENT_CONFIG_KEYS_JSON="$(printf '%s\n' "${CLIENT_CONFIG_KEYS[@]}" | /usr/bin/python3 -c 'import json, sys; print(json.dumps([line.strip() for line in sys.stdin if line.strip()]))')"
+
+# Fetch the client configuration from Doppler and create a plist.
 echo "Fetching secrets from Doppler..."
 "${DOPPLER_BIN}" secrets download \
     --project vinho \
     --no-file \
     --format json \
     --config "${DOPPLER_CONFIG}" | \
-    /usr/bin/python3 -c "
+    CLIENT_CONFIG_KEYS_JSON="${CLIENT_CONFIG_KEYS_JSON}" /usr/bin/python3 -c "
 import json
 import sys
 import plistlib
 import os
 
-# Read JSON from stdin
 data = json.load(sys.stdin)
+allowed_keys = json.loads(os.environ['CLIENT_CONFIG_KEYS_JSON'])
+missing_keys = [key for key in allowed_keys if not data.get(key)]
+if missing_keys:
+    raise SystemExit(f'Missing required iOS client configuration: {\", \".join(missing_keys)}')
 
-# Ensure the directory exists
+client_config = {key: data[key] for key in allowed_keys}
+
 plist_path = '${SECRETS_PLIST}'
 os.makedirs(os.path.dirname(plist_path), exist_ok=True)
 
-# Convert to plist format
 with open(plist_path, 'wb') as f:
-    plistlib.dump(data, f)
+    plistlib.dump(client_config, f)
 
-print(f'Successfully created {len(data)} secrets in plist at {plist_path}')
+print(f'Successfully created {len(client_config)} client settings in plist at {plist_path}')
 "
 
 echo "Doppler secrets fetched successfully"

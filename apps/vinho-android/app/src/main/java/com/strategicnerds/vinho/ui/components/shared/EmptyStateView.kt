@@ -22,10 +22,10 @@ import androidx.compose.ui.unit.dp
 fun EmptyStateView(
     icon: ImageVector,
     title: String,
+    modifier: Modifier = Modifier,
     message: String? = null,
     actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onAction: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier

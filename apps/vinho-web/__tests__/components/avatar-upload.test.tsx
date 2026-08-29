@@ -93,7 +93,7 @@ describe("AvatarUpload Component", () => {
   it("validates file type on upload", async () => {
     render(<AvatarUpload {...defaultProps} />);
 
-    const fileInput = screen.getByRole("button", { name: /upload avatar/i });
+    screen.getByRole("button", { name: /upload avatar/i });
     const hiddenInput = document.querySelector(
       'input[type="file"]',
     ) as HTMLInputElement;

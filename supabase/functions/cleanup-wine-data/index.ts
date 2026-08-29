@@ -4,10 +4,12 @@ import {
   verifyAdminRequest,
   handleCorsPreFlight,
   getCorsHeaders,
+  getServiceRoleKey,
 } from "../../shared/security.ts";
+import { getErrorMessage } from "../../shared/errors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
+const VINHO_SERVICE_ROLE_KEY = getServiceRoleKey();
 
 const supabase = createClient(SUPABASE_URL, VINHO_SERVICE_ROLE_KEY);
 
@@ -258,7 +260,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("Error in cleanup-wine-data:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: getErrorMessage(error) }), {
       status: 500,
       headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
     });

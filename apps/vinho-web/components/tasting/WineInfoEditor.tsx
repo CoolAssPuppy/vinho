@@ -199,7 +199,6 @@ export function WineInfoEditor({
       <WineDetailsEditor
         wineData={wineData}
         vintageId={vintageId}
-        currentDescription={currentDescription}
         editedProducerName={editedProducerName}
         editedWineName={editedWineName}
         onDescriptionChange={handleDescriptionChangeFromAI}

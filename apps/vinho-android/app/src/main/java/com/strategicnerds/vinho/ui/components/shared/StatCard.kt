@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.strategicnerds.vinho.ui.theme.VinhoTextStyles
+import java.util.Locale
 
 @Composable
 fun StatCard(
@@ -148,7 +149,7 @@ fun QuickStats(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = String.format("%.1f", rating),
+                        text = String.format(Locale.getDefault(), "%.1f", rating),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -195,8 +196,8 @@ fun QuickStats(
 
 private fun formatCount(count: Int): String {
     return when {
-        count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
-        count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+        count >= 1_000_000 -> String.format(Locale.getDefault(), "%.1fM", count / 1_000_000.0)
+        count >= 1_000 -> String.format(Locale.getDefault(), "%.1fK", count / 1_000.0)
         else -> count.toString()
     }
 }

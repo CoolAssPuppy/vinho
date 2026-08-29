@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import java.util.Locale
 
 enum class HeaderSize {
     Small, Medium, Large
@@ -216,7 +217,7 @@ fun CompactWineHeader(
                     modifier = Modifier.size(12.dp)
                 )
                 Text(
-                    text = String.format("%.1f", rating),
+                    text = String.format(Locale.getDefault(), "%.1f", rating),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

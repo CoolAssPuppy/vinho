@@ -13,6 +13,13 @@ const SUPABASE_SERVICE_ROLE_KEY =
 const TEST_USER_EMAIL = 'test@vinho.app'
 const TEST_USER_PASSWORD = 'testpassword123'
 const TEST_USER_ID = '00000000-0000-0000-0000-000000000001'
+const SUPABASE_TEST_OPTIONS = {
+  auth: {
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+    persistSession: false,
+  },
+} as const
 
 type CreateAnonClientResult = {
   client: SupabaseClient
@@ -24,18 +31,16 @@ type CreateAuthenticatedClientResult = {
 }
 
 const createAnonClient = (): CreateAnonClientResult => {
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS)
   return { client }
 }
 
 const createServiceRoleClient = (): SupabaseClient => {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_TEST_OPTIONS)
 }
 
 const createAuthenticatedClient = async (): Promise<CreateAuthenticatedClientResult> => {
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS)
   const { error } = await client.auth.signInWithPassword({
     email: TEST_USER_EMAIL,
     password: TEST_USER_PASSWORD,
@@ -90,6 +95,7 @@ const waitForQueueCompletion = async (
 export {
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
+  SUPABASE_TEST_OPTIONS,
   TEST_USER_EMAIL,
   TEST_USER_ID,
   TEST_USER_PASSWORD,

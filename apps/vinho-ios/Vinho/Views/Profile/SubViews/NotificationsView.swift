@@ -94,43 +94,6 @@ struct NotificationsView: View {
                             .fill(Color.vinoDarkSecondary)
                     )
 
-                    // Quiet Hours
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Quiet Hours")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.vinoText)
-
-                        HStack {
-                            Image(systemName: "moon.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.vinoAccent)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Do Not Disturb")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.vinoText)
-                                Text("No notifications from 10 PM - 8 AM")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.vinoTextSecondary)
-                            }
-
-                            Spacer()
-
-                            Text("Configure")
-                                .font(.system(size: 14))
-                                .foregroundColor(.vinoAccent)
-                        }
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.vinoDark)
-                        )
-                    }
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.vinoDarkSecondary)
-                    )
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 20)

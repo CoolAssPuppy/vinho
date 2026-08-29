@@ -1,7 +1,7 @@
 package com.strategicnerds.vinho.ui.screens.profile
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Gavel
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -54,17 +56,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.strategicnerds.vinho.data.model.WineStats
 import com.strategicnerds.vinho.ui.state.SessionUiState
 
 @Composable
 fun ProfileSheet(
     sessionState: SessionUiState,
+    stats: WineStats?,
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit,
     onToggleBiometrics: (Boolean) -> Unit,
     onEditProfile: () -> Unit = {},
+    onManageWinePreferences: () -> Unit = {},
     onManageSharing: () -> Unit = {},
-    onManageNotifications: () -> Unit = {}
+    onManageNotifications: () -> Unit = {},
+    onImportVivino: () -> Unit = {},
+    onExportData: () -> Unit = {},
+    onAbout: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -86,21 +94,27 @@ fun ProfileSheet(
                 onEditClick = onEditProfile
             )
 
+            ProfileStats(stats)
+
             SettingsSection(
                 biometricsEnabled = sessionState.preferences.biometricsEnabled,
                 onToggleBiometrics = onToggleBiometrics,
                 onManageSharing = onManageSharing,
                 onManageNotifications = onManageNotifications,
+                onManageWinePreferences = onManageWinePreferences,
+                onImportVivino = onImportVivino,
+                onExportData = onExportData,
+                onAbout = onAbout,
                 onRateApp = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.strategicnerds.vinho"))
+                    val intent = Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=com.strategicnerds.vinho".toUri())
                     context.startActivity(intent)
                 },
                 onTerms = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.strategicnerds.com/terms"))
+                    val intent = Intent(Intent.ACTION_VIEW, "https://www.strategicnerds.com/terms".toUri())
                     context.startActivity(intent)
                 },
                 onPrivacy = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.strategicnerds.com/privacy"))
+                    val intent = Intent(Intent.ACTION_VIEW, "https://www.strategicnerds.com/privacy".toUri())
                     context.startActivity(intent)
                 }
             )
@@ -112,6 +126,34 @@ fun ProfileSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun ProfileStats(stats: WineStats?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ProfileStat(stats?.uniqueWines ?: 0, "Unique Wines")
+            ProfileStat(stats?.totalTastings ?: 0, "Notes")
+            ProfileStat(stats?.uniqueRegions ?: 0, "Regions")
+        }
+    }
+}
+
+@Composable
+private fun ProfileStat(value: Int, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -215,7 +257,11 @@ private fun SettingsSection(
     biometricsEnabled: Boolean,
     onToggleBiometrics: (Boolean) -> Unit,
     onManageNotifications: () -> Unit = {},
+    onManageWinePreferences: () -> Unit = {},
     onManageSharing: () -> Unit = {},
+    onImportVivino: () -> Unit = {},
+    onExportData: () -> Unit = {},
+    onAbout: () -> Unit = {},
     onRateApp: () -> Unit = {},
     onTerms: () -> Unit = {},
     onPrivacy: () -> Unit = {}
@@ -236,6 +282,22 @@ private fun SettingsSection(
                         onCheckedChange = onToggleBiometrics
                     )
                 }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsRow(
+                icon = Icons.Rounded.Star,
+                title = "Wine Preferences",
+                subtitle = "Choose regions, grapes, styles, and prices",
+                trailing = {
+                    Icon(
+                        Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                },
+                onClick = onManageWinePreferences
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -268,6 +330,30 @@ private fun SettingsSection(
                     )
                 },
                 onClick = onManageSharing
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsRow(
+                icon = Icons.Rounded.UploadFile,
+                title = "Import from Vivino",
+                subtitle = "Bring your Vivino export into Vinho",
+                trailing = {
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                },
+                onClick = onImportVivino
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsRow(
+                icon = Icons.Rounded.Download,
+                title = "Download My Data",
+                subtitle = "Export your Vinho data as JSON",
+                trailing = {
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                },
+                onClick = onExportData
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -322,8 +408,8 @@ private fun SettingsSection(
 
             SettingsRow(
                 icon = Icons.Rounded.Info,
-                title = "About",
-                subtitle = "Version 1.0.0",
+                title = "About Vinho",
+                subtitle = "Version and contact information",
                 trailing = {
                     Icon(
                         Icons.Rounded.ChevronRight,
@@ -331,7 +417,7 @@ private fun SettingsSection(
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 },
-                onClick = { }
+                onClick = onAbout
             )
         }
     }

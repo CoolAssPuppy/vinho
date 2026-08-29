@@ -71,9 +71,7 @@ struct WineHeroSection: View {
 
 /// Custom navigation bar overlay for wine detail view
 struct WineDetailNavigationBar: View {
-    let isFavorite: Bool
     let onBack: () -> Void
-    let onFavoriteToggle: () -> Void
 
     var body: some View {
         HStack {
@@ -85,23 +83,7 @@ struct WineDetailNavigationBar: View {
                     .foregroundStyle(.white, Color.black.opacity(0.3))
                     .background(Circle().fill(Color.black.opacity(0.2)))
             }
-
             Spacer()
-
-            Button {
-                onFavoriteToggle()
-            } label: {
-                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .font(.system(size: 28))
-                    .foregroundColor(isFavorite ? .vinoError : .white)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.2))
-                            .frame(width: 44, height: 44)
-                    )
-            }
-            .scaleEffect(isFavorite ? 1.2 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isFavorite)
         }
         .padding(.horizontal, 20)
         .padding(.top, 50)

@@ -46,8 +46,12 @@ import com.strategicnerds.vinho.ui.screens.journal.TastingDetailScreen
 import com.strategicnerds.vinho.ui.screens.journal.TastingEditorScreen
 import com.strategicnerds.vinho.ui.screens.map.MapScreen
 import com.strategicnerds.vinho.ui.screens.profile.NotificationsScreen
+import com.strategicnerds.vinho.ui.screens.profile.AboutScreen
+import com.strategicnerds.vinho.ui.screens.profile.DataExportScreen
 import com.strategicnerds.vinho.ui.screens.profile.ProfileEditScreen
 import com.strategicnerds.vinho.ui.screens.profile.ProfileSheet
+import com.strategicnerds.vinho.ui.screens.profile.VivinoImportScreen
+import com.strategicnerds.vinho.ui.screens.profile.WinePreferencesScreen
 import com.strategicnerds.vinho.ui.screens.scanner.ScannerSheet
 import com.strategicnerds.vinho.ui.screens.sharing.SharingScreen
 import com.strategicnerds.vinho.ui.screens.wines.WineDetailScreen
@@ -62,6 +66,7 @@ fun HomeScreen(
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit,
     onToggleBiometrics: (Boolean) -> Unit,
+    onProfileUpdated: () -> Unit,
     homeViewModel: HomeViewModel = hiltViewModel(),
     scannerViewModel: ScannerViewModel = hiltViewModel(),
     suggestionsViewModel: SuggestionsViewModel = hiltViewModel()
@@ -83,6 +88,10 @@ fun HomeScreen(
     var selectedWineId by remember { mutableStateOf<String?>(null) }
     var showSharing by remember { mutableStateOf(false) }
     var showNotifications by remember { mutableStateOf(false) }
+    var showWinePreferences by remember { mutableStateOf(false) }
+    var showVivinoImport by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
+    var showDataExport by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessionState.userProfile?.id) {
         sessionState.userProfile?.id?.let { homeViewModel.load(it) }
@@ -156,6 +165,7 @@ fun HomeScreen(
         ) {
             ProfileSheet(
                 sessionState = sessionState,
+                stats = homeState.stats,
                 onSignOut = {
                     showProfile = false
                     onSignOut()
@@ -176,6 +186,22 @@ fun HomeScreen(
                 onManageNotifications = {
                     showProfile = false
                     showNotifications = true
+                },
+                onManageWinePreferences = {
+                    showProfile = false
+                    showWinePreferences = true
+                },
+                onImportVivino = {
+                    showProfile = false
+                    showVivinoImport = true
+                },
+                onAbout = {
+                    showProfile = false
+                    showAbout = true
+                },
+                onExportData = {
+                    showProfile = false
+                    showDataExport = true
                 }
             )
         }
@@ -201,6 +227,45 @@ fun HomeScreen(
             NotificationsScreen(
                 onDismiss = { showNotifications = false }
             )
+        }
+    }
+
+    if (showWinePreferences) {
+        ModalBottomSheet(
+            onDismissRequest = { showWinePreferences = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            WinePreferencesScreen(
+                userId = sessionState.userProfile?.id.orEmpty(),
+                onDismiss = { showWinePreferences = false }
+            )
+        }
+    }
+
+    if (showVivinoImport) {
+        ModalBottomSheet(
+            onDismissRequest = { showVivinoImport = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            VivinoImportScreen(onDismiss = { showVivinoImport = false })
+        }
+    }
+
+    if (showAbout) {
+        ModalBottomSheet(
+            onDismissRequest = { showAbout = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            AboutScreen(onDismiss = { showAbout = false })
+        }
+    }
+
+    if (showDataExport) {
+        ModalBottomSheet(
+            onDismissRequest = { showDataExport = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            DataExportScreen(onDismiss = { showDataExport = false })
         }
     }
 
@@ -331,7 +396,7 @@ fun HomeScreen(
                 onDismiss = { showProfileEdit = false },
                 onSaved = {
                     showProfileEdit = false
-                    // Refresh session to pick up profile changes
+                    onProfileUpdated()
                 }
             )
         }

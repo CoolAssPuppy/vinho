@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.strategicnerds.vinho.core.analytics.AnalyticsService
 import com.strategicnerds.vinho.data.model.UserProfile
+import com.strategicnerds.vinho.data.model.PriceRange
+import com.strategicnerds.vinho.data.model.WinePreferences
 import com.strategicnerds.vinho.data.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
@@ -25,6 +27,12 @@ data class ProfileEditState(
     val description: String = "",
     val avatarUrl: String? = null,
     val tastingNoteStyle: String = "casual",
+    val selectedWineTypes: Set<String> = emptySet(),
+    val selectedRegions: Set<String> = emptySet(),
+    val selectedVarietals: Set<String> = emptySet(),
+    val selectedStyles: Set<String> = emptySet(),
+    val minimumPrice: Int = 20,
+    val maximumPrice: Int = 100,
     val error: String? = null,
     val saveSuccess: Boolean = false
 )
@@ -53,7 +61,13 @@ class ProfileViewModel @Inject constructor(
                         lastName = it.lastName ?: "",
                         description = it.description ?: "",
                         avatarUrl = it.avatarUrl,
-                        tastingNoteStyle = it.tastingNoteStyle ?: "casual"
+                        tastingNoteStyle = it.tastingNoteStyle ?: "casual",
+                        selectedWineTypes = it.winePreferences?.wineTypes.orEmpty().toSet(),
+                        selectedRegions = it.favoriteRegions.orEmpty().toSet(),
+                        selectedVarietals = it.favoriteVarietals.orEmpty().toSet(),
+                        selectedStyles = it.favoriteStyles.orEmpty().toSet(),
+                        minimumPrice = it.priceRange?.low ?: 20,
+                        maximumPrice = it.priceRange?.high ?: 100
                     )
                 }
             }.onFailure { throwable ->
@@ -76,6 +90,30 @@ class ProfileViewModel @Inject constructor(
 
     fun setTastingNoteStyle(style: String) {
         _uiState.value = _uiState.value.copy(tastingNoteStyle = style)
+    }
+
+    fun toggleWineType(value: String) = updateSelection(value, ProfileSelection.WINE_TYPE)
+
+    fun toggleRegion(value: String) = updateSelection(value, ProfileSelection.REGION)
+
+    fun toggleVarietal(value: String) = updateSelection(value, ProfileSelection.VARIETAL)
+
+    fun toggleStyle(value: String) = updateSelection(value, ProfileSelection.STYLE)
+
+    fun addRegion(value: String) {
+        val region = value.trim()
+        if (region.isNotEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                selectedRegions = _uiState.value.selectedRegions + region
+            )
+        }
+    }
+
+    fun setPriceRange(minimum: Int, maximum: Int) {
+        _uiState.value = _uiState.value.copy(
+            minimumPrice = minimum.coerceAtMost(maximum - 10),
+            maximumPrice = maximum.coerceAtLeast(minimum + 10)
+        )
     }
 
     fun uploadAvatar(imageBytes: ByteArray, userId: String) {
@@ -112,11 +150,16 @@ class ProfileViewModel @Inject constructor(
                 description = state.description.takeIf { it.isNotBlank() },
                 avatarUrl = state.avatarUrl,
                 tastingNoteStyle = state.tastingNoteStyle,
-                winePreferences = state.profile?.winePreferences,
-                favoriteRegions = state.profile?.favoriteRegions,
-                favoriteVarietals = state.profile?.favoriteVarietals,
-                favoriteStyles = state.profile?.favoriteStyles,
-                priceRange = state.profile?.priceRange
+                winePreferences = WinePreferences(
+                    wineTypes = state.selectedWineTypes.sorted(),
+                    priceRange = listOf(state.minimumPrice, state.maximumPrice),
+                    collectBottles = state.profile?.winePreferences?.collectBottles,
+                    tastingNoteStyle = state.tastingNoteStyle
+                ),
+                favoriteRegions = state.selectedRegions.sorted(),
+                favoriteVarietals = state.selectedVarietals.sorted(),
+                favoriteStyles = state.selectedStyles.sorted(),
+                priceRange = PriceRange(state.minimumPrice, state.maximumPrice)
             )
 
             runCatching {
@@ -137,4 +180,24 @@ class ProfileViewModel @Inject constructor(
     fun resetSaveSuccess() {
         _uiState.value = _uiState.value.copy(saveSuccess = false)
     }
+
+    private fun updateSelection(value: String, selection: ProfileSelection) {
+        val state = _uiState.value
+        fun Set<String>.toggled(): Set<String> =
+            if (contains(value)) minus(value) else plus(value)
+
+        _uiState.value = when (selection) {
+            ProfileSelection.WINE_TYPE -> state.copy(selectedWineTypes = state.selectedWineTypes.toggled())
+            ProfileSelection.REGION -> state.copy(selectedRegions = state.selectedRegions.toggled())
+            ProfileSelection.VARIETAL -> state.copy(selectedVarietals = state.selectedVarietals.toggled())
+            ProfileSelection.STYLE -> state.copy(selectedStyles = state.selectedStyles.toggled())
+        }
+    }
+}
+
+private enum class ProfileSelection {
+    WINE_TYPE,
+    REGION,
+    VARIETAL,
+    STYLE
 }

@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { createClient } from '@supabase/supabase-js';
-import { AI_PROMPTS, getPrompt } from '../../../../supabase/shared/ai-prompts-library';
+import { getPrompt } from '../../../../supabase/shared/ai-prompts-library';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
+});
 
 describe('Grape Varietal Extraction', () => {
   let testUserId: string;

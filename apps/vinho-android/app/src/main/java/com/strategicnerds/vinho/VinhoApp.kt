@@ -31,7 +31,8 @@ fun VinhoApp(
             sessionState = sessionState,
             onSignOut = { sessionViewModel.signOut() },
             onDeleteAccount = { sessionViewModel.deleteAccount() },
-            onToggleBiometrics = { enabled -> sessionViewModel.toggleBiometrics(enabled) }
+            onToggleBiometrics = { enabled -> sessionViewModel.toggleBiometrics(enabled) },
+            onProfileUpdated = { sessionViewModel.refreshSession() }
         )
 
         else -> AuthScreen(

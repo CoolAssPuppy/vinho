@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import L from "leaflet";
 import { useMountEffect } from "@/hooks/use-mount-effect";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
@@ -68,7 +68,7 @@ function useMapBoundsListener(
     }
   }, [map, onBoundsChange]);
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (!map || !onBoundsChange) return;
 
     map.on("moveend", savedCallback);
@@ -78,7 +78,7 @@ function useMapBoundsListener(
       map.off("moveend", savedCallback);
       map.off("zoomend", savedCallback);
     };
-  }, [map, onBoundsChange, savedCallback]);
+  });
 }
 
 // Custom wine marker icon

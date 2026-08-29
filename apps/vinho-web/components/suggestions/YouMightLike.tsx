@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Loader2, Sparkles, Wine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 
 interface SimilarWine {
   wine_id: string;
@@ -20,7 +21,7 @@ interface SimilarWine {
 
 type RecommendationType = "personalized" | "your_favorites" | "none";
 
-function useWineSuggestions(hasTastings: boolean) {
+function useWineSuggestions() {
   const [wines, setWines] = useState<SimilarWine[]>([]);
   const [recommendationType, setRecommendationType] = useState<RecommendationType>("none");
   const [isLoading, setIsLoading] = useState(false);
@@ -28,8 +29,6 @@ function useWineSuggestions(hasTastings: boolean) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSimilarWines = useCallback(async () => {
-    if (!hasTastings) return;
-
     setIsLoading(true);
     setError(null);
 
@@ -50,13 +49,11 @@ function useWineSuggestions(hasTastings: boolean) {
     } finally {
       setIsLoading(false);
     }
-  }, [hasTastings]);
+  }, []);
 
-  useEffect(() => {
-    if (hasTastings && !hasLoaded) {
-      fetchSimilarWines();
-    }
-  }, [hasTastings, hasLoaded, fetchSimilarWines]);
+  useMountEffect(() => {
+    void fetchSimilarWines();
+  });
 
   return { wines, recommendationType, isLoading, hasLoaded, error, fetchSimilarWines };
 }
@@ -66,12 +63,13 @@ interface YouMightLikeProps {
 }
 
 export function YouMightLike({ hasTastings }: YouMightLikeProps) {
-  const { wines, recommendationType, isLoading, hasLoaded, error, fetchSimilarWines } =
-    useWineSuggestions(hasTastings);
+  if (!hasTastings) return null;
+  return <WineSuggestions />;
+}
 
-  if (!hasTastings) {
-    return null;
-  }
+function WineSuggestions() {
+  const { wines, recommendationType, isLoading, hasLoaded, error, fetchSimilarWines } =
+    useWineSuggestions();
 
   const sectionTitle = "Suggestions";
 

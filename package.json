@@ -14,6 +14,7 @@
     "build": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next build",
     "start": "doppler run -p vinho -c dev -- pnpm --filter vinho-web exec next start",
     "lint": "pnpm --filter vinho-web run lint",
+    "test:mobile-parity": "bash scripts/tests/mobile-parity.test.sh",
     "doctor": "node scripts/doctor.mjs",
     "supa:push": "supabase db push",
     "supa:types": "supabase gen types typescript --local 2>/dev/null > apps/vinho-web/lib/database.types.ts",
@@ -23,21 +24,21 @@
     "simulate:doppler": "doppler run -p vinho -c dev -- pnpm --filter vinho-web run simulate:process"
   },
   "devDependencies": {
-    "@types/node": "^22.5.1",
-    "dotenv": "^17.2.2",
-    "eslint": "^9.9.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.29.1",
-    "eslint-plugin-promise": "^6.4.0",
-    "eslint-plugin-unused-imports": "^4.0.0",
-    "husky": "^9.1.5",
+    "@types/node": "^22.20.1",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-promise": "^6.6.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "husky": "^9.1.7",
     "json": "^11.0.0",
-    "lint-staged": "^15.2.10",
-    "prettier": "^3.3.3",
-    "tsx": "^4.20.6",
-    "turbo": "^2.0.6",
-    "typescript": "^5.6.2",
-    "zx": "^8.1.4"
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
+    "turbo": "^2.10.12",
+    "typescript": "^5.9.3",
+    "zx": "^8.8.5"
   },
   "lint-staged": {
     "**/*.{ts,tsx,js,jsx,css,md,json}": [

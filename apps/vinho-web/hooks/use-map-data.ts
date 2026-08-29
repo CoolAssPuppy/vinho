@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import type { WineLocation, RecentWine, WineStats } from "@/lib/types/shared";
 
 type MapView = "origins" | "tastings";
@@ -14,19 +14,17 @@ interface MapBounds {
 
 interface UseMapDataOptions {
   mapView: MapView;
-  mapBounds: MapBounds | null;
 }
 
-export function useMapData({ mapView, mapBounds }: UseMapDataOptions) {
+export function useMapData({ mapView }: UseMapDataOptions) {
   const [wines, setWines] = useState<WineLocation[]>([]);
   const [recentWines, setRecentWines] = useState<RecentWine[]>([]);
   const [stats, setStats] = useState<WineStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasWines, setHasWines] = useState(false);
-  const debouncedBounds = useDebounce(mapBounds, 500);
   const hasInitialLoad = useRef(false);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -120,7 +118,7 @@ export function useMapData({ mapView, mapBounds }: UseMapDataOptions) {
   }, [supabase]);
 
   const fetchWinesInBounds = useCallback(
-    async (bounds: MapBounds | null) => {
+    async (bounds: MapBounds | null, selectedView: MapView = mapView) => {
       try {
         const {
           data: { user },
@@ -203,11 +201,11 @@ export function useMapData({ mapView, mapBounds }: UseMapDataOptions) {
               country,
               year: tasting.vintage.year,
               varietals: [],
-              latitude: mapView === "origins" ? originLat : tastingLat,
-              longitude: mapView === "origins" ? originLng : tastingLng,
+              latitude: selectedView === "origins" ? originLat : tastingLat,
+              longitude: selectedView === "origins" ? originLng : tastingLng,
               vineyard_name: null,
               tasted_location:
-                mapView === "tastings"
+                selectedView === "tastings"
                   ? tasting.location_name || tasting.location_city || null
                   : null,
               tasted_date: tasting.tasted_at
@@ -249,26 +247,13 @@ export function useMapData({ mapView, mapBounds }: UseMapDataOptions) {
     [supabase, mapView],
   );
 
-  // Initial load
-  useEffect(() => {
-    fetchWinesInBounds(null);
-    fetchStats();
-    fetchRecentWines();
-  }, [fetchWinesInBounds, fetchStats, fetchRecentWines]);
-
-  // Handle bounds changes
-  useEffect(() => {
-    if (debouncedBounds && hasInitialLoad.current) {
-      fetchWinesInBounds(debouncedBounds);
-    }
-  }, [debouncedBounds, fetchWinesInBounds]);
-
-  // Handle view mode changes
-  useEffect(() => {
-    if (hasInitialLoad.current) {
-      fetchWinesInBounds(mapBounds);
-    }
-  }, [mapView, mapBounds, fetchWinesInBounds]);
+  useMountEffect(() => {
+    void Promise.all([
+      fetchWinesInBounds(null),
+      fetchStats(),
+      fetchRecentWines(),
+    ]);
+  });
 
   return {
     wines,
@@ -276,7 +261,6 @@ export function useMapData({ mapView, mapBounds }: UseMapDataOptions) {
     stats,
     loading,
     hasWines,
-    debouncedBounds,
     fetchWinesInBounds,
     fetchStats,
     fetchRecentWines,

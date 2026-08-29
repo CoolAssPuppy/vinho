@@ -1,7 +1,7 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { useUser, UserProvider } from "@/components/providers/user-provider";
 import { createClient } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 
 // UserProvider builds its client via createClient() from "@/lib/supabase".
 jest.mock("@/lib/supabase", () => ({
@@ -245,7 +245,7 @@ describe("UserProvider", () => {
   });
 
   it("handles auth state changes", async () => {
-    let authStateCallback: (event: string, session: any) => void = () => {};
+    let authStateCallback: (event: string, session: Session | null) => void = () => {};
 
     mockSupabaseClient.auth.getUser.mockResolvedValue({
       data: { user: null },
@@ -290,7 +290,7 @@ describe("UserProvider", () => {
   });
 
   it("handles sign out", async () => {
-    let authStateCallback: (event: string, session: any) => void = () => {};
+    let authStateCallback: (event: string, session: Session | null) => void = () => {};
 
     mockSupabaseClient.auth.getUser.mockResolvedValue({
       data: { user: mockUser },

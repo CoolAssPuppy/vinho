@@ -21,6 +21,15 @@ private const val TAG = "SharingRepository"
 private data class InviteBody(@SerialName("viewer_email") val viewerEmail: String)
 
 @Serializable
+private data class AcceptInviteBody(val code: String)
+
+@Serializable
+data class AcceptInviteResult(
+    val success: Boolean = false,
+    val error: String? = null,
+)
+
+@Serializable
 data class InviteResult(
     val success: Boolean = false,
     val message: String? = null,
@@ -83,6 +92,18 @@ class SharingRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send invitation: ${e.message}", e)
             InviteResult(success = false, error = e.message ?: "Failed to send invitation")
+        }
+    }
+
+    suspend fun acceptInviteByCode(code: String): AcceptInviteResult {
+        return try {
+            val response = client.functions.invoke("accept-invite") {
+                setBody(AcceptInviteBody(code))
+            }
+            response.body()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to accept invite link: ${e.message}", e)
+            AcceptInviteResult(error = e.message ?: "Failed to accept invitation")
         }
     }
 

@@ -135,7 +135,7 @@ describe("Edge Function Rate Limiting", () => {
   const invokeWithRateLimit = async (
     functionName: string,
     maxRetries = 3,
-  ): Promise<{ success: boolean; data?: any; error?: string }> => {
+  ): Promise<{ success: boolean; data?: unknown; error?: string }> => {
     let attempts = 0;
 
     while (attempts < maxRetries) {

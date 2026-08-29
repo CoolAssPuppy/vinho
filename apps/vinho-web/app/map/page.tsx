@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Wine,
   MapPin,
@@ -36,6 +36,7 @@ import {
 import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DialogContentNoX } from "@/components/ui/dialog-no-x";
 import { TastingNoteForm } from "@/components/tasting/TastingNoteForm";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 
 // Dynamically import map component to avoid SSR issues with Leaflet
 const WineMap = dynamic(() => import("@/components/map/WineMap"), {
@@ -60,6 +61,7 @@ export default function MapPage() {
     null,
   );
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const supabase = createClient();
 
@@ -69,11 +71,10 @@ export default function MapPage() {
     stats,
     loading,
     hasWines,
-    debouncedBounds,
     fetchWinesInBounds,
     fetchStats,
     fetchRecentWines,
-  } = useMapData({ mapView, mapBounds });
+  } = useMapData({ mapView });
 
   // Handle map bounds update
   const handleBoundsChange = useCallback((newBounds: {
@@ -83,7 +84,22 @@ export default function MapPage() {
     west: number;
   }) => {
     setMapBounds(newBounds);
-  }, []);
+    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+    boundsTimerRef.current = setTimeout(
+      () => void fetchWinesInBounds(newBounds),
+      500,
+    );
+  }, [fetchWinesInBounds]);
+
+  useMountEffect(() => () => {
+    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+  });
+
+  const handleToggleMapView = useCallback(() => {
+    const nextView = mapView === "origins" ? "tastings" : "origins";
+    setMapView(nextView);
+    void fetchWinesInBounds(mapBounds, nextView);
+  }, [fetchWinesInBounds, mapBounds, mapView]);
 
   // Handle manual refresh
   const handleRefresh = useCallback(async () => {
@@ -167,9 +183,7 @@ export default function MapPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() =>
-              setMapView(mapView === "origins" ? "tastings" : "origins")
-            }
+            onClick={handleToggleMapView}
             className="gap-2"
           >
             {mapView === "origins" ? (
@@ -363,7 +377,7 @@ export default function MapPage() {
                     setIsEditDialogOpen(false);
                     // Refresh the data
                     await fetchRecentWines();
-                    await fetchWinesInBounds(debouncedBounds);
+                    await fetchWinesInBounds(mapBounds);
                   }
                 }
               }}

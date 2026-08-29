@@ -51,6 +51,9 @@ jest.mock("@/lib/supabase", () => ({
   })),
 }));
 
-// Mock environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+// Unit tests use harmless placeholders. Integration tests receive credentials
+// from the local Supabase stack and must keep those values intact.
+if (process.env.RUN_INTEGRATION !== "1") {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+}

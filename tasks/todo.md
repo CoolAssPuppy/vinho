@@ -1,4 +1,30 @@
-# Vinho performance, readability, and documentation
+# Vinho store release
+
+- [x] Read repository and release instructions
+- [x] Audit iOS, Android, signing, and release automation
+- [x] Add release-gate tests for Android signing and store requirements
+- [x] Fix Android lint and compiler warnings
+- [x] Configure Vinho Android signing in Doppler
+- [x] Build and test web, iOS, and Android release targets
+- [x] Audit App Store Connect metadata and build state
+- [ ] Create or finish the Google Play app record
+- [ ] Upload verified iOS and Android builds
+- [ ] Complete store metadata, screenshots, declarations, and review submission
+- [ ] Record build numbers, release states, and any store review wait
+
+## Review
+
+Version 1.0.5 build 8 passes web, integration, database, iOS, Android,
+release-build, and mobile-parity checks. The production queue repair and edge
+functions are deployed. Store tester rollout is in progress.
+
+## Backlog
+
+- [ ] Add persistent wine favorites backed by per-user database records and RLS policies
+- [ ] Add a Favorites list on iOS, Android, and web with matching search, sorting, empty, loading, and error states
+- [ ] Add behavior tests and extend the mobile parity contract for favorite, unfavorite, and Favorites-list flows
+
+# Archived Vinho performance, readability, and documentation
 
 > Archived: this plan was completed on 2026-02-12. All items below are done.
 > It is kept for history. Active tech-debt work lives in `tech-debt-audit.md`.

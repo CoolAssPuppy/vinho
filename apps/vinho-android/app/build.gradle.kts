@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("org.jetbrains.kotlin.plugin.serialization")
-    kotlin("kapt")
+    id("com.google.devtools.ksp")
     // Google Play publishing (Triple-T). Drives release-android.sh's
     // :app:publishReleaseBundle. Inert unless play-service-account.json exists.
     id("com.github.triplet.play") version "3.12.1"
@@ -33,14 +33,14 @@ val hasReleaseKeystore = releaseStoreFile.isNotBlank() && file(releaseStoreFile)
 
 android {
     namespace = "com.strategicnerds.vinho"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.strategicnerds.vinho"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        targetSdk = 36
+        versionCode = 8
+        versionName = "1.0.5"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localSecret("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localSecret("SUPABASE_ANON_KEY")}\"")
@@ -73,12 +73,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Sign with the release keystore when it's available (release-android.sh
-            // syncs it from Doppler); otherwise fall back so local builds still run.
-            signingConfig = if (hasReleaseKeystore) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
         debug {
@@ -99,7 +95,6 @@ android {
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=kotlinx.serialization.ExperimentalSerializationApi",
-            "-opt-in=io.ktor.util.InternalAPI",
             "-Xcontext-receivers"
         )
     }
@@ -114,12 +109,28 @@ android {
     }
 
     packaging {
+        jniLibs {
+            keepDebugSymbols += setOf(
+                "**/libandroidx.graphics.path.so",
+                "**/libdatastore_shared_counter.so",
+                "**/libimage_processing_util_jni.so"
+            )
+        }
         resources {
             excludes += setOf(
                 "/META-INF/{AL2.0,LGPL2.1}",
                 "META-INF/gradle/incremental.annotation.processors"
             )
         }
+    }
+
+    lint {
+        disable += setOf(
+            "AndroidGradlePluginVersion",
+            "GradleDependency",
+            "NewerVersionAvailable",
+            "Typos"
+        )
     }
 }
 
@@ -177,17 +188,13 @@ dependencies {
     implementation("androidx.camera:camera-view:$cameraxVersion")
 
     implementation("com.google.dagger:hilt-android:2.52")
-    kapt("com.google.dagger:hilt-compiler:2.52")
+    ksp("com.google.dagger:hilt-compiler:2.52")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-}
-
-kapt {
-    correctErrorTypes = true
 }
 
 // Google Play publishing (Triple-T). Uploads a signed AAB as a DRAFT to the

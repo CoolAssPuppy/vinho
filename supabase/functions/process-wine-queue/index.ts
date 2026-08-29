@@ -1,28 +1,43 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
-import { AI_PROMPTS, getPrompt } from "../../shared/ai-prompts-library.ts";
-import {
-  enrichWineWithAI,
-  storeGrapeVarietals,
-  updateWineWithEnrichment,
-  type WineData,
-  type WineEnrichmentData
-} from "../../shared/wine-enrichment.ts";
+import { getPrompt } from "../../shared/ai-prompts-library.ts";
 import {
   handleCorsPreFlight,
   getCorsHeaders,
+  getServiceRoleKey,
   isValidImageUrl,
 } from "../../shared/security.ts";
 import { MAX_QUEUE_RETRIES } from "../../shared/queue.ts";
+import { getErrorMessage } from "../../shared/errors.ts";
+
+interface EmbeddingOutput {
+  data: ArrayLike<number>;
+}
+
+declare const Supabase: {
+  ai: {
+    Session: new (model: string) => {
+      run: (
+        text: string,
+        options: { mean_pool: boolean; normalize: boolean },
+      ) => Promise<EmbeddingOutput>;
+    };
+  };
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
+const VINHO_SERVICE_ROLE_KEY = getServiceRoleKey();
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 const JINA_API_KEY = Deno.env.get("JINA_API_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, VINHO_SERVICE_ROLE_KEY);
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+function getOpenAIClient(): OpenAI {
+  if (!OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is required for wine processing");
+  }
+  return new OpenAI({ apiKey: OPENAI_API_KEY });
+}
 
 // Initialize Supabase's built-in embedding model for vector matching
 const embeddingModel = new Supabase.ai.Session("gte-small");
@@ -326,8 +341,12 @@ async function attemptVisualMatch(imageUrl: string): Promise<VisualMatchResult> 
         return { matched: false };
       }
 
+      const producer = Array.isArray(wine.producer)
+        ? wine.producer[0]
+        : wine.producer;
+
       console.log(
-        `Visual match found: ${(wine.producer as { name: string })?.name} - ${wine.name} ` +
+        `Visual match found: ${producer?.name} - ${wine.name} ` +
         `(${(bestMatch.similarity * 100).toFixed(1)}% similarity)`
       );
 
@@ -335,7 +354,7 @@ async function attemptVisualMatch(imageUrl: string): Promise<VisualMatchResult> 
         matched: true,
         wineId: wine.id,
         wineName: wine.name,
-        producerName: (wine.producer as { name: string })?.name,
+        producerName: producer?.name,
         similarity: bestMatch.similarity,
         vintageId: metadata.vintage_id,
       };
@@ -496,7 +515,7 @@ interface WineQueueItem {
   scan_id: string | null;
   retry_count: number;
   idempotency_key: string | null;
-  processed_data: any | null;
+  processed_data: ExtractedWineData | null;
   status: string;
 }
 
@@ -517,31 +536,25 @@ interface ExtractedWineData {
   longitude?: number | null;
 }
 
-// JSON Schema for OpenAI extraction
-const WINE_EXTRACTION_SCHEMA = {
-  type: "object",
-  properties: {
-    producer: { type: "string" },
-    wine_name: { type: "string" },
-    year: { type: ["integer", "null"] },
-    country: { type: ["string", "null"] },
-    region: { type: ["string", "null"] },
-    varietals: {
-      type: "array",
-      items: { type: "string" },
-    },
-    abv_percent: { type: ["number", "null"] },
-    confidence: { type: "number", minimum: 0, maximum: 1 },
-    producer_website: { type: ["string", "null"] },
-    producer_address: { type: ["string", "null"] },
-    producer_city: { type: ["string", "null"] },
-    producer_postal_code: { type: ["string", "null"] },
-    latitude: { type: ["number", "null"] },
-    longitude: { type: ["number", "null"] },
-  },
-  required: ["producer", "wine_name", "confidence"],
-  additionalProperties: false,
-};
+function optionalString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function optionalNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function parseVintage(value: unknown): number | null {
+  const candidate = typeof value === "number"
+    ? value
+    : typeof value === "string"
+      ? Number(value.match(/\b(19\d{2}|20\d{2})\b/)?.[1])
+      : Number.NaN;
+  const maximumYear = new Date().getUTCFullYear() + 1;
+  return Number.isInteger(candidate) && candidate >= 1900 && candidate <= maximumYear
+    ? candidate
+    : null;
+}
 
 // Compute SHA256 hash for idempotency
 async function computeIdempotencyKey(
@@ -575,6 +588,7 @@ async function enrichWineData(
   const enrichPrompt = prompts.user;
 
   try {
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -660,6 +674,7 @@ async function extractWithOpenAI(
   const systemPrompt = prompts.system;
   const userPrompt = prompts.user;
 
+  const openai = getOpenAIClient();
   const response = await openai.chat.completions.create({
     model,
     messages: [
@@ -680,30 +695,36 @@ async function extractWithOpenAI(
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("No response from OpenAI");
 
-  let parsed: any;
+  let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(content);
+    const candidate: unknown = JSON.parse(content);
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+      throw new Error("Expected an object");
+    }
+    parsed = candidate as Record<string, unknown>;
   } catch (parseError) {
     console.error("Failed to parse OpenAI response:", content);
-    throw new Error(`OpenAI returned invalid JSON: ${parseError.message}`);
+    throw new Error(`OpenAI returned invalid JSON: ${getErrorMessage(parseError)}`);
   }
 
   // Validate and provide defaults for missing required fields
   const extractedData: ExtractedWineData = {
-    producer: parsed.producer || "Unknown Producer",
-    wine_name: parsed.wine_name || "Unknown Wine",
-    year: parsed.year ?? null,
-    country: parsed.country ?? null,
-    region: parsed.region ?? null,
-    varietals: Array.isArray(parsed.varietals) ? parsed.varietals : [],
-    abv_percent: parsed.abv_percent ?? null,
+    producer: optionalString(parsed.producer) ?? "Unknown Producer",
+    wine_name: optionalString(parsed.wine_name) ?? "Unknown Wine",
+    year: parseVintage(parsed.year),
+    country: optionalString(parsed.country),
+    region: optionalString(parsed.region),
+    varietals: Array.isArray(parsed.varietals)
+      ? parsed.varietals.filter((value): value is string => typeof value === "string")
+      : [],
+    abv_percent: optionalNumber(parsed.abv_percent),
     confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.3,
-    producer_website: parsed.producer_website ?? null,
-    producer_address: parsed.producer_address ?? null,
-    producer_city: parsed.producer_city ?? null,
-    producer_postal_code: parsed.producer_postal_code ?? null,
-    latitude: parsed.latitude ?? null,
-    longitude: parsed.longitude ?? null,
+    producer_website: optionalString(parsed.producer_website),
+    producer_address: optionalString(parsed.producer_address),
+    producer_city: optionalString(parsed.producer_city),
+    producer_postal_code: optionalString(parsed.producer_postal_code),
+    latitude: optionalNumber(parsed.latitude),
+    longitude: optionalNumber(parsed.longitude),
   };
 
   // Log warning if we had to use defaults
@@ -717,29 +738,6 @@ async function extractWithOpenAI(
   // If confidence is very low or we're using defaults, mark it low
   if (!parsed.producer || !parsed.wine_name) {
     extractedData.confidence = Math.min(extractedData.confidence, 0.2);
-  }
-
-  // Handle year field - sometimes OpenAI returns a string instead of a number
-  if (extractedData.year !== null && extractedData.year !== undefined) {
-    if (typeof extractedData.year === "string") {
-      // Try to extract a 4-digit year from the string
-      const yearMatch = String(extractedData.year).match(/\b(19\d{2}|20[0-2]\d)\b/);
-      if (yearMatch) {
-        extractedData.year = parseInt(yearMatch[1]);
-      } else {
-        // If no valid year found in string, set to null
-        console.log(
-          `Could not parse year from string: "${extractedData.year}", setting to null`,
-        );
-        extractedData.year = null;
-      }
-    } else if (typeof extractedData.year === "number") {
-      // Validate the year is reasonable (1900-2025)
-      if (extractedData.year < 1900 || extractedData.year > 2025) {
-        console.log(`Invalid year ${extractedData.year}, setting to null`);
-        extractedData.year = null;
-      }
-    }
   }
 
   return extractedData;
@@ -1396,7 +1394,7 @@ async function processJob(
     const tastedAtDate = scanDate || new Date().toISOString().split("T")[0];
 
     // Create a tasting record for the user with the wine image
-    const { data: tastingData, error: tastingError } = await supabase.from("tastings").insert({
+    const { error: tastingError } = await supabase.from("tastings").insert({
       user_id: job.user_id,
       vintage_id: vintageId,
       verdict: null, // User can set later
@@ -1469,7 +1467,7 @@ async function processJob(
     return { ok: true, matchMethod: "openai_vision" };
   } catch (error) {
     console.error(`Error processing job ${job.id}:`, error);
-    await handleFailure(job, error);
+    await handleFailure(job, error instanceof Error ? error : new Error(String(error)));
     return { ok: false };
   }
 }
@@ -1564,7 +1562,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("Error in process-wine-queue:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: getErrorMessage(error) }), {
       status: 500,
       headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
     });

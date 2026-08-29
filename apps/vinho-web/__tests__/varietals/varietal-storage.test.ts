@@ -2,8 +2,10 @@ import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const serviceRoleKey = process.env.VINHO_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, serviceRoleKey, {
+  auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
+});
 
 describe('Grape Varietal Database Storage', () => {
   let testUserId: string;
@@ -13,10 +15,12 @@ describe('Grape Varietal Database Storage', () => {
 
   beforeAll(async () => {
     // Create test user
-    const { data: authData } = await supabase.auth.signUp({
+    const { data: authData, error } = await supabase.auth.admin.createUser({
       email: `test-storage-${Date.now()}@example.com`,
-      password: 'TestStorage123!'
+      password: 'TestStorage123!',
+      email_confirm: true,
     });
+    expect(error).toBeNull();
     testUserId = authData?.user?.id || '';
   });
 
@@ -33,7 +37,7 @@ describe('Grape Varietal Database Storage', () => {
       await supabase.from('producers').delete().eq('id', testProducerId);
     }
     if (testUserId) {
-      await supabase.auth.signOut();
+      await supabase.auth.admin.deleteUser(testUserId);
     }
   });
 
@@ -63,8 +67,7 @@ describe('Grape Varietal Database Storage', () => {
     const { data: producer, error: producerError } = await supabase
       .from('producers')
       .insert({
-        name: `Test Producer ${Date.now()}`,
-        created_by: testUserId
+        name: `Test Producer ${Date.now()}`
       })
       .select()
       .single();
@@ -78,8 +81,7 @@ describe('Grape Varietal Database Storage', () => {
       .from('wines')
       .insert({
         name: 'Test Champagne',
-        producer_id: testProducerId,
-        created_by: testUserId
+        producer_id: testProducerId
       })
       .select()
       .single();
@@ -93,8 +95,7 @@ describe('Grape Varietal Database Storage', () => {
       .from('vintages')
       .insert({
         wine_id: testWineId,
-        year: 2020,
-        created_by: testUserId
+        year: 2020
       })
       .select()
       .single();

@@ -84,7 +84,7 @@ if [ -n "$KEYSTORE_B64" ]; then
     echo "RELEASE_KEY_PASSWORD=$(get ANDROID_RELEASE_KEY_PASSWORD)"
   } >> "$LOCAL_PROPS"
 else
-  warn "ANDROID_RELEASE_KEYSTORE_BASE64 not in Doppler — release build will be debug-signed."
+  warn "ANDROID_RELEASE_KEYSTORE_BASE64 not in Doppler; the release build cannot be published."
 fi
 
 # Play publishing service account (only when present).

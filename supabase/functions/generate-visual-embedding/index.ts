@@ -6,6 +6,7 @@ import {
   getCorsHeaders,
   isValidImageUrl,
 } from "../../shared/security.ts";
+import { getErrorMessage } from "../../shared/errors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
@@ -102,49 +103,6 @@ async function storeVisualEmbedding(
   }
 
   console.log(`Stored visual embedding with key: ${key}`);
-}
-
-/**
- * Search for similar visual embeddings
- */
-async function searchSimilarImages(
-  embedding: number[],
-  topK: number = 5,
-  threshold: number = 0.85
-): Promise<Array<{
-  key: string;
-  similarity: number;
-  metadata: Record<string, unknown>;
-}>> {
-  const index = supabase.storage.vectors
-    .from(VECTOR_BUCKET)
-    .index(VECTOR_INDEX);
-
-  const { data, error } = await index.queryVectors({
-    queryVector: { float32: embedding },
-    topK,
-    returnDistance: true,
-    returnMetadata: true,
-  });
-
-  if (error) {
-    console.error("Vector search error:", error);
-    throw new Error(`Vector search failed: ${error.message}`);
-  }
-
-  if (!data?.vectors) {
-    return [];
-  }
-
-  // Convert distance to similarity and filter by threshold
-  // For cosine distance: similarity = 1 - distance
-  return data.vectors
-    .map((v) => ({
-      key: v.key,
-      similarity: 1 - (v.distance || 0),
-      metadata: v.metadata || {},
-    }))
-    .filter((v) => v.similarity >= threshold);
 }
 
 /**
@@ -259,7 +217,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in generate-visual-embedding:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: getErrorMessage(error) }),
       {
         status: 500,
         headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },

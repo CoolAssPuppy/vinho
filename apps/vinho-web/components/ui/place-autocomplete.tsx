@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Command,
   CommandGroup,
@@ -8,7 +8,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import { MapPin, CheckCircle } from "lucide-react";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -39,46 +39,56 @@ interface Suggestion {
   };
 }
 
-function usePlaceSuggestions(debounced: string, types?: string) {
+function usePlaceSuggestions(types?: string) {
   const [results, setResults] = useState<Suggestion[]>([]);
   const cacheRef = useRef<Map<string, CacheEntry<Suggestion[]>>>(new Map());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    if (!debounced) {
+  const search = useCallback((query: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    abortRef.current?.abort();
+
+    if (!query.trim()) {
       setResults([]);
       return;
     }
 
-    const cacheKey = `${debounced}|${types || ""}`;
+    const cacheKey = `${query}|${types || ""}`;
     const cached = cacheRef.current.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       setResults(cached.data);
       return;
     }
 
-    const controller = new AbortController();
-    fetch(
-      `/api/places/autocomplete?input=${encodeURIComponent(debounced)}${types ? `&types=${types}` : ""}`,
-      { signal: controller.signal },
-    )
-      .then((r) => r.json())
-      .then((d) => {
-        const suggestions = (d.data as Suggestion[]) || [];
-        cacheRef.current.set(cacheKey, { data: suggestions, timestamp: Date.now() });
-        setResults(suggestions);
-      })
-      .catch((error) => {
-        // Aborts are expected as the user keeps typing; log anything else so a
-        // broken places API isn't silently invisible.
-        if (error?.name !== "AbortError") {
-          console.error("Place autocomplete request failed:", error);
-        }
-        setResults([]);
-      });
-    return () => controller.abort();
-  }, [debounced, types]);
+    timerRef.current = setTimeout(() => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+      fetch(
+        `/api/places/autocomplete?input=${encodeURIComponent(query)}${types ? `&types=${types}` : ""}`,
+        { signal: controller.signal },
+      )
+        .then((r) => r.json())
+        .then((d) => {
+          const suggestions = (d.data as Suggestion[]) || [];
+          cacheRef.current.set(cacheKey, { data: suggestions, timestamp: Date.now() });
+          setResults(suggestions);
+        })
+        .catch((error: unknown) => {
+          if (!(error instanceof Error && error.name === "AbortError")) {
+            console.error("Place autocomplete request failed:", error);
+            setResults([]);
+          }
+        });
+    }, 300);
+  }, [types]);
 
-  return results;
+  useMountEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    abortRef.current?.abort();
+  });
+
+  return { results, search };
 }
 
 export function PlaceAutocomplete({
@@ -94,8 +104,7 @@ export function PlaceAutocomplete({
     name: string;
     address: string;
   } | null>(null);
-  const debounced = useDebounce(query, 300);
-  const results = usePlaceSuggestions(debounced, types);
+  const { results, search } = usePlaceSuggestions(types);
 
   // Derive displayed place from value prop (Category B: no effect needed)
   const displayedPlace = value ? selectedPlace : null;
@@ -104,6 +113,7 @@ export function PlaceAutocomplete({
     async (placeId: string, primaryText: string) => {
       setOpen(false);
       setQuery(""); // Clear the query to stop searching
+      search("");
 
       try {
         const res = await fetch(`/api/places/details?placeId=${placeId}`);
@@ -137,7 +147,7 @@ export function PlaceAutocomplete({
         onSelect(place);
       }
     },
-    [onChange, onSelect],
+    [onChange, onSelect, search],
   );
 
   return (
@@ -152,6 +162,7 @@ export function PlaceAutocomplete({
             onChange={(e) => {
               onChange(e.target.value);
               setQuery(e.target.value);
+              search(e.target.value);
               setSelectedPlace(null);
             }}
             onFocus={() => setOpen(true)}

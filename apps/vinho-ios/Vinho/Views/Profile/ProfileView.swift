@@ -1,5 +1,7 @@
 import SwiftUI
 import PhotosUI
+import Supabase
+import UIKit
 
 /// Elegant profile view with comprehensive settings
 struct ProfileView: View {
@@ -17,8 +19,8 @@ struct ProfileView: View {
     @State private var navigationPath = NavigationPath()
 
     enum Destination: Hashable {
-        case personalInfo
         case privacySecurity
+        case notifications
         case winePreferences
         case sharing
         case about
@@ -57,13 +59,12 @@ struct ProfileView: View {
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(for: Destination.self) { destination in
                 switch destination {
-                case .personalInfo:
-                    PersonalInformationView()
-                        .environmentObject(authManager)
-                        .environmentObject(hapticManager)
                 case .privacySecurity:
                     PrivacySecurityView()
                         .environmentObject(authManager)
+                        .environmentObject(hapticManager)
+                case .notifications:
+                    NotificationsView()
                         .environmentObject(hapticManager)
                 case .winePreferences:
                     WinePreferencesView()
@@ -258,14 +259,14 @@ struct ProfileView: View {
         VStack(spacing: 16) {
             // Account Section
             MenuSection(title: "Account") {
-                MenuRow(icon: "person.fill", title: "Personal Information", showChevron: true) {
-                    hapticManager.lightImpact()
-                    navigationPath.append(Destination.personalInfo)
-                }
-
                 MenuRow(icon: "lock.fill", title: "Privacy & Security", showChevron: true) {
                     hapticManager.lightImpact()
                     navigationPath.append(Destination.privacySecurity)
+                }
+
+                MenuRow(icon: "bell.fill", title: "Notifications", showChevron: true) {
+                    hapticManager.lightImpact()
+                    navigationPath.append(Destination.notifications)
                 }
 
                 MenuRow(icon: "slider.horizontal.3", title: "Wine Preferences", showChevron: true) {
@@ -544,11 +545,25 @@ struct ProfileView: View {
     }
 
     func handlePhotoSelection(_ item: PhotosPickerItem?) async {
-        guard let item = item else { return }
+        guard let item,
+              let originalData = try? await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: originalData),
+              let imageData = image.jpegData(compressionQuality: 0.85),
+              let userId = authManager.user?.id else { return }
 
-        if let _ = try? await item.loadTransferable(type: Data.self) {
-            // Upload to Supabase Storage
-            // Update profile
+        do {
+            let path = "\(userId.uuidString.lowercased())/\(UUID().uuidString.lowercased()).jpg"
+            let storage = SupabaseManager.shared.client.storage.from("avatars")
+            try await storage.upload(
+                path,
+                data: imageData,
+                options: FileOptions(contentType: "image/jpeg", upsert: true)
+            )
+            let publicURL = try storage.getPublicURL(path: path)
+            await authManager.updateProfile(avatarUrl: publicURL.absoluteString)
+            hapticManager.success()
+        } catch {
+            hapticManager.error()
         }
     }
 }

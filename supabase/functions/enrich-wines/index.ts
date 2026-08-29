@@ -4,11 +4,16 @@ import {
   handleCorsPreFlight,
   getCorsHeaders,
 } from "../../shared/security.ts";
+import { getErrorMessage } from "../../shared/errors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
 
 const supabase = createClient(SUPABASE_URL, VINHO_SERVICE_ROLE_KEY);
+
+function firstRelation<T>(value: T | T[] | null): T | null {
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
 
 // Main handler - queues wines for enrichment (used by VivinoMigration)
 Deno.serve(async (req: Request) => {
@@ -100,14 +105,15 @@ Deno.serve(async (req: Request) => {
 
       for (const tasting of tastings) {
         try {
-          const vintage = tasting.vintage as any;
-          if (!vintage || !vintage.wine) {
+          const vintage = firstRelation(tasting.vintage);
+          const wine = firstRelation(vintage?.wine ?? null);
+          if (!vintage || !wine) {
             skipped++;
             continue;
           }
 
-          const wine = vintage.wine;
-          const producer = wine.producer;
+          const producer = firstRelation(wine.producer);
+          const region = firstRelation(producer?.region ?? null);
 
           // Check if wine needs enhancement
           const needsEnhancement =
@@ -145,8 +151,8 @@ Deno.serve(async (req: Request) => {
               producer_name: producer?.name || "Unknown Producer",
               wine_name: wine.name,
               year: vintage.year,
-              region: producer?.region?.name,
-              country: producer?.region?.country,
+              region: region?.name,
+              country: region?.country,
               existing_varietals: [], // Will be enriched
               priority: 0, // Lower priority for bulk enrichment
             });
@@ -198,7 +204,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in enrich-wines:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: getErrorMessage(error) }),
       { status: 500, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } },
     );
   }

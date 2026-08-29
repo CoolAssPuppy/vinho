@@ -481,6 +481,18 @@ export function VivinoMigration() {
     }
   }, []);
 
+  const handleFile = useCallback((selectedFile: File) => {
+    if (!selectedFile.name.endsWith(".csv")) {
+      toast.error("Invalid file", {
+        description: "Please upload a CSV file (full_wine_list.csv)",
+      });
+      return;
+    }
+
+    setFile(selectedFile);
+    setResult(null);
+  }, []);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -489,25 +501,13 @@ export function VivinoMigration() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
-  }, []);
+  }, [handleFile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
     }
-  };
-
-  const handleFile = (file: File) => {
-    if (!file.name.endsWith(".csv")) {
-      toast.error("Invalid file", {
-        description: "Please upload a CSV file (full_wine_list.csv)",
-      });
-      return;
-    }
-
-    setFile(file);
-    setResult(null);
   };
 
   const handleUpload = async () => {

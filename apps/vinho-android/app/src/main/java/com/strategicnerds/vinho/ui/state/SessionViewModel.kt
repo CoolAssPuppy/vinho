@@ -4,12 +4,14 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.strategicnerds.vinho.core.analytics.AnalyticsService
+import com.strategicnerds.vinho.core.deeplink.AppDeepLink
 import com.strategicnerds.vinho.core.preferences.UserPreferences
 import com.strategicnerds.vinho.core.preferences.VinhoPreferences
 import com.strategicnerds.vinho.core.security.BiometricLockController
 import com.strategicnerds.vinho.data.model.UserProfile
 import com.strategicnerds.vinho.data.repository.AuthRepository
 import com.strategicnerds.vinho.data.repository.ProfileRepository
+import com.strategicnerds.vinho.data.repository.SharingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,10 +32,13 @@ data class SessionUiState(
 class SessionViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val profileRepository: ProfileRepository,
+    private val sharingRepository: SharingRepository,
     private val analytics: AnalyticsService,
     private val preferences: UserPreferences,
     private val biometricLockController: BiometricLockController
 ) : ViewModel() {
+
+    private var pendingInviteCode: String? = null
 
     private val _uiState = MutableStateFlow(SessionUiState())
     val uiState: StateFlow<SessionUiState> = _uiState.asStateFlow()
@@ -69,6 +74,7 @@ class SessionViewModel @Inject constructor(
                     isAuthenticated = true,
                     userProfile = profile
                 )
+                acceptPendingInvite()
                 if (_uiState.value.preferences.biometricsEnabled) {
                     biometricLockController.lock()
                 }
@@ -84,16 +90,42 @@ class SessionViewModel @Inject constructor(
 
     fun handleDeepLink(uri: Uri) {
         viewModelScope.launch {
-            runCatching { authRepository.handleDeepLink(uri) }
-                .onSuccess { session ->
-                    session?.user?.id?.let {
-                        analytics.track("auth.oauth_completed", mapOf("provider" to uri.host.orEmpty()))
-                    }
-                    refreshSession()
+            when (val deepLink = AppDeepLink.parse(uri.toString())) {
+                AppDeepLink.AuthenticationCallback -> handleAuthenticationCallback(uri)
+                is AppDeepLink.Invite -> {
+                    pendingInviteCode = deepLink.code
+                    acceptPendingInvite()
                 }
-                .onFailure { throwable ->
-                    _uiState.value = _uiState.value.copy(error = throwable.message)
+                null -> Unit
+            }
+        }
+    }
+
+    private suspend fun handleAuthenticationCallback(uri: Uri) {
+        runCatching { authRepository.handleDeepLink(uri) }
+            .onSuccess { session ->
+                session?.user?.id?.let {
+                    analytics.track("auth.oauth_completed", mapOf("provider" to uri.host.orEmpty()))
                 }
+                refreshSession()
+            }
+            .onFailure { throwable ->
+                _uiState.value = _uiState.value.copy(error = throwable.message)
+            }
+    }
+
+    private suspend fun acceptPendingInvite() {
+        val code = pendingInviteCode ?: return
+        if (!_uiState.value.isAuthenticated) return
+
+        val result = sharingRepository.acceptInviteByCode(code)
+        if (result.success) {
+            pendingInviteCode = null
+            analytics.track("sharing.invite_accepted")
+        } else {
+            _uiState.value = _uiState.value.copy(
+                error = result.error ?: "Unable to accept this invitation"
+            )
         }
     }
 

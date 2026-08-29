@@ -13,11 +13,6 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         capture_pageview: "history_change",
         capture_pageleave: true,
         disable_session_recording: process.env.NODE_ENV === "development",
-        loaded: (posthog) => {
-          if (process.env.NODE_ENV === "development") {
-            console.log("[PostHog] Initialized in development mode (session recording disabled)");
-          }
-        },
       });
     }
   });

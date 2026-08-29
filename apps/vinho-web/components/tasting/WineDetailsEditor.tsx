@@ -9,11 +9,14 @@ import { createClient } from "@/lib/supabase";
 import { enrichWine } from "@/lib/wine-enrichment-client";
 import { EditableField } from "./EditableField";
 import type { WineData } from "./types";
+import type { Database } from "@/lib/database.types";
+
+type EditableWineField = "serving_temperature" | "style" | "varietal";
+type WineUpdate = Database["public"]["Tables"]["wines"]["Update"];
 
 interface WineDetailsEditorProps {
   wineData: WineData;
   vintageId: string;
-  currentDescription: string;
   editedProducerName: string;
   editedWineName: string;
   onDescriptionChange?: (description: string) => void;
@@ -22,7 +25,6 @@ interface WineDetailsEditorProps {
 export function WineDetailsEditor({
   wineData,
   vintageId,
-  currentDescription,
   editedProducerName,
   editedWineName,
   onDescriptionChange,
@@ -42,13 +44,13 @@ export function WineDetailsEditor({
   const [isSavingWine, setIsSavingWine] = useState(false);
   const [isEnrichingWithAI, setIsEnrichingWithAI] = useState(false);
 
-  const handleSaveWineField = async (field: string, value: string) => {
+  const handleSaveWineField = async (field: EditableWineField, value: string) => {
     if (!wineData.id) return;
 
     setIsSavingWine(true);
     try {
-      const updateData: Record<string, string | null> = {};
-      updateData[field] = value.trim() || null;
+      const normalizedValue = value.trim() || null;
+      const updateData: WineUpdate = { [field]: normalizedValue };
 
       const { error } = await supabase
         .from("wines")

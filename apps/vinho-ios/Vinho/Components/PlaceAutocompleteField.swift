@@ -184,26 +184,7 @@ class GooglePlacesService: ObservableObject {
     private var resultsCache: [String: (results: [GooglePlaceSuggestion], timestamp: Date)] = [:]
 
     init() {
-        // Get API key from Doppler via SecretsManager
-        // Since SecretsManager might not be accessible from this component,
-        // we'll check both sources
-        if let secretsKey = GooglePlacesService.getAPIKeyFromSecrets() {
-            self.apiKey = secretsKey
-        } else {
-            // Fallback to Info.plist for development
-            self.apiKey = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_MAPS_API_KEY") as? String ?? ""
-        }
-    }
-
-    private static func getAPIKeyFromSecrets() -> String? {
-        // Try to get from DopplerSecrets.plist directly
-        if let url = Bundle.main.url(forResource: "DopplerSecrets", withExtension: "plist"),
-           let data = try? Data(contentsOf: url),
-           let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-           let apiKey = plist["GOOGLE_MAPS_API_KEY"] as? String {
-            return apiKey
-        }
-        return nil
+        self.apiKey = SecretsManager.shared.string(for: "GOOGLE_MAPS_API_KEY") ?? ""
     }
 
     /// Builds a cache key from the query and types to distinguish different searches

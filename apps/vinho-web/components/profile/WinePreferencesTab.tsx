@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { VivinoMigration } from "@/components/profile/VivinoMigration";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 import {
   Select,
   SelectContent,
@@ -295,7 +296,7 @@ const DEFAULT_PREFERENCES: WinePreferences = {
 function useWinePreferences(user: User | null) {
   const [preferences, setPreferences] = useState<WinePreferences>(DEFAULT_PREFERENCES);
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (!user) return;
 
     const loadPreferences = async () => {
@@ -327,7 +328,7 @@ function useWinePreferences(user: User | null) {
     };
 
     loadPreferences();
-  }, [user]);
+  });
 
   return [preferences, setPreferences] as const;
 }

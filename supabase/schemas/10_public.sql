@@ -208,19 +208,20 @@ CREATE OR REPLACE FUNCTION "public"."claim_wines_added_queue_jobs"("p_limit" int
     AS $$
 BEGIN
   RETURN QUERY
-  UPDATE wines_added_queue waq
-  SET 
-    status = 'processing',
-    processed_at = NOW()
-  FROM (
+  WITH pending_jobs AS MATERIALIZED (
     SELECT waq2.id
     FROM wines_added_queue waq2
     WHERE waq2.status = 'pending'
       AND waq2.retry_count < 3
     ORDER BY waq2.created_at ASC
-    LIMIT p_limit
+    LIMIT greatest(p_limit, 0)
     FOR UPDATE SKIP LOCKED
-  ) AS pending_jobs
+  )
+  UPDATE wines_added_queue waq
+  SET
+    status = 'processing',
+    processed_at = NOW()
+  FROM pending_jobs
   WHERE waq.id = pending_jobs.id
   RETURNING 
     waq.id,
@@ -9027,7 +9028,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
 
 
 

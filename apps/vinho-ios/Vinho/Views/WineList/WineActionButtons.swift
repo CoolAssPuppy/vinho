@@ -6,16 +6,7 @@ struct WineActionButtons: View {
     let onAddTastingNote: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            // Primary action - Add Tasting Note
-            addTastingNoteButton
-
-            // Secondary actions
-            HStack(spacing: 12) {
-                shareButton
-                addToCollectionButton
-            }
-        }
+        addTastingNoteButton
     }
 
     // MARK: - Add Tasting Note Button
@@ -39,47 +30,6 @@ struct WineActionButtons: View {
         }
     }
 
-    // MARK: - Share Button
-
-    private var shareButton: some View {
-        Button {
-            hapticManager.lightImpact()
-        } label: {
-            Image(systemName: "square.and.arrow.up")
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.vinoDark)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.vinoBorder, lineWidth: 1)
-                        )
-                )
-                .foregroundColor(.vinoText)
-        }
-    }
-
-    // MARK: - Add to Collection Button
-
-    private var addToCollectionButton: some View {
-        Button {
-            hapticManager.lightImpact()
-        } label: {
-            Image(systemName: "plus.circle")
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.vinoDark)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.vinoBorder, lineWidth: 1)
-                        )
-                )
-                .foregroundColor(.vinoText)
-        }
-    }
 }
 
 /// Tabbed content container for wine detail view

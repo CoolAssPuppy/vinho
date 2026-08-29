@@ -28,7 +28,6 @@ export const TastingCard = memo(function TastingCard({ tasting, onEdit }: Tastin
   const producerCity = tasting.vintage.wine.producer.city;
   const tastingLocation = tasting.location_name || tasting.location_city;
   const communityRating = tasting.vintage.community_rating;
-  const communityRatingCount = tasting.vintage.community_rating_count;
 
   return (
     <Card className="hover:shadow-lg transition-shadow overflow-hidden">

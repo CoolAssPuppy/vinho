@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Search, X, Loader2 } from "lucide-react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 
 const SEARCH_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 const SEARCH_CACHE_MAX_SIZE = 20;
@@ -29,35 +29,29 @@ interface SearchBarProps {
 }
 
 function useJournalSearch(
-  debouncedQuery: string,
   onResults?: (results: SearchResult[]) => void,
   onClear?: () => void,
 ) {
   const [isSearching, setIsSearching] = useState(false);
   const cacheRef = useRef<Map<string, CacheEntry<SearchResult[]>>>(new Map());
-  const onResultsRef = useRef(onResults);
-  const onClearRef = useRef(onClear);
-  onResultsRef.current = onResults;
-  onClearRef.current = onClear;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedQuery.trim()) {
-        onClearRef.current?.();
-        return;
-      }
-
-      const cacheKey = debouncedQuery.trim().toLowerCase();
+  const performSearch = useCallback(async (query: string) => {
+      const cacheKey = query.trim().toLowerCase();
       const cached = cacheRef.current.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL_MS) {
-        onResultsRef.current?.(cached.data);
+        onResults?.(cached.data);
         return;
       }
 
       setIsSearching(true);
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
       try {
         const response = await fetch(
-          `/api/search/tastings?q=${encodeURIComponent(debouncedQuery)}`,
+          `/api/search/tastings?q=${encodeURIComponent(query)}`,
+          { signal: abortRef.current.signal },
         );
         if (response.ok) {
           const data = await response.json();
@@ -70,30 +64,44 @@ function useJournalSearch(
           }
           cacheRef.current.set(cacheKey, { data: results, timestamp: Date.now() });
 
-          onResultsRef.current?.(results);
+          onResults?.(results);
         }
       } catch (error) {
-        console.error("Search failed:", error);
-        onResultsRef.current?.([]);
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Search failed:", error);
+          onResults?.([]);
+        }
       } finally {
         setIsSearching(false);
       }
-    };
+  }, [onResults]);
 
-    performSearch();
-  }, [debouncedQuery]);
+  const search = useCallback((query: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!query.trim()) {
+      abortRef.current?.abort();
+      setIsSearching(false);
+      onClear?.();
+      return;
+    }
+    timerRef.current = setTimeout(() => void performSearch(query), 500);
+  }, [onClear, performSearch]);
 
-  return isSearching;
+  useMountEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    abortRef.current?.abort();
+  });
+
+  return { isSearching, search };
 }
 
 export function SearchBar({ onResults, onClear }: SearchBarProps) {
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 500);
-  const isSearching = useJournalSearch(debouncedQuery, onResults, onClear);
+  const { isSearching, search } = useJournalSearch(onResults, onClear);
 
   const handleClear = () => {
     setQuery("");
-    onClear?.();
+    search("");
   };
 
   return (
@@ -103,7 +111,10 @@ export function SearchBar({ onResults, onClear }: SearchBarProps) {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            search(e.target.value);
+          }}
           placeholder="Search for anything"
           className="w-full pl-10 pr-10 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
         />

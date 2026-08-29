@@ -10,7 +10,7 @@ describe("Wine Queue Processing - Real Workflow", () => {
     status: "pending" | "working" | "completed" | "failed";
     retry_count: number;
     processed_at?: string;
-    processed_data?: any;
+    processed_data?: unknown;
     error_message?: string;
   }
 
@@ -211,10 +211,16 @@ describe("Wine Queue Processing - Real Workflow", () => {
     expect(fromCalls.length).toBe(6); // 2 calls per item (working + completed)
 
     // Verify all were marked as completed
-    const completedUpdates = mockSupabase.from.mock.results
-      .filter((_, index) => index % 2 === 1) // Every second call is the completion
-      .map((result) => result.value.update.mock.calls[0][0]);
+    const completedUpdates = [
+      ...new Set(
+        mockSupabase.from.mock.results
+          .flatMap((result) => result.value.update.mock.calls)
+          .map((call) => call[0])
+          .filter((update) => update.status === "completed"),
+      ),
+    ];
 
+    expect(completedUpdates).toHaveLength(3);
     completedUpdates.forEach((update) => {
       expect(update.status).toBe("completed");
       expect(update.processed_data).toBeDefined();
@@ -233,8 +239,11 @@ describe("Wine Queue Processing - Real Workflow", () => {
 
     await processQueueItem(queueItem);
 
-    const lastUpdate = mockSupabase.from.mock.results[1].value.update;
-    const processedData = lastUpdate.mock.calls[0][0].processed_data;
+    const completedUpdate = mockSupabase.from.mock.results
+      .flatMap((result) => result.value.update.mock.calls)
+      .map((call) => call[0])
+      .find((update) => update.status === "completed");
+    const processedData = completedUpdate?.processed_data;
 
     // Verify all required fields are present
     expect(processedData).toHaveProperty("producer");

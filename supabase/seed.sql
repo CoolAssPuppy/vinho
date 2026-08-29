@@ -96,6 +96,10 @@ WHERE NOT EXISTS (
 
 INSERT INTO grape_varietals (name)
 VALUES
+  ('Pinot Noir'),
+  ('Chardonnay'),
+  ('Cabernet Sauvignon'),
+  ('Nebbiolo'),
   ('Baga'),
   ('Touriga Nacional'),
   ('Touriga Franca'),

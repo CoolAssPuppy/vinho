@@ -30,6 +30,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANDROID_DIR="$REPO_ROOT/apps/vinho-android"
 APP_ID="com.strategicnerds.vinho"
 SA_JSON="$ANDROID_DIR/play-service-account.json"
+LOCAL_PROPS="$ANDROID_DIR/local.properties"
 
 if [ -t 1 ]; then
   step() { printf '\n\033[1;34m> %s\033[0m\n' "$1"; }
@@ -62,6 +63,9 @@ if [ "${SKIP_CONFIG_SYNC:-0}" != "1" ]; then
 fi
 
 [ -f "$SA_JSON" ] || die "missing $SA_JSON — ANDROID_PLAY_SA_JSON not in Doppler? Cannot authenticate to Play."
+RELEASE_STORE_FILE="$(sed -n 's/^RELEASE_STORE_FILE=//p' "$LOCAL_PROPS" | head -1)"
+[ -n "$RELEASE_STORE_FILE" ] || die "missing release keystore config in $LOCAL_PROPS"
+[ -f "$RELEASE_STORE_FILE" ] || die "missing release keystore at $RELEASE_STORE_FILE"
 
 GRADLE_FILE="$ANDROID_DIR/app/build.gradle.kts"
 if [ "${SKIP_VERSION_BUMP:-0}" != "1" ]; then

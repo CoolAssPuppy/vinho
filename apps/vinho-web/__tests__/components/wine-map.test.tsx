@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import type { ReactNode } from "react";
 
 // Mock Leaflet since it's not available in test environment
 jest.mock("leaflet", () => ({
@@ -17,23 +18,30 @@ jest.mock("leaflet", () => ({
 
 // Mock react-leaflet components
 jest.mock("react-leaflet", () => ({
-  MapContainer: ({ children, ...props }: any) => (
-    <div data-testid="map-container" {...props}>
-      {children}
-    </div>
+  MapContainer: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <div data-testid="map-container" className={className}>{children}</div>
   ),
-  TileLayer: (props: any) => <div data-testid="tile-layer" {...props} />,
-  Marker: ({ children, position, eventHandlers, ...props }: any) => (
+  TileLayer: () => <div data-testid="tile-layer" />,
+  Marker: ({
+    children,
+    position,
+    eventHandlers,
+  }: {
+    children: ReactNode;
+    position: [number, number];
+    eventHandlers?: { click?: () => void };
+  }) => (
     <div
       data-testid="marker"
       data-position={JSON.stringify(position)}
       onClick={() => eventHandlers?.click?.()}
-      {...props}
     >
       {children}
     </div>
   ),
-  Popup: ({ children }: any) => <div data-testid="popup">{children}</div>,
+  Popup: ({ children }: { children: ReactNode }) => (
+    <div data-testid="popup">{children}</div>
+  ),
   useMap: () => ({
     fitBounds: jest.fn(),
   }),

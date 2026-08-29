@@ -52,8 +52,8 @@ fun PlaceAutocompleteField(
     selectedPlace: TastingLocation?,
     onPlaceSelected: (TastingLocation?) -> Unit,
     placesService: GooglePlacesService,
-    placeholder: String = "Search for a place",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    placeholder: String = "Search for a place"
 ) {
     var suggestions by remember { mutableStateOf<List<PlaceSuggestion>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }

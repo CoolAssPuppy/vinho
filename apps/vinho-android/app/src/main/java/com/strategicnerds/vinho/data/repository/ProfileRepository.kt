@@ -1,7 +1,9 @@
 package com.strategicnerds.vinho.data.repository
 
 import android.util.Log
+import com.strategicnerds.vinho.data.model.PriceRange
 import com.strategicnerds.vinho.data.model.UserProfile
+import com.strategicnerds.vinho.data.model.WinePreferences
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.SerialName
@@ -12,16 +14,18 @@ import javax.inject.Singleton
 private const val TAG = "ProfileRepository"
 
 @Serializable
-private data class ProfileInsert(
+internal data class ProfileInsert(
     val id: String,
     val email: String? = null,
     @SerialName("first_name") val firstName: String? = null,
     @SerialName("last_name") val lastName: String? = null,
     val description: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("wine_preferences") val winePreferences: WinePreferences? = null,
     @SerialName("favorite_regions") val favoriteRegions: List<String>? = null,
     @SerialName("favorite_varietals") val favoriteVarietals: List<String>? = null,
     @SerialName("favorite_styles") val favoriteStyles: List<String>? = null,
+    @SerialName("price_range") val priceRange: PriceRange? = null,
     @SerialName("tasting_note_style") val tastingNoteStyle: String? = null
 ) {
     companion object {
@@ -32,9 +36,11 @@ private data class ProfileInsert(
             lastName = profile.lastName,
             description = profile.description,
             avatarUrl = profile.avatarUrl,
+            winePreferences = profile.winePreferences,
             favoriteRegions = profile.favoriteRegions,
             favoriteVarietals = profile.favoriteVarietals,
             favoriteStyles = profile.favoriteStyles,
+            priceRange = profile.priceRange,
             tastingNoteStyle = profile.tastingNoteStyle
         )
     }

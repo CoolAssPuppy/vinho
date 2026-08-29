@@ -139,15 +139,6 @@ describe("Image Processing Pipeline", () => {
 
     // Simulate upload process
     try {
-      // Convert to buffer if needed
-      let buffer: Buffer;
-      if (typeof imageData === "string") {
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-        buffer = Buffer.from(base64Data, "base64");
-      } else {
-        buffer = imageData;
-      }
-
       // Generate unique filename
       const fileName = `scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
 

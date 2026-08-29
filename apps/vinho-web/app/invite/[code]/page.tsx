@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useCallback, useMemo, useState } from "react"
 
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase"
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Wine, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { useMountEffect } from "@/hooks/use-mount-effect"
 
 type SupabaseClient = ReturnType<typeof createClient>
 
@@ -23,13 +24,13 @@ function useInviteLoader({
 }: {
   params: Promise<{ code: string }>
   supabase: SupabaseClient
-  acceptInvite: () => Promise<void>
+  acceptInvite: (code: string) => Promise<void>
   setInviteCode: (code: string) => void
   setIsAuthenticated: (v: boolean) => void
   setInvite: (v: InviteDetails) => void
   setLoading: (v: boolean) => void
 }) {
-  useEffect(() => {
+  useMountEffect(() => {
     async function loadInvite() {
       try {
         const resolvedParams = await params
@@ -45,7 +46,7 @@ function useInviteLoader({
         setInvite(inviteData)
 
         if (session && inviteData.success) {
-          await acceptInvite()
+          await acceptInvite(resolvedParams.code)
         }
       } catch (err) {
         console.error('Error loading invite:', err)
@@ -59,7 +60,7 @@ function useInviteLoader({
     }
 
     loadInvite()
-  }, [params, supabase, acceptInvite, setInviteCode, setIsAuthenticated, setInvite, setLoading])
+  })
 }
 
 interface InviteDetails {
@@ -82,15 +83,13 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [inviteCode, setInviteCode] = useState<string | null>(null)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
-  const acceptInvite = useCallback(async () => {
-    if (!inviteCode) return
-
+  const acceptInvite = useCallback(async (code: string) => {
     setAccepting(true)
     try {
       const { data, error } = await supabase.functions.invoke('accept-invite', {
-        body: { code: inviteCode }
+        body: { code }
       })
 
       if (error) throw error
@@ -109,7 +108,7 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
     } finally {
       setAccepting(false)
     }
-  }, [inviteCode, router, supabase])
+  }, [router, supabase])
 
   useInviteLoader({ params, supabase, acceptInvite, setInviteCode, setIsAuthenticated, setInvite, setLoading })
 

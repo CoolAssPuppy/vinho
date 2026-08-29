@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 
 import {
   SUPABASE_ANON_KEY,
+  SUPABASE_TEST_OPTIONS,
   SUPABASE_URL,
   TEST_USER_ID,
   cleanupTestUser,
@@ -81,7 +82,7 @@ describe('RLS policies', () => {
     })
 
     it('should not allow user B to see user A tastings', async () => {
-      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS)
       await secondClient.auth.signInWithPassword({
         email: secondUserEmail,
         password: 'testpassword123',
@@ -96,7 +97,7 @@ describe('RLS policies', () => {
     })
 
     it('should not allow user B to see user A scans', async () => {
-      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS)
       await secondClient.auth.signInWithPassword({
         email: secondUserEmail,
         password: 'testpassword123',
@@ -111,7 +112,7 @@ describe('RLS policies', () => {
     })
 
     it('should not allow user B to see user A queue items', async () => {
-      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS)
       await secondClient.auth.signInWithPassword({
         email: secondUserEmail,
         password: 'testpassword123',

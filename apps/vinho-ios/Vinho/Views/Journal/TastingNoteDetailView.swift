@@ -4,11 +4,9 @@ import SwiftUI
 struct TastingNoteDetailView: View {
     let note: TastingNoteWithWine
     var fromWine: Bool = false // Track if navigated from wine to prevent circular nav
-    let onEdit: () -> Void
     let onDelete: () -> Void
     @EnvironmentObject var hapticManager: HapticManager
     @Environment(\.dismiss) private var dismiss
-    @State private var showingShareSheet = false
     @State private var showingDeleteAlert = false
     @State private var showingWineDetail = false
     @State private var wineForDetail: WineWithDetails?
@@ -33,10 +31,9 @@ struct TastingNoteDetailView: View {
     @State private var isLoadingExpertRating = false
     @State private var hasAttemptedExpertRatingFetch = false
 
-    init(note: TastingNoteWithWine, fromWine: Bool = false, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
+    init(note: TastingNoteWithWine, fromWine: Bool = false, onDelete: @escaping () -> Void) {
         self.note = note
         self.fromWine = fromWine
-        self.onEdit = onEdit
         self.onDelete = onDelete
         self._editedRating = State(initialValue: note.rating)
         self._editedNotes = State(initialValue: note.notes ?? "")
@@ -513,52 +510,26 @@ struct TastingNoteDetailView: View {
     }
 
     var actionButtons: some View {
-        VStack(spacing: 12) {
-            // Share Button
-            Button {
-                hapticManager.mediumImpact()
-                showingShareSheet = true
-            } label: {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Share Tasting")
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.vinoDarkSecondary)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.vinoAccent, lineWidth: 1)
-                        )
-                )
-                .foregroundColor(.vinoAccent)
+        Button {
+            hapticManager.mediumImpact()
+            showingDeleteAlert = true
+        } label: {
+            HStack {
+                Image(systemName: "trash")
+                Text("Delete Tasting")
+                    .fontWeight(.semibold)
             }
-
-            // Delete Button
-            Button {
-                hapticManager.mediumImpact()
-                showingDeleteAlert = true
-            } label: {
-                HStack {
-                    Image(systemName: "trash")
-                    Text("Delete Tasting")
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.vinoError.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.vinoError.opacity(0.3), lineWidth: 1)
-                        )
-                )
-                .foregroundColor(.vinoError)
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.vinoError.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.vinoError.opacity(0.3), lineWidth: 1)
+                    )
+            )
+            .foregroundColor(.vinoError)
         }
     }
 

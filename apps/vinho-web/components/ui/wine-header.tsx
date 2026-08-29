@@ -9,7 +9,6 @@ interface WineHeaderProps {
   producer?: string | null;
   vintage?: number | null;
   region?: string | null;
-  country?: string | null;
   wineType?: string | null;
   imageUrl?: string | null;
   showImage?: boolean;
@@ -43,7 +42,6 @@ export function WineHeader({
   producer,
   vintage,
   region,
-  country,
   wineType,
   imageUrl,
   showImage = true,

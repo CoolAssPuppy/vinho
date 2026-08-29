@@ -1,8 +1,7 @@
 import SwiftUI
 import Supabase
 
-/// ViewModel for WineDetailView - manages all state and business logic
-/// Save operations are in WineDetailViewModel+Save.swift extension
+/// ViewModel for WineDetailView.
 @MainActor
 class WineDetailViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -13,31 +12,12 @@ class WineDetailViewModel: ObservableObject {
     // Navigation state
     @Published var selectedTab = 0
     @Published var showingTastingNote = false
-    @Published var isFavorite = false
     @Published var showingTastingDetail = false
     @Published var selectedTasting: TastingNoteWithWine?
 
     // Tastings state
     @Published var tastings: [TastingNoteWithWine] = []
     @Published var isLoadingTastings = false
-
-    // Inline editing states - Header
-    @Published var editedName: String = ""
-    @Published var editedDescription: String = ""
-    @Published var editedProducer: String = ""
-    @Published var isEditingName = false
-    @Published var isEditingDescription = false
-    @Published var isEditingProducer = false
-    @Published var isSaving = false
-
-    // Wine details editing
-    @Published var editedVarietal: String = ""
-    @Published var editedServingTemp: String = ""
-    @Published var editedStyle: String = ""
-    @Published var isEditingVarietal = false
-    @Published var isEditingServingTemp = false
-    @Published var isEditingStyle = false
-    @Published var isEnrichingWithAI = false
 
     // Expert rating
     @Published var expertRating: ExpertRating?
@@ -88,55 +68,11 @@ class WineDetailViewModel: ObservableObject {
         isLoadingExpertRating = false
     }
 
-    // MARK: - Editing State Helpers
-
-    func startEditingProducer() {
-        editedProducer = wine.producer
-        isEditingProducer = true
-    }
-
-    func cancelEditingProducer() {
-        isEditingProducer = false
-    }
-
-    func startEditingName() {
-        editedName = wine.name
-        isEditingName = true
-    }
-
-    func startEditingDescription() {
-        editedDescription = wine.description ?? ""
-        isEditingDescription = true
-    }
-
-    func cancelEditingDescription() {
-        isEditingDescription = false
-    }
-
-    func startEditingVarietal() {
-        editedVarietal = wine.varietal ?? ""
-        isEditingVarietal = true
-    }
-
-    func startEditingStyle() {
-        editedStyle = wine.style ?? ""
-        isEditingStyle = true
-    }
-
-    func startEditingServingTemp() {
-        editedServingTemp = wine.servingTemperature ?? ""
-        isEditingServingTemp = true
-    }
-
     // MARK: - Navigation Helpers
 
     func selectTasting(_ tasting: TastingNoteWithWine) {
         selectedTasting = tasting
         showingTastingDetail = true
-    }
-
-    func toggleFavorite() {
-        isFavorite.toggle()
     }
 
     func setSelectedTab(_ tab: Int) {

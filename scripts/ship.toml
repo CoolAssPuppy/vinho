@@ -5,23 +5,9 @@
 # env / .env / Doppler, never this file. Ported from the Strategic Nerds
 # futurenerds ship tooling (same ASC team 955GSY56UT).
 #
-# The committed Vinho.xcodeproj (pbxproj) is the build source of truth, NOT
-# project.yml, and `project_yml` is intentionally left unset so version.py writes
-# MARKETING_VERSION + CURRENT_PROJECT_VERSION straight into the pbxproj.
-#
-# The xcodegen spec is no longer broken (fixed 2026-07-28). It used to pull in an
-# abandoned component extraction from commit ee9fe7d — Components/Common/{InfoRow,
-# SectionHeader,StatCard,StarRating}.swift, Components/Wine/WineHeader.swift, and
-# Core/Theme/{Styles,Typography}.swift — none of which were ever in the pbxproj,
-# several of which redeclared types defined in the built files, and one of which
-# (Styles.swift) did not compile at all. Those files were deleted and project.yml
-# was synced to the shipped 1.0.3 (build 5), so `xcodegen generate` now produces a
-# project that builds clean.
-#
-# Ship still builds the committed pbxproj because that keeps version.py as the
-# single writer of the release version. Switching ship to regenerate from
-# project.yml would mean moving version ownership into project.yml too; that is a
-# deliberate release-pipeline change, not a side effect of the xcodegen repair.
+# project.yml is the source for targets, version values, signing settings, and
+# the shared test scheme. The ship command updates it and regenerates the Xcode
+# project before each build.
 # =============================================================================
 
 [project]
@@ -31,7 +17,7 @@ team_id     = "955GSY56UT"
 scheme      = "Vinho"
 ios_root    = "apps/vinho-ios"                # relative to repo root
 xcodeproj   = "Vinho.xcodeproj"               # relative to ios_root
-# project_yml intentionally unset — see header (xcodegen spec is stale/broken).
+project_yml = "project.yml"                   # relative to ios_root
 dist_dir    = "dist"                          # relative to ios_root
 min_ios     = "17.0"
 

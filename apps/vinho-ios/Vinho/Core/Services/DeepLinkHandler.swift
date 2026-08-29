@@ -20,6 +20,19 @@ class DeepLinkHandler: ObservableObject {
     @Published var showSharingAlert = false
     @Published var pendingDestination: DeepLinkDestination?
 
+    static func inviteCode(from url: URL) -> String? {
+        guard url.scheme == "https",
+              url.host == "vinho.dev" || url.host == "www.vinho.dev" else {
+            return nil
+        }
+
+        let pathComponents = url.pathComponents.filter { $0 != "/" }
+        guard pathComponents.count == 2, pathComponents.first == "invite" else {
+            return nil
+        }
+        return pathComponents.last
+    }
+
     func handle(url: URL) {
         // Handle both custom scheme (vinho://) and Universal Links (https://vinho.dev)
         let isCustomScheme = url.scheme == "vinho"
@@ -101,6 +114,13 @@ class DeepLinkHandler: ObservableObject {
 
     func clearDestination() {
         pendingDestination = nil
+    }
+
+    func acceptPendingInviteIfNeeded() async {
+        guard let code = UserDefaults.standard.string(forKey: "pending_invite_code") else {
+            return
+        }
+        await acceptInviteByCode(code)
     }
 
     private func acceptInviteByCode(_ code: String) async {

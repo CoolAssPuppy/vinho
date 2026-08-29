@@ -19,6 +19,49 @@ env:
   SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
 
 jobs:
+  mobile-parity:
+    name: Mobile parity contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify matching mobile features and versions
+        run: bash scripts/tests/mobile-parity.test.sh
+
+  android:
+    name: Android tests, lint, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test, lint, and compile Android
+        working-directory: apps/vinho-android
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --warning-mode all
+
+  ios:
+    name: iOS tests and build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate the Xcode project
+        working-directory: apps/vinho-ios
+        run: xcodegen generate
+      - name: Select an available iPhone simulator
+        run: |
+          simulator_id="$(xcrun simctl list devices available -j | python3 -c 'import json, sys; data=json.load(sys.stdin); print(next(device["udid"] for runtime in data["devices"].values() for device in runtime if device["name"].startswith("iPhone")))')"
+          echo "IOS_SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+      - name: Test and compile iOS
+        working-directory: apps/vinho-ios
+        run: xcodebuild -project Vinho.xcodeproj -scheme Vinho -sdk iphonesimulator -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID" test
+
   lint-and-typecheck:
     name: Lint and type check
     runs-on: ubuntu-latest
@@ -106,8 +149,16 @@ jobs:
       # SECURITY DEFINER lockdown, queue constraints, the repair function.
       - name: Run pgTAP database tests
         run: supabase test db
+      - name: Capture local Supabase credentials
+        run: |
+          echo "INTEGRATION_SUPABASE_URL=$(supabase status -o env | grep '^API_URL=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+          echo "INTEGRATION_SUPABASE_ANON_KEY=$(supabase status -o env | grep '^ANON_KEY=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+          echo "INTEGRATION_SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status -o env | grep '^API_URL=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status -o env | grep '^ANON_KEY=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
+          echo "VINHO_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d'\"' -f2)" >> "$GITHUB_ENV"
       - name: Run integration tests
-        run: pnpm --filter vinho-web run test:integration -- --ci
+        run: pnpm --filter vinho-web run test:integration
       - name: Stop local Supabase
         if: always()
         run: supabase stop

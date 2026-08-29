@@ -7,11 +7,12 @@ struct PrivacySecurityView: View {
     // Must match the key BiometricAuthService reads ("biometric_auth_enabled"),
     // otherwise this toggle controls nothing. Default off to match the service.
     @AppStorage("biometric_auth_enabled") private var biometricsEnabled = false
-    @AppStorage("autoLock") private var autoLock = true
-    @State private var showingChangePassword = false
     @State private var showingDeleteAccount = false
     @State private var isDeletingAccount = false
     @State private var deleteError: String?
+    @State private var isExporting = false
+    @State private var exportURL: URL?
+    @State private var exportError: String?
 
     var body: some View {
         ZStack {
@@ -35,35 +36,6 @@ struct PrivacySecurityView: View {
                             hapticManager.lightImpact()
                         }
 
-                        ToggleRow(
-                            icon: "lock.fill",
-                            title: "Auto-Lock",
-                            subtitle: "Lock app when in background",
-                            isOn: $autoLock
-                        ) {
-                            hapticManager.lightImpact()
-                        }
-
-                        Button {
-                            hapticManager.lightImpact()
-                            showingChangePassword = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "key.fill")
-                                    .foregroundColor(.vinoAccent)
-                                Text("Change Password")
-                                    .foregroundColor(.vinoText)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.vinoTextTertiary)
-                            }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.vinoDark)
-                            )
-                        }
                     }
                     .padding(20)
                     .background(
@@ -79,19 +51,47 @@ struct PrivacySecurityView: View {
 
                         Button {
                             hapticManager.lightImpact()
+                            isExporting = true
+                            exportError = nil
+                            Task {
+                                do {
+                                    exportURL = try await DataExportService.shared.createExportFile()
+                                } catch {
+                                    exportError = "Unable to export your data."
+                                }
+                                isExporting = false
+                            }
                         } label: {
                             HStack {
                                 Image(systemName: "square.and.arrow.down")
                                     .foregroundColor(.vinoAccent)
-                                Text("Download My Data")
+                                Text(isExporting ? "Preparing Export..." : "Download My Data")
                                     .foregroundColor(.vinoText)
                                 Spacer()
+                                if isExporting {
+                                    ProgressView()
+                                }
                             }
                             .padding(16)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(Color.vinoDark)
                             )
+                        }
+                        .disabled(isExporting)
+
+                        if let exportURL {
+                            ShareLink(item: exportURL) {
+                                Label("Save or Share Export", systemImage: "square.and.arrow.up")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .foregroundColor(.vinoAccent)
+                        }
+
+                        if let exportError {
+                            Text(exportError)
+                                .font(.system(size: 13))
+                                .foregroundColor(.vinoError)
                         }
                     }
                     .padding(20)

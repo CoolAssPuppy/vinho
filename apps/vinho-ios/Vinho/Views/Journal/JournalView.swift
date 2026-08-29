@@ -146,10 +146,6 @@ struct JournalView: View {
             TastingNoteDetailView(
                 note: note,
                 fromWine: false,
-                onEdit: {
-                    selectedNote = nil
-                    noteToEdit = note
-                },
                 onDelete: {
                     Task {
                         await viewModel.deleteNote(id: note.id)

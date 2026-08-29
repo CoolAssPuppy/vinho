@@ -46,8 +46,8 @@ interface ParsedWineData {
 // Simulate the core logic of the edge function
 async function processWineQueueItem(
   item: WineQueueItem,
-  supabaseClient: any,
-  openaiClient: any,
+  supabaseClient: ReturnType<typeof createMockSupabaseClient>,
+  openaiClient: typeof mockOpenAI,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Simulate OpenAI parsing
@@ -110,7 +110,7 @@ async function processWineQueueItem(
 }
 
 describe("Process Wine Queue Logic", () => {
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: ReturnType<typeof createMockSupabaseClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();

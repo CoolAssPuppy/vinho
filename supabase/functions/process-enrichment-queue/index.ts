@@ -13,6 +13,7 @@ import {
   getCorsHeaders,
 } from "../../shared/security.ts";
 import { MAX_QUEUE_RETRIES } from "../../shared/queue.ts";
+import { getErrorMessage } from "../../shared/errors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
@@ -48,8 +49,8 @@ async function markCompleted(jobId: string, enrichmentData: WineEnrichmentData) 
 }
 
 // Mark job as failed
-async function markFailed(jobId: string, error: any) {
-  const errorMessage = error instanceof Error ? error.message : String(error);
+async function markFailed(jobId: string, error: unknown) {
+  const errorMessage = getErrorMessage(error);
 
   const { data: job } = await supabase
     .from("wines_enrichment_queue")
@@ -219,7 +220,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in process-enrichment-queue:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: getErrorMessage(error) }),
       { status: 500, headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" } },
     );
   }

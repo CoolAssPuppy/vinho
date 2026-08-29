@@ -4,6 +4,23 @@ import {
   handleCorsPreFlight,
   getCorsHeaders,
 } from "../../shared/security.ts";
+import { getErrorMessage } from "../../shared/errors.ts";
+
+interface EmbeddingOutput {
+  data?: ArrayLike<number>;
+  [Symbol.iterator]?: () => Iterator<number>;
+}
+
+declare const Supabase: {
+  ai: {
+    Session: new (model: string) => {
+      run: (
+        text: string,
+        options: { mean_pool: boolean; normalize: boolean },
+      ) => Promise<EmbeddingOutput>;
+    };
+  };
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const VINHO_SERVICE_ROLE_KEY = Deno.env.get("VINHO_SERVICE_ROLE_KEY")!
@@ -141,7 +158,7 @@ async function processIdentityJob(job: EmbeddingJob): Promise<void> {
 /**
  * Process a label visual embedding job (future CLIP integration)
  */
-async function processLabelJob(job: EmbeddingJob): Promise<void> {
+function processLabelJob(job: EmbeddingJob): void {
   // TODO: Implement CLIP model integration for true visual embeddings
   // For now, we skip label embeddings until vision model is integrated
   // This can be done via:
@@ -270,7 +287,7 @@ Deno.serve(async (req: Request) => {
         if (job.job_type === "wine_identity") {
           await processIdentityJob(job);
         } else if (job.job_type === "label_visual") {
-          await processLabelJob(job);
+          processLabelJob(job);
         } else {
           throw new Error(`Unknown job type: ${job.job_type}`);
         }
@@ -279,7 +296,7 @@ Deno.serve(async (req: Request) => {
         processed++;
       } catch (error) {
         console.error(`Failed to process job ${job.id}:`, error);
-        await markJobFailed(job.id, error.message, job.retry_count);
+        await markJobFailed(job.id, getErrorMessage(error), job.retry_count);
         failed++;
       }
     }
@@ -303,7 +320,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("Error in generate-embeddings:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: getErrorMessage(error) }), {
       status: 500,
       headers: { ...getCorsHeaders(origin), "Content-Type": "application/json" },
     });

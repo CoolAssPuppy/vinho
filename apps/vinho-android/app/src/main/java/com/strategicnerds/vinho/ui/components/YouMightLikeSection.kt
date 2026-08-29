@@ -51,8 +51,8 @@ fun YouMightLikeSection(
     hasTastings: Boolean,
     onLoadIfNeeded: () -> Unit,
     onRefresh: () -> Unit,
-    onWineClick: (SimilarWine) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onWineClick: (SimilarWine) -> Unit = {}
 ) {
     LaunchedEffect(hasTastings) {
         if (hasTastings) {

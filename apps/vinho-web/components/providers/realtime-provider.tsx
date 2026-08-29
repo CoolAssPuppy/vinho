@@ -1,25 +1,18 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMountEffect } from "@/hooks/use-mount-effect";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface RealtimeContextType {
-  // Add any realtime methods we might need
-}
-
-const RealtimeContext = createContext<RealtimeContextType>({});
-
 function useWineQueueSubscription(
   currentUserId: string | null,
 ) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
 
-  useEffect(() => {
+  useMountEffect(() => {
     if (!currentUserId) return;
 
     const channel = supabase
@@ -78,13 +71,18 @@ function useWineQueueSubscription(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, router, currentUserId]);
+  });
+}
+
+function WineQueueSubscription({ userId }: { userId: string }) {
+  useWineQueueSubscription(userId);
+  return null;
 }
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useMountEffect(() => {
     const getUser = async () => {
@@ -104,17 +102,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   });
 
-  useWineQueueSubscription(currentUserId);
-
   return (
-    <RealtimeContext.Provider value={{}}>{children}</RealtimeContext.Provider>
+    <>
+      {currentUserId && (
+        <WineQueueSubscription key={currentUserId} userId={currentUserId} />
+      )}
+      {children}
+    </>
   );
-}
-
-export function useRealtime() {
-  const context = useContext(RealtimeContext);
-  if (!context) {
-    throw new Error("useRealtime must be used within a RealtimeProvider");
-  }
-  return context;
 }

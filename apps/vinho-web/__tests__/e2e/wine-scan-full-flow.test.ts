@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll, jest } from "@jest/globals";
-import { createClient } from "@supabase/supabase-js";
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
 
@@ -15,18 +15,25 @@ const SUPABASE_SERVICE_KEY = process.env.VINHO_SERVICE_ROLE_KEY || "";
 // Test user credentials
 const TEST_USER_EMAIL = "wine-scan-test@vinho.app";
 const TEST_USER_PASSWORD = "TestPassword123!";
+const SUPABASE_TEST_OPTIONS = {
+  auth: {
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+    persistSession: false,
+  },
+} as const;
 
 describe("Wine Scanning - REAL End-to-End Test", () => {
-  let supabaseClient: any;
-  let supabaseAdmin: any;
+  let supabaseClient: SupabaseClient;
+  let supabaseAdmin: SupabaseClient | undefined;
   let testUserId: string;
   let testImagePath: string;
 
   beforeAll(async () => {
     // Initialize clients
-    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS);
     if (SUPABASE_SERVICE_KEY) {
-      supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+      supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_TEST_OPTIONS);
     }
 
     // Get test image path
@@ -83,8 +90,6 @@ describe("Wine Scanning - REAL End-to-End Test", () => {
   it("should scan Villa Oliveira 2017 wine and get correct results", async () => {
     // Read the test image
     const imageBuffer = fs.readFileSync(testImagePath);
-    const base64Image = `data:image/jpeg;base64,${imageBuffer.toString("base64")}`;
-
     // Step 1: Upload image to storage
     const fileName = `${testUserId}/test-${Date.now()}.jpg`;
     const { data: uploadData, error: uploadError } =

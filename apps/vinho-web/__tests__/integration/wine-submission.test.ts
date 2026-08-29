@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 
 import {
   SUPABASE_ANON_KEY,
+  SUPABASE_TEST_OPTIONS,
   SUPABASE_URL,
   TEST_USER_ID,
   cleanupTestUser,
@@ -78,7 +79,7 @@ describe('Wine submission workflow', () => {
       const secondUser = await createSecondTestUser(serviceClient)
       secondUserId = secondUser.id
 
-      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS)
       await secondClient.auth.signInWithPassword({
         email: secondUser.email,
         password: 'testpassword123',
@@ -97,7 +98,7 @@ describe('Wine submission workflow', () => {
       const secondUser = await createSecondTestUser(serviceClient)
       secondUserId = secondUser.id
 
-      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      const secondClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_TEST_OPTIONS)
       await secondClient.auth.signInWithPassword({
         email: secondUser.email,
         password: 'testpassword123',

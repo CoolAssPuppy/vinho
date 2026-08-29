@@ -20,7 +20,7 @@ struct AboutView: View {
                             .font(.system(size: 36, weight: .bold))
                             .foregroundStyle(LinearGradient.vinoGradient)
 
-                        Text("Version 1.0.0 (Build 100)")
+                        Text(versionDescription)
                             .font(.system(size: 14))
                             .foregroundColor(.vinoTextSecondary)
                     }
@@ -129,6 +129,12 @@ struct AboutView: View {
         }
         .navigationTitle("About Vinho")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var versionDescription: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
+        return "Version \(version) (\(build))"
     }
 }
 

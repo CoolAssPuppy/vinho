@@ -53,6 +53,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.strategicnerds.vinho.data.model.ExpertRating
 import com.strategicnerds.vinho.data.model.Tasting
+import java.util.Locale
 import com.strategicnerds.vinho.data.model.Wine
 import com.strategicnerds.vinho.ui.state.WineListViewModel
 import java.time.LocalDate
@@ -135,6 +136,14 @@ fun WineDetailScreen(
 
                 item {
                     ProducerCard(wine = state.wine!!)
+                }
+
+                item {
+                    WineInformationCard(wine = state.wine!!)
+                }
+
+                item {
+                    FoodPairingsCard(state.wine!!.foodPairings.orEmpty())
                 }
 
                 // Ratings Section
@@ -337,6 +346,61 @@ private fun ProducerCard(wine: Wine) {
 }
 
 @Composable
+private fun WineInformationCard(wine: Wine) {
+    val details = listOfNotNull(
+        wine.wineType?.let { "Type" to it },
+        wine.varietal?.let { "Varietal" to it },
+        wine.style?.let { "Style" to it },
+        wine.servingTemperature?.let { "Serving Temperature" to it },
+        wine.vintages?.firstOrNull()?.abv?.let { "ABV" to "$it%" }
+    )
+    if (details.isEmpty()) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Wine Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            details.forEach { (label, value) ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(label, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text(value, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FoodPairingsCard(pairings: List<String>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Perfect Pairings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (pairings.isEmpty()) {
+                Text(
+                    "No pairings available",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            } else {
+                pairings.forEach { Text("• $it") }
+            }
+        }
+    }
+}
+
+@Composable
 private fun TastingNotesCard(notes: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -515,7 +579,7 @@ private fun RatingsSection(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = String.format("%.1f", expertRating?.rating),
+                                text = String.format(Locale.getDefault(), "%.1f", expertRating?.rating),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -586,7 +650,7 @@ private fun RatingsSection(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = String.format("%.1f", communityRating),
+                                text = String.format(Locale.getDefault(), "%.1f", communityRating),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -620,8 +684,8 @@ private fun RatingsSection(
 
 private fun formatRatingCount(count: Int): String {
     return when {
-        count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
-        count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+        count >= 1_000_000 -> String.format(Locale.getDefault(), "%.1fM", count / 1_000_000.0)
+        count >= 1_000 -> String.format(Locale.getDefault(), "%.1fK", count / 1_000.0)
         else -> count.toString()
     }
 }

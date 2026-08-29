@@ -38,6 +38,15 @@ let jwksCache: jose.JSONWebKeySet | null = null
 let jwksCacheTime = 0
 const JWKS_CACHE_DURATION = 3600000 // 1 hour in milliseconds
 
+function createAdminClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("VINHO_SERVICE_ROLE_KEY") ?? "",
+  )
+}
+
+type AdminClient = ReturnType<typeof createAdminClient>
+
 async function getApplePublicKeys(): Promise<jose.JSONWebKeySet> {
   const now = Date.now()
 
@@ -116,17 +125,11 @@ serve(async (req) => {
     const events: Record<string, AppleEvent> = JSON.parse(decodedPayload.events)
 
     // Initialize Supabase admin client
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("VINHO_SERVICE_ROLE_KEY") ?? ""
-    )
+    const supabaseAdmin = createAdminClient()
 
     // Process each event
     for (const [eventType, event] of Object.entries(events)) {
-      console.log(`Processing Apple event: ${eventType}`, {
-        sub: event.sub,
-        event_time: event.event_time,
-      })
+      console.log(`Processing Apple event: ${eventType}`)
 
       switch (event.type) {
         case "account-delete":
@@ -138,11 +141,11 @@ serve(async (req) => {
           break
 
         case "email-disabled":
-          await handleEmailDisabled(supabaseAdmin, event)
+          handleEmailDisabled()
           break
 
         case "email-enabled":
-          await handleEmailEnabled(supabaseAdmin, event)
+          handleEmailEnabled()
           break
 
         default:
@@ -170,60 +173,60 @@ serve(async (req) => {
  * This is triggered when a user deletes their Apple ID
  */
 async function handleAccountDelete(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AdminClient,
   event: AppleEvent
 ): Promise<void> {
-  console.log(`Processing account deletion for Apple user: ${event.sub}`)
+  console.log("Processing Apple account deletion")
 
-  // Find the user by their Apple identity
-  const { data: identities, error: identityError } = await supabase
-    .from("auth.identities")
-    .select("user_id")
-    .eq("provider", "apple")
-    .eq("provider_id", event.sub)
-
-  if (identityError) {
-    // Try using auth admin API instead since identities table may not be directly accessible
-    console.log("Falling back to auth admin API for user lookup")
-
-    // Use the admin API to list users and find by Apple provider_id
-    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers()
-
-    if (usersError) {
-      console.error("Error listing users:", usersError)
-      throw usersError
-    }
-
-    const user = users.find(u =>
-      u.identities?.some(i => i.provider === "apple" && i.provider_id === event.sub)
-    )
-
-    if (!user) {
-      console.log(`No user found with Apple ID: ${event.sub}`)
-      return
-    }
-
-    await deleteUserData(supabase, user.id)
+  const userId = await findAppleUserId(supabase, event.sub)
+  if (!userId) {
+    console.log("No matching user found for Apple account deletion")
     return
   }
 
-  if (!identities || identities.length === 0) {
-    console.log(`No user found with Apple ID: ${event.sub}`)
-    return
-  }
-
-  const userId = identities[0].user_id
   await deleteUserData(supabase, userId)
+}
+
+function identityMatchesAppleSubject(
+  identity: { id: string; identity_id: string; provider: string; identity_data?: Record<string, unknown> },
+  appleSubject: string,
+): boolean {
+  return identity.provider === "apple" && (
+    identity.id === appleSubject ||
+    identity.identity_id === appleSubject ||
+    identity.identity_data?.sub === appleSubject
+  )
+}
+
+async function findAppleUserId(
+  supabase: AdminClient,
+  appleSubject: string,
+): Promise<string | null> {
+  const perPage = 1000
+
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage })
+    if (error) {
+      console.error("Error listing users:", error)
+      throw error
+    }
+
+    const user = data.users.find((candidate) =>
+      candidate.identities?.some((identity) => identityMatchesAppleSubject(identity, appleSubject))
+    )
+    if (user) return user.id
+    if (data.users.length < perPage) return null
+  }
 }
 
 /**
  * Delete all user data and the user account
  */
 async function deleteUserData(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AdminClient,
   userId: string
 ): Promise<void> {
-  console.log(`Deleting data for user: ${userId}`)
+  console.log("Deleting user data for Apple account deletion")
 
   // Delete user's tastings
   const { error: tastingsError } = await supabase
@@ -333,7 +336,7 @@ async function deleteUserData(
     throw deleteUserError
   }
 
-  console.log(`Successfully deleted user account and all data for: ${userId}`)
+  console.log("Completed Apple account deletion")
 }
 
 /**
@@ -341,26 +344,16 @@ async function deleteUserData(
  * User has stopped using their Apple ID with your app
  */
 async function handleConsentRevoked(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AdminClient,
   event: AppleEvent
 ): Promise<void> {
-  console.log(`Processing consent revoked for Apple user: ${event.sub}`)
+  console.log("Processing revoked Apple consent")
 
   // Find the user and unlink their Apple identity
   // The user can still use other sign-in methods if they have them
-  const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers()
-
-  if (usersError) {
-    console.error("Error listing users:", usersError)
-    throw usersError
-  }
-
-  const user = users.find(u =>
-    u.identities?.some(i => i.provider === "apple" && i.provider_id === event.sub)
-  )
-
-  if (!user) {
-    console.log(`No user found with Apple ID: ${event.sub}`)
+  const userId = await findAppleUserId(supabase, event.sub)
+  if (!userId) {
+    console.log("No matching user found for revoked Apple consent")
     return
   }
 
@@ -369,38 +362,28 @@ async function handleConsentRevoked(
   // - Notify the user they need to re-authenticate or use another method
   // - Disable certain features until they re-authenticate
   // - Track this in an audit log
-  console.log(`User ${user.id} has revoked Apple consent. They may need to re-authenticate.`)
+  console.log("Recorded revoked Apple consent")
 }
 
 /**
  * Handle email disabled event
  * User has stopped receiving emails via Apple's private relay
  */
-async function handleEmailDisabled(
-  supabase: ReturnType<typeof createClient>,
-  event: AppleEvent
-): Promise<void> {
-  console.log(`Email disabled for Apple user: ${event.sub}`)
+function handleEmailDisabled(): void {
+  console.log("Apple relay email disabled")
 
   // In most cases, you might want to:
   // - Update a flag in the user's profile
   // - Switch to push notifications for important communications
   // - Log this for analytics
 
-  // For now, we just log it
-  console.log(`User's Apple relay email is now disabled. Email: ${event.email || 'unknown'}`)
 }
 
 /**
  * Handle email enabled event
  * User has enabled email forwarding via Apple's relay
  */
-async function handleEmailEnabled(
-  supabase: ReturnType<typeof createClient>,
-  event: AppleEvent
-): Promise<void> {
-  console.log(`Email enabled for Apple user: ${event.sub}`)
+function handleEmailEnabled(): void {
+  console.log("Apple relay email enabled")
 
-  // Log that email is now working for this user
-  console.log(`User's Apple relay email is now enabled. Email: ${event.email || 'unknown'}`)
 }

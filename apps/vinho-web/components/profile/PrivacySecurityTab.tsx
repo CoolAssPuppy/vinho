@@ -21,6 +21,7 @@ export function PrivacySecurityTab() {
   const [autoLock, setAutoLock] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -57,6 +58,27 @@ export function PrivacySecurityTab() {
     }
 
     setIsDeleting(false);
+  };
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+    const { data, error } = await supabase.functions.invoke("export-user-data");
+    if (error || !data) {
+      toast.error("Unable to export your data right now.");
+      setIsExporting(false);
+      return;
+    }
+
+    const downloadUrl = URL.createObjectURL(
+      new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `vinho-data-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+    toast.success("Your Vinho data export is ready.");
+    setIsExporting(false);
   };
 
   return (
@@ -128,9 +150,18 @@ export function PrivacySecurityTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" className="w-full text-base py-2.5">
-            <Download className="mr-2 h-5 w-5" />
-            Download My Data
+          <Button
+            variant="outline"
+            className="w-full text-base py-2.5"
+            onClick={handleExportData}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-5 w-5" />
+            )}
+            {isExporting ? "Preparing Export..." : "Download My Data"}
           </Button>
         </CardContent>
       </Card>

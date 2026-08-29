@@ -53,12 +53,26 @@ export function isServiceRoleRequest(req: Request): boolean {
   if (!authHeader) return false;
 
   const token = authHeader.replace("Bearer ", "");
-  const serviceRoleKey = Deno.env.get("VINHO_SERVICE_ROLE_KEY");
+  const serviceRoleKey = getOptionalServiceRoleKey();
 
   // Strict comparison with the configured service role key. Never trust a
   // decoded-but-unverified JWT payload: role claims in an unsigned or
   // foreign-signed token are attacker-controlled.
   return Boolean(serviceRoleKey) && token === serviceRoleKey;
+}
+
+/** Resolve the project service key in hosted and local Supabase runtimes. */
+export function getServiceRoleKey(): string {
+  const serviceRoleKey = getOptionalServiceRoleKey();
+  if (!serviceRoleKey) {
+    throw new Error("A Supabase service role key is required");
+  }
+  return serviceRoleKey;
+}
+
+function getOptionalServiceRoleKey(): string | undefined {
+  return Deno.env.get("VINHO_SERVICE_ROLE_KEY") ??
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 }
 
 /**

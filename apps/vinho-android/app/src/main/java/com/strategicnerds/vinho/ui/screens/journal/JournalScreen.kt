@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.strategicnerds.vinho.data.model.SimilarWine
+import java.util.Locale
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.WineStats
 import com.strategicnerds.vinho.ui.components.YouMightLikeSection
@@ -339,7 +340,7 @@ private fun StatsRow(stats: WineStats?) {
         )
         StatPill(
             title = "Avg",
-            value = String.format("%.1f", stats.averageRating ?: 0.0),
+            value = String.format(Locale.getDefault(), "%.1f", stats.averageRating ?: 0.0),
             subtitle = "Favorites ${stats.favorites}",
             modifier = Modifier.weight(1f)
         )

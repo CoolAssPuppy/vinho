@@ -2,6 +2,22 @@
 
 Patterns worth remembering, captured as they come up. Newest first.
 
+## Verify store state before reporting a release
+
+An uploaded binary, a tester group, and an active tester rollout are separate
+store states. Check App Store Connect build-to-group membership and tester
+state, plus the Google Play track and opted-in tester count, before saying a
+release reached testers.
+
+## Audit live Supabase advisors, including extension-owned objects
+
+Repository policy tests excluded PostGIS's `spatial_ref_sys`, but the hosted
+security advisor still reported it as an exposed table. The unused `http`
+extension also granted outbound request functions to API roles. A database
+audit must check the live security advisor and extension grants, not only app
+tables and committed policies. Remove unused extensions before documenting an
+advisor warning as a platform exception.
+
 ## Scan pipeline: client-orchestrated multi-step writes lose data
 
 All three clients (iOS, Android, web) submitted a scan as four sequential
@@ -36,3 +52,5 @@ SECURITY DEFINER function down (`revoke ... from public, anon, authenticated`),
 service_role loses its inherited grant too. Re-grant explicitly
 (`grant execute ... to service_role`) for any function cron/edge functions call
 with the service key.
+- Treat mobile parity as a release gate from the start. Compile success on both platforms does not prove feature parity. Maintain a feature matrix, test reachable flows on both apps, and block release when either platform has an unmatched action or screen.
+- When the user asks a status question during an active implementation, answer it and continue the implementation. A status response does not end the assigned work.

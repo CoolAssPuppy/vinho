@@ -1,5 +1,6 @@
 import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
-import { AI_PROMPTS, getPrompt } from "./ai-prompts-library.ts";
+import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { getPrompt } from "./ai-prompts-library.ts";
 
 export interface WineEnrichmentData {
   wine_type?: string; // red, white, rosé, sparkling, fortified, dessert
@@ -18,6 +19,15 @@ export interface WineData {
   region?: string | null;
   country?: string | null;
   varietals?: string[];
+}
+
+interface ExistingWine {
+  wine_type?: string | null;
+  color?: string | null;
+  style?: string | null;
+  food_pairings?: string[] | null;
+  serving_temperature?: string | null;
+  tasting_notes?: string | null;
 }
 
 /**
@@ -85,7 +95,7 @@ Return valid JSON with all fields. The varietals field MUST be an array of grape
  * Creates grape_varietals entries and wine_varietals associations
  */
 export async function storeGrapeVarietals(
-  supabase: any,
+  supabase: SupabaseClient,
   vintageId: string,
   varietals: string[]
 ): Promise<void> {
@@ -141,12 +151,12 @@ export async function storeGrapeVarietals(
  * Only updates fields that are missing in the existing wine
  */
 export async function updateWineWithEnrichment(
-  supabase: any,
+  supabase: SupabaseClient,
   wineId: string,
   enrichmentData: WineEnrichmentData,
-  existingWine: any
+  existingWine: ExistingWine
 ): Promise<boolean> {
-  const updateData: any = {};
+  const updateData: ExistingWine = {};
 
   // Only update missing fields
   if (!existingWine.wine_type && enrichmentData.wine_type) {

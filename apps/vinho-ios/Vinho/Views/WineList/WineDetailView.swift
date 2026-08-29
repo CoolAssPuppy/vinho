@@ -52,16 +52,9 @@ struct WineDetailView: View {
 
     private var navigationBar: some View {
         WineDetailNavigationBar(
-            isFavorite: viewModel.isFavorite,
             onBack: {
                 hapticManager.lightImpact()
                 dismiss()
-            },
-            onFavoriteToggle: {
-                hapticManager.mediumImpact()
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    viewModel.toggleFavorite()
-                }
             }
         )
     }
@@ -73,9 +66,6 @@ struct WineDetailView: View {
         if let tasting = viewModel.selectedTasting {
             TastingNoteDetailView(
                 note: tasting,
-                onEdit: {
-                    // Handle edit
-                },
                 onDelete: {
                     Task {
                         await viewModel.loadTastings()

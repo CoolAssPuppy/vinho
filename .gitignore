@@ -26,11 +26,17 @@ CLAUDE.local.md
 mcp.json
 .mcp.json
 .turbo/
+scripts/.venv/
 
 # iOS Configuration files with secrets
 Config.local.xcconfig
 *.local.xcconfig
 apps/vinho-ios/Vinho/Config.plist
+
+# Android release files materialized from Doppler
+apps/vinho-android/local.properties
+apps/vinho-android/play-service-account.json
+apps/vinho-android/app/keystore/
 
 # Apple Sign in with Apple keys
 *.p8

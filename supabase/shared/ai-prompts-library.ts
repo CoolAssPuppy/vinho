@@ -4,6 +4,32 @@
  * Keep prompts consistent and maintainable in one place
  */
 
+interface WinePromptData {
+  producer?: string;
+  wine_name?: string;
+  year?: number | null;
+  region?: string | null;
+  country?: string | null;
+  varietals?: string[];
+  producer_website?: string | null;
+  producer_address?: string | null;
+  abv_percent?: number | null;
+}
+
+interface WinePreferences {
+  favorite_regions?: string[];
+  favorite_varietals?: string[];
+  favorite_styles?: string[];
+  price_range?: { low?: number; high?: number };
+}
+
+interface RecentWine {
+  producer: string;
+  wine_name: string;
+  year?: number | null;
+  region?: string | null;
+}
+
 export const AI_PROMPTS = {
   // Wine Label Extraction
   WINE_LABEL_EXTRACTION: {
@@ -53,7 +79,7 @@ Return a JSON object with these fields:
   WINE_DATA_ENRICHMENT: {
     system: "You are a wine expert. Return valid JSON with accurate grape varietals. The varietals field must be an array of strings.",
 
-    user: (data: any) => `You are a wine expert with extensive knowledge of global wine regions, producers, and grape varietals.
+    user: (data: WinePromptData) => `You are a wine expert with extensive knowledge of global wine regions, producers, and grape varietals.
 
 Given this wine information:
 - Producer: ${data.producer}
@@ -61,7 +87,7 @@ Given this wine information:
 - Year: ${data.year || "unknown"}
 - Region: ${data.region || "unknown"}
 - Country: ${data.country || "unknown"}
-- Current varietals: ${data.varietals?.length > 0 ? data.varietals.join(", ") : "none identified"}
+- Current varietals: ${data.varietals?.join(", ") || "none identified"}
 - Website: ${data.producer_website || "unknown"}
 - Address: ${data.producer_address || "unknown"}
 
@@ -134,7 +160,7 @@ Return JSON with:
   WINE_RECOMMENDATIONS: {
     system: "You are a master sommelier with expertise in wine recommendations. Provide personalized suggestions based on user preferences.",
 
-    user: (userPreferences: any, recentWines: any[], city?: string) => `Based on the user's wine preferences and recent tastings, recommend wines available in ${city || 'their area'}.
+    user: (userPreferences: WinePreferences, recentWines: RecentWine[], city?: string) => `Based on the user's wine preferences and recent tastings, recommend wines available in ${city || 'their area'}.
 
 User Preferences:
 - Favorite Regions: ${userPreferences.favorite_regions?.join(', ') || 'Not specified'}
@@ -202,7 +228,7 @@ Return as JSON array of wine objects.`
   WINE_DESCRIPTION: {
     system: "You are a wine writer creating engaging, informative descriptions for wines.",
 
-    user: (wine: any) => `Create an engaging description for this wine:
+    user: (wine: WinePromptData) => `Create an engaging description for this wine:
 
 Wine Details:
 - Producer: ${wine.producer}
@@ -230,10 +256,16 @@ Return as JSON with 'description' field.`
   }
 };
 
+type PromptKey = keyof typeof AI_PROMPTS;
+
+function isPromptKey(value: string): value is PromptKey {
+  return Object.prototype.hasOwnProperty.call(AI_PROMPTS, value);
+}
+
 // Helper function to format prompts for iOS Swift usage
 export function formatForSwift(promptKey: string): string {
-  const prompt = (AI_PROMPTS as any)[promptKey];
-  if (!prompt) return "";
+  if (!isPromptKey(promptKey)) return "";
+  const prompt = AI_PROMPTS[promptKey];
 
   // Convert to Swift-friendly format
   const swiftPrompt = {
@@ -247,20 +279,25 @@ export function formatForSwift(promptKey: string): string {
 }
 
 // Helper function to get prompt with parameters
-export function getPrompt(promptKey: string, params?: any) {
-  const prompt = (AI_PROMPTS as any)[promptKey];
-  if (!prompt) {
+export function getPrompt(promptKey: string, params?: unknown) {
+  if (!isPromptKey(promptKey)) {
     throw new Error(`Prompt ${promptKey} not found`);
   }
+  const prompt = AI_PROMPTS[promptKey];
+  const createUserPrompt = prompt.user as unknown as (value?: unknown) => string;
 
   return {
     system: prompt.system,
-    user: typeof prompt.user === 'function' ? prompt.user(params) : prompt.user
+    user: createUserPrompt(params),
   };
 }
 
 // Export for Deno/Edge functions
 if (typeof Deno !== 'undefined') {
-  (globalThis as any).AI_PROMPTS = AI_PROMPTS;
-  (globalThis as any).getPrompt = getPrompt;
+  const promptGlobals = globalThis as typeof globalThis & {
+    AI_PROMPTS?: typeof AI_PROMPTS;
+    getPrompt?: typeof getPrompt;
+  };
+  promptGlobals.AI_PROMPTS = AI_PROMPTS;
+  promptGlobals.getPrompt = getPrompt;
 }

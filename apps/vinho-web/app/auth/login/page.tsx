@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useState, useRef } from "react";
 import type { ReadonlyURLSearchParams } from "next/navigation";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,13 +15,14 @@ import { HCaptcha, type HCaptchaRef } from "@/components/auth/HCaptcha";
 import { validateEmail, getAuthErrorMessage } from "@/lib/validation/auth";
 import { safeNext } from "@/lib/utils";
 import { AuthPageWrapper } from "@/components/auth/AuthPageWrapper";
+import { useMountEffect } from "@/hooks/use-mount-effect";
 
 function useVerifiedToast(searchParams: ReadonlyURLSearchParams) {
-  useEffect(() => {
+  useMountEffect(() => {
     if (searchParams.get("verified") === "true") {
       toast.success("Email verified! You can now sign in.");
     }
-  }, [searchParams]);
+  });
 }
 
 function LoginForm() {

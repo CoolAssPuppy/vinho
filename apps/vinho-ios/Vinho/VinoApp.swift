@@ -38,6 +38,12 @@ struct VinoApp: App {
                     .task {
                         await authManager.checkSession()
                     }
+                    .onChange(of: authManager.isAuthenticated) { _, isAuthenticated in
+                        guard isAuthenticated else { return }
+                        Task {
+                            await deepLinkHandler.acceptPendingInviteIfNeeded()
+                        }
+                    }
 
                 // Biometric lock overlay
                 if biometricService.isLocked && authManager.isAuthenticated {
