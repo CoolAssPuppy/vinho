@@ -6,7 +6,7 @@
 - [x] Replace stock-looking controls in authentication, home, journal, wine detail, tasting editor, scanner, and profile.
 - [x] Match the iOS wine gradient, gold accents, glass borders, continuous cards, shadows, and pressed states.
 - [x] Verify phone, foldable, and tablet screenshots against iOS.
-- [ ] Run tests, lint, release build, commit, and publish the corrected tester build.
+- [x] Run tests, lint, release build, commit, and publish the corrected tester build.
 
 
 - [x] Match Android colors, typography, spacing, and shapes to iOS
