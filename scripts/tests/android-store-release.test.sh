@@ -32,4 +32,17 @@ grep -q 'releaseStatus.set.*DRAFT' "$APP_GRADLE" || \
 grep -q 'release build cannot be published' "$SYNC_SCRIPT" || \
   fail "Missing signing credentials must produce a clear publishing error."
 
+grep -q 'NEXT_PUBLIC_SUPABASE_URL' "$SYNC_SCRIPT" || \
+  fail "Android config must read Vinho's production Supabase URL key."
+grep -q 'NEXT_PUBLIC_SUPABASE_ANON_KEY' "$SYNC_SCRIPT" || \
+  fail "Android config must read Vinho's production Supabase anon key."
+grep -q 'GOOGLE_MAPS_API_KEY' "$SYNC_SCRIPT" || \
+  fail "Android config must read Vinho's production Google Maps key."
+grep -q 'NEXT_PUBLIC_POSTHOG_KEY' "$SYNC_SCRIPT" || \
+  fail "Android config must read Vinho's production PostHog key."
+grep -q 'NEXT_PUBLIC_POSTHOG_HOST' "$SYNC_SCRIPT" || \
+  fail "Android config must read Vinho's production PostHog host."
+grep -q 'Required Android build secret' "$SYNC_SCRIPT" || \
+  fail "Android config must stop when a required build secret is empty."
+
 printf 'Android store release checks passed.\n'

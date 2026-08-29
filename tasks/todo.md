@@ -7,16 +7,28 @@
 - [x] Configure Vinho Android signing in Doppler
 - [x] Build and test web, iOS, and Android release targets
 - [x] Audit App Store Connect metadata and build state
-- [ ] Create or finish the Google Play app record
-- [ ] Upload verified iOS and Android builds
-- [ ] Complete store metadata, screenshots, declarations, and review submission
-- [ ] Record build numbers, release states, and any store review wait
+- [x] Create or finish the Google Play app record
+- [x] Upload verified iOS and Android builds
+- [x] Complete store metadata, screenshots, declarations, and review submission
+- [x] Record build numbers, release states, and any store review wait
 
 ## Review
 
 Version 1.0.5 build 8 passes web, integration, database, iOS, Android,
 release-build, and mobile-parity checks. The production queue repair and edge
-functions are deployed. Store tester rollout is in progress.
+functions are deployed. The iOS build is available to internal testers.
+
+Android version 1.0.5 code 9 passes tests, lint, and the signed release bundle
+build with zero warnings. It is available to internal testers. The closed Alpha
+release, 176-country distribution, tester lists, store listing, and app-content
+declarations were sent to Google for review on August 29, 2026. Google reports
+that review normally takes up to seven days. The existing Play publishing
+service account has Vinho testing and production release permissions; a live
+Android Publisher API edit-and-delete check passed.
+
+Google's personal developer account rule still requires at least 12 opted-in
+closed testers for 14 continuous days before production access. The two saved
+tester lists currently contain one address each.
 
 ## Backlog
 

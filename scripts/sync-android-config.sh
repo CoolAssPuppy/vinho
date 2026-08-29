@@ -11,8 +11,9 @@
 #   ./scripts/sync-android-config.sh dev        # dev config
 #
 # Doppler is canonical. Required Doppler keys (vinho project):
-#   Build config:  SUPABASE_URL, SUPABASE_ANON_KEY, MAPS_API_KEY,
-#                  POSTHOG_API_KEY, POSTHOG_HOST  (VINHO_API_BASE_URL optional)
+#   Build config:  NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#                  GOOGLE_MAPS_API_KEY, NEXT_PUBLIC_POSTHOG_KEY,
+#                  NEXT_PUBLIC_POSTHOG_HOST  (VINHO_API_BASE_URL optional)
 #   Release signing (for publishing): ANDROID_RELEASE_KEYSTORE_BASE64,
 #                  ANDROID_RELEASE_STORE_PASSWORD, ANDROID_RELEASE_KEY_ALIAS,
 #                  ANDROID_RELEASE_KEY_PASSWORD
@@ -57,18 +58,46 @@ SECRETS_JSON="$(doppler secrets download --no-file --format json \
 
 get() { printf '%s' "$SECRETS_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('$1',''))"; }
 
+get_first() {
+  local key value
+  for key in "$@"; do
+    value="$(get "$key")"
+    if [ -n "$value" ]; then
+      printf '%s' "$value"
+      return 0
+    fi
+  done
+}
+
+require_value() {
+  local label="$1" value="$2"
+  [ -n "$value" ] || die "Required Android build secret is empty: $label"
+}
+
+SUPABASE_URL_VALUE="$(get_first SUPABASE_URL NEXT_PUBLIC_SUPABASE_URL)"
+SUPABASE_ANON_KEY_VALUE="$(get_first SUPABASE_ANON_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY)"
+MAPS_API_KEY_VALUE="$(get_first MAPS_API_KEY GOOGLE_MAPS_API_KEY)"
+POSTHOG_API_KEY_VALUE="$(get_first POSTHOG_API_KEY NEXT_PUBLIC_POSTHOG_KEY)"
+POSTHOG_HOST_VALUE="$(get_first POSTHOG_HOST NEXT_PUBLIC_POSTHOG_HOST)"
+
+require_value "SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL" "$SUPABASE_URL_VALUE"
+require_value "SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY" "$SUPABASE_ANON_KEY_VALUE"
+require_value "MAPS_API_KEY or GOOGLE_MAPS_API_KEY" "$MAPS_API_KEY_VALUE"
+require_value "POSTHOG_API_KEY or NEXT_PUBLIC_POSTHOG_KEY" "$POSTHOG_API_KEY_VALUE"
+require_value "POSTHOG_HOST or NEXT_PUBLIC_POSTHOG_HOST" "$POSTHOG_HOST_VALUE"
+
 # Preserve any machine-local sdk.dir line.
 SDK_DIR_LINE="$(grep -E '^sdk.dir=' "$LOCAL_PROPS" 2>/dev/null || true)"
 
 step "Writing $LOCAL_PROPS"
 {
   [ -n "$SDK_DIR_LINE" ] && echo "$SDK_DIR_LINE"
-  echo "SUPABASE_URL=$(get SUPABASE_URL)"
-  echo "SUPABASE_ANON_KEY=$(get SUPABASE_ANON_KEY)"
+  echo "SUPABASE_URL=$SUPABASE_URL_VALUE"
+  echo "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY_VALUE"
   echo "VINHO_API_BASE_URL=$(get VINHO_API_BASE_URL)"
-  echo "MAPS_API_KEY=$(get MAPS_API_KEY)"
-  echo "POSTHOG_API_KEY=$(get POSTHOG_API_KEY)"
-  echo "POSTHOG_HOST=$(get POSTHOG_HOST)"
+  echo "MAPS_API_KEY=$MAPS_API_KEY_VALUE"
+  echo "POSTHOG_API_KEY=$POSTHOG_API_KEY_VALUE"
+  echo "POSTHOG_HOST=$POSTHOG_HOST_VALUE"
 } > "$LOCAL_PROPS"
 
 # Release keystore + signing (only when present in Doppler).

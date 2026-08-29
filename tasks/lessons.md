@@ -2,6 +2,14 @@
 
 Patterns worth remembering, captured as they come up. Newest first.
 
+## Verify generated mobile release configuration on a device
+
+A signed Android bundle can compile while required runtime values are empty.
+Vinho's release script read older Doppler names, so the first Play build opened
+but could not connect to Supabase. Release checks must compare secret names with
+the active production config, reject empty required values, and sign in to the
+store build on a device or emulator before upload.
+
 ## Verify store state before reporting a release
 
 An uploaded binary, a tester group, and an active tester rollout are separate
