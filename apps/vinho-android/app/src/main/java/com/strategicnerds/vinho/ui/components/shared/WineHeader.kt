@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.strategicnerds.vinho.ui.theme.VinhoTextStyles
 import java.util.Locale
 
 enum class HeaderSize {
@@ -79,7 +80,7 @@ fun WineHeader(
                 style = when (size) {
                     HeaderSize.Small -> MaterialTheme.typography.titleSmall
                     HeaderSize.Medium -> MaterialTheme.typography.titleMedium
-                    HeaderSize.Large -> MaterialTheme.typography.titleLarge
+                    HeaderSize.Large -> VinhoTextStyles.wineTitle
                 },
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,

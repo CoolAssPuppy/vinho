@@ -2,6 +2,9 @@
 
 ## Android product identity
 
+- [x] Bundle the cross-platform Inter family and add the iOS serif treatment to wine titles.
+- [x] Reuse the iOS wine mark in Android brand positions instead of the generic WineBar icon.
+- [x] Add asset and typography parity contracts, then rerun visual and release gates.
 - [x] Add failing contracts for Vinho-specific buttons, fields, glass cards, navigation, tabs, and dialogs.
 - [x] Replace stock-looking controls in authentication, home, journal, wine detail, tasting editor, scanner, and profile.
 - [x] Match the iOS wine gradient, gold accents, glass borders, continuous cards, shadows, and pressed states.

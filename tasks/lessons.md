@@ -2,6 +2,10 @@
 
 Patterns worth remembering, captured as they come up. Newest first.
 
+## Start parity work with an asset and font inventory
+
+The iOS asset catalog, Android resources, and typography definitions must be compared before changing controls. Reusable brand artwork comes first. Apple-only SF families and symbols need explicit licensed equivalents on Android. A parity review is incomplete while Android still uses its default font or a generic Material icon where iOS uses a brand mark.
+
 ## Palette parity can still leave Android looking generic
 
 The first Android parity pass copied the iOS palette and navigation structure but left Material fields, cards, segmented controls, buttons, dialogs, and default interaction states in place. The result still looked like a standard Compose sample. Each Android app needs controls based on its iOS design, including Vinho's wine-red gradient, dark glass cards, gold accents, custom fields, rounded tabs, shadows, and pressed states.

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -50,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -57,9 +59,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.strategicnerds.vinho.R
-import com.strategicnerds.vinho.ui.components.VinhoLogo
 import com.strategicnerds.vinho.ui.components.VinhoDialog
 import com.strategicnerds.vinho.ui.components.VinhoGlassCard
+import com.strategicnerds.vinho.ui.components.VinhoMark
 import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
 import com.strategicnerds.vinho.ui.components.VinhoTextField
 import com.strategicnerds.vinho.ui.state.AuthViewModel
@@ -104,17 +106,13 @@ fun AuthScreen(
         modifier = Modifier
             .widthIn(max = 640.dp)
             .fillMaxHeight()
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            VinhoLogo()
-            Text(
-                text = "Your journal for every wine worth remembering.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
-            )
+            AuthBrandHeader()
 
             VinhoGlassCard(modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
                 Column(
@@ -271,6 +269,51 @@ fun AuthScreen(
             },
             isLoading = state.isLoading,
             error = state.error
+        )
+    }
+}
+
+@Composable
+private fun AuthBrandHeader() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(18.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            VinhoMark(
+                contentDescription = "Vinho wine mark",
+                modifier = Modifier.fillMaxSize(),
+                tint = MaterialTheme.colorScheme.secondary,
+            )
+        }
+        Text(
+            text = "Welcome to Vinho",
+            style = MaterialTheme.typography.displayMedium.copy(
+                brush = Brush.linearGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.onBackground,
+                        MaterialTheme.colorScheme.secondary,
+                    )
+                )
+            ),
+        )
+        Text(
+            text = "Your Personal Wine Journey Awaits",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.76f),
+        )
+        Text(
+            text = "Elevated wines, effortless sign in",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.58f),
         )
     }
 }

@@ -64,6 +64,7 @@ import com.strategicnerds.vinho.ui.components.VinhoDialog
 import com.strategicnerds.vinho.ui.components.VinhoGlassCard
 import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
 import com.strategicnerds.vinho.ui.components.VinhoSecondaryButton
+import com.strategicnerds.vinho.ui.theme.VinhoTextStyles
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -202,8 +203,7 @@ private fun WineHeader(tasting: Tasting) {
 
             Text(
                 text = wine?.name ?: "Unknown Wine",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                style = VinhoTextStyles.wineTitle,
                 color = MaterialTheme.colorScheme.onSurface
             )
 

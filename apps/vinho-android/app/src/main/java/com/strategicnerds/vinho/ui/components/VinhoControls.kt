@@ -122,8 +122,8 @@ fun VinhoSecondaryButton(
 fun VinhoTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String = "",
     modifier: Modifier = Modifier,
+    label: String = "",
     placeholder: String = "",
     leadingIcon: ImageVector? = null,
     trailingContent: (@Composable () -> Unit)? = null,

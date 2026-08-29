@@ -12,6 +12,9 @@ fail() {
   exit 1
 }
 
+grep -Fq 'versionCode = 12' "$APP_GRADLE" || \
+  fail "Android source versionCode must advance beyond the published Play code 11."
+
 grep -q 'android.hardware.camera' "$MANIFEST" || \
   fail "Camera access must declare optional camera hardware."
 grep -q 'android:required="false"' "$MANIFEST" || \
