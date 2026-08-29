@@ -60,6 +60,10 @@ import coil3.compose.AsyncImage
 import com.strategicnerds.vinho.data.model.ExpertRating
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.ui.state.TastingDetailViewModel
+import com.strategicnerds.vinho.ui.components.VinhoDialog
+import com.strategicnerds.vinho.ui.components.VinhoGlassCard
+import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
+import com.strategicnerds.vinho.ui.components.VinhoSecondaryButton
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -147,26 +151,20 @@ fun TastingDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                VinhoSecondaryButton(
+                    text = "Delete",
+                    leadingIcon = Icons.Rounded.Delete,
                     onClick = { showDeleteDialog = true },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(Icons.Rounded.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete")
-                }
+                    isDestructive = true
+                )
 
-                Button(
+                VinhoPrimaryButton(
+                    text = "Edit",
+                    leadingIcon = Icons.Rounded.Edit,
                     onClick = onEdit,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Rounded.Edit, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Edit")
-                }
+                )
             }
         }
     }
@@ -187,14 +185,8 @@ private fun WineHeader(tasting: Tasting) {
     val wine = tasting.vintage?.wine
     val producer = wine?.producer
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             tasting.imageUrl?.let { imageUrl ->
                 AsyncImage(
                     model = imageUrl,
@@ -248,17 +240,9 @@ private fun WineHeader(tasting: Tasting) {
 
 @Composable
 private fun RatingCard(verdict: Int) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -306,15 +290,9 @@ private fun RatingCard(verdict: Int) {
 
 @Composable
 private fun NotesCard(title: String, content: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -342,15 +320,9 @@ private fun TastingInfoCard(tasting: Tasting) {
         }.getOrNull()
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
@@ -423,28 +395,13 @@ private fun DeleteConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Delete Tasting?")
-        },
-        text = {
+    VinhoDialog(
+        title = "Delete Tasting?",
+        onDismiss = onDismiss,
+        confirmText = "Delete",
+        onConfirm = onConfirm,
+        content = {
             Text("This action cannot be undone. Are you sure you want to delete this tasting note?")
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("Delete")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
         }
     )
 }

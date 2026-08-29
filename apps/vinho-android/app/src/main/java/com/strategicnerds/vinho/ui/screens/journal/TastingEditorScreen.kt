@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,6 +70,10 @@ import com.strategicnerds.vinho.core.places.GooglePlacesService
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.TastingLocation
 import com.strategicnerds.vinho.ui.components.PlaceAutocompleteField
+import com.strategicnerds.vinho.ui.components.VinhoGlassCard
+import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
+import com.strategicnerds.vinho.ui.components.VinhoSegmentedControl
+import com.strategicnerds.vinho.ui.components.VinhoTextField
 import com.strategicnerds.vinho.ui.state.TastingEditorViewModel
 import com.strategicnerds.vinho.ui.state.TastingStyle
 import java.time.Instant
@@ -126,6 +131,7 @@ fun TastingEditorScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .widthIn(max = 720.dp)
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
@@ -228,30 +234,12 @@ fun TastingEditorScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
+            VinhoPrimaryButton(
+                text = "Save Tasting",
                 onClick = { viewModel.saveTasting(userId) },
                 enabled = !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                if (state.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text(
-                        text = "Save Tasting",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+                isLoading = state.isSaving
+            )
         }
     }
 
@@ -273,15 +261,9 @@ private fun WineInfoCard(tasting: Tasting?, vintage: com.strategicnerds.vinho.da
     val producer = wine?.producer
 
     if (wine != null) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
+        VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
@@ -323,26 +305,11 @@ private fun TastingStyleSelector(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            TastingStyle.entries.forEachIndexed { index, style ->
-                SegmentedButton(
-                    selected = selectedStyle == style,
-                    onClick = { onStyleSelected(style) },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = TastingStyle.entries.size
-                    )
-                ) {
-                    Text(
-                        text = when (style) {
-                            TastingStyle.CASUAL -> "Casual"
-                            TastingStyle.SOMMELIER -> "Sommelier"
-                            TastingStyle.WINEMAKER -> "Winemaker"
-                        }
-                    )
-                }
-            }
-        }
+        VinhoSegmentedControl(
+            options = listOf("Casual", "Sommelier", "Winemaker"),
+            selectedIndex = TastingStyle.entries.indexOf(selectedStyle),
+            onSelected = { index -> onStyleSelected(TastingStyle.entries[index]) }
+        )
 
         Text(
             text = when (selectedStyle) {
@@ -402,19 +369,14 @@ private fun DateField(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Card(
+        VinhoGlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onDateClick() },
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            shape = RoundedCornerShape(12.dp)
+                .clickable { onDateClick() }
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -481,16 +443,15 @@ private fun SommelierTastingForm(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         StarRating(verdict = verdict, onVerdictChange = onVerdictChange)
 
-        OutlinedTextField(
+        VinhoTextField(
             value = notes,
             onValueChange = onNotesChange,
-            label = { Text("Tasting Notes") },
-            placeholder = { Text("Describe the wine's aromas, flavors, and your impressions...") },
+            label = "Tasting Notes",
+            placeholder = "Describe the wine's aromas, flavors, and your impressions...",
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp),
-            shape = RoundedCornerShape(12.dp),
-            maxLines = 6
+            singleLine = false
         )
 
         DateField(tastedAt = tastedAt, onDateClick = onDateClick)
@@ -528,28 +489,26 @@ private fun WinemakerTastingForm(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         StarRating(verdict = verdict, onVerdictChange = onVerdictChange)
 
-        OutlinedTextField(
+        VinhoTextField(
             value = notes,
             onValueChange = onNotesChange,
-            label = { Text("Tasting Notes") },
-            placeholder = { Text("Aromas, flavors, body, finish...") },
+            label = "Tasting Notes",
+            placeholder = "Aromas, flavors, body, finish...",
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
-            shape = RoundedCornerShape(12.dp),
-            maxLines = 5
+            singleLine = false
         )
 
-        OutlinedTextField(
+        VinhoTextField(
             value = detailedNotes,
             onValueChange = onDetailedNotesChange,
-            label = { Text("Technical Analysis") },
-            placeholder = { Text("Acidity, tannins, oak influence, aging potential, food pairings...") },
+            label = "Technical Analysis",
+            placeholder = "Acidity, tannins, oak influence, aging potential, food pairings...",
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp),
-            shape = RoundedCornerShape(12.dp),
-            maxLines = 7
+            singleLine = false
         )
 
         DateField(tastedAt = tastedAt, onDateClick = onDateClick)

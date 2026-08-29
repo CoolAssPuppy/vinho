@@ -55,6 +55,8 @@ import com.strategicnerds.vinho.data.model.Tasting
 import java.util.Locale
 import com.strategicnerds.vinho.data.model.Wine
 import com.strategicnerds.vinho.ui.state.WineListViewModel
+import com.strategicnerds.vinho.ui.components.VinhoGlassCard
+import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -162,23 +164,20 @@ fun WineDetailScreen(
                 }
 
                 item {
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
                             text = "Your Tastings",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        Button(
+                        VinhoPrimaryButton(
+                            text = "Add Tasting",
+                            leadingIcon = Icons.Rounded.Add,
                             onClick = { state.wine?.let { onAddTasting(it) } }
-                        ) {
-                            Icon(Icons.Rounded.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.size(4.dp))
-                            Text("Add Tasting")
-                        }
+                        )
                     }
                 }
 
@@ -236,16 +235,12 @@ fun WineDetailScreen(
 
 @Composable
 private fun WineHeader(wine: Wine) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .height(164.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
         ) {
             Column(
                 modifier = Modifier
@@ -283,15 +278,9 @@ private fun WineHeader(wine: Wine) {
 private fun ProducerCard(wine: Wine) {
     val producer = wine.producer ?: return
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -348,13 +337,9 @@ private fun WineInformationCard(wine: Wine) {
     )
     if (details.isEmpty()) return
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Wine Details", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -370,13 +355,9 @@ private fun WineInformationCard(wine: Wine) {
 
 @Composable
 private fun FoodPairingsCard(pairings: List<String>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Perfect Pairings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -394,15 +375,9 @@ private fun FoodPairingsCard(pairings: List<String>) {
 
 @Composable
 private fun TastingNotesCard(notes: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -428,17 +403,13 @@ private fun TastingHistoryCard(tasting: Tasting, onClick: () -> Unit) {
         }.getOrNull()
     }
 
-    Card(
+    VinhoGlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp)
+            .clickable { onClick() }
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(

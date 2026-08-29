@@ -2,6 +2,10 @@
 
 Patterns worth remembering, captured as they come up. Newest first.
 
+## Palette parity can still leave Android looking generic
+
+The first Android parity pass copied the iOS palette and navigation structure but left Material fields, cards, segmented controls, buttons, dialogs, and default interaction states in place. The result still looked like a standard Compose sample. Each Android app needs controls based on its iOS design, including Vinho's wine-red gradient, dark glass cards, gold accents, custom fields, rounded tabs, shadows, and pressed states.
+
 ## Feature parity must include visual parity
 
 Matching routes and actions did not make the Android app match iOS. The Android

@@ -109,21 +109,16 @@ fun PlaceAutocompleteField(
     }
 
     Column(modifier = modifier) {
-        OutlinedTextField(
+        VinhoTextField(
             value = text,
             onValueChange = { newValue ->
                 onTextChange(newValue)
                 searchForPlaces(newValue)
             },
-            label = { Text(placeholder) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.LocationOn,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingIcon = {
+            label = "Location",
+            placeholder = placeholder,
+            leadingIcon = Icons.Rounded.LocationOn,
+            trailingContent = {
                 if (text.isNotEmpty()) {
                     IconButton(
                         onClick = {
@@ -141,9 +136,7 @@ fun PlaceAutocompleteField(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            modifier = Modifier.fillMaxWidth()
         )
 
         AnimatedVisibility(
@@ -151,15 +144,10 @@ fun PlaceAutocompleteField(
             enter = fadeIn() + slideInVertically(),
             exit = fadeOut() + slideOutVertically()
         ) {
-            Card(
+            VinhoGlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    .padding(top = 4.dp)
             ) {
                 Column {
                     suggestions.forEachIndexed { index, suggestion ->

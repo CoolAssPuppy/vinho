@@ -1,6 +1,7 @@
 package com.strategicnerds.vinho.ui.screens.journal
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,11 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -21,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Card
@@ -56,6 +60,14 @@ import java.util.Locale
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.WineStats
 import com.strategicnerds.vinho.ui.components.YouMightLikeSection
+import com.strategicnerds.vinho.ui.components.VinhoSegmentedControl
+import com.strategicnerds.vinho.ui.components.VinhoTextField
+import com.strategicnerds.vinho.ui.components.VinhoGlassCard
+import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
+import com.strategicnerds.vinho.ui.theme.VinhoBorder
+import com.strategicnerds.vinho.ui.theme.VinhoPrimary
+import com.strategicnerds.vinho.ui.theme.VinhoSecondary
+import com.strategicnerds.vinho.ui.theme.VinhoSurface
 import com.strategicnerds.vinho.ui.state.HomeUiState
 import com.strategicnerds.vinho.ui.state.SessionUiState
 import com.strategicnerds.vinho.ui.state.SuggestionsUiState
@@ -87,7 +99,8 @@ fun JournalScreen(
     onRefresh: () -> Unit = {},
     onLoadSuggestions: () -> Unit = {},
     onRefreshSuggestions: () -> Unit = {},
-    onSimilarWineClick: (SimilarWine) -> Unit = {}
+    onSimilarWineClick: (SimilarWine) -> Unit = {},
+    onAddTasting: () -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf(TimeFilter.ALL) }
@@ -108,47 +121,22 @@ fun JournalScreen(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .widthIn(max = 720.dp)
+                .fillMaxHeight()
+                .align(Alignment.TopCenter)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = 16.dp)
         ) {
             // Tab selector
-            SingleChoiceSegmentedButtonRow(
+            VinhoSegmentedControl(
+                options = listOf("Tastings", "Suggestions"),
+                selectedIndex = selectedTab,
+                onSelected = { selectedTab = it },
+                icons = listOf(Icons.AutoMirrored.Rounded.MenuBook, Icons.Rounded.AutoAwesome),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 12.dp)
-            ) {
-                SegmentedButton(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    colors = vinhoSegmentedButtonColors(),
-                    icon = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.MenuBook,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                ) {
-                    Text("Tastings")
-                }
-                SegmentedButton(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    colors = vinhoSegmentedButtonColors(),
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                ) {
-                    Text("Suggestions")
-                }
-            }
+            )
 
             when (selectedTab) {
                 0 -> TastingsTab(
@@ -162,7 +150,8 @@ fun JournalScreen(
                     stats = state.stats,
                     groupedTastings = groupedTastings,
                     isLoading = state.isLoading,
-                    onTastingClick = onTastingClick
+                    onTastingClick = onTastingClick,
+                    onAddTasting = onAddTasting
                 )
                 1 -> SuggestionsTab(
                     suggestionsState = suggestionsState,
@@ -177,16 +166,6 @@ fun JournalScreen(
 }
 
 @Composable
-private fun vinhoSegmentedButtonColors() = SegmentedButtonDefaults.colors(
-    activeContainerColor = MaterialTheme.colorScheme.primary,
-    activeContentColor = MaterialTheme.colorScheme.onPrimary,
-    activeBorderColor = MaterialTheme.colorScheme.primary,
-    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    inactiveBorderColor = MaterialTheme.colorScheme.outline
-)
-
-@Composable
 private fun TastingsTab(
     query: String,
     onQueryChange: (String) -> Unit,
@@ -195,19 +174,18 @@ private fun TastingsTab(
     stats: WineStats?,
     groupedTastings: Map<String, List<Tasting>>,
     isLoading: Boolean,
-    onTastingClick: (Tasting) -> Unit
+    onTastingClick: (Tasting) -> Unit,
+    onAddTasting: () -> Unit
 ) {
     Column {
-        OutlinedTextField(
+        VinhoTextField(
             value = query,
             onValueChange = onQueryChange,
-            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-            label = { Text("Search tastings") },
+            leadingIcon = Icons.Rounded.Search,
+            placeholder = "Search for anything",
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp),
-            shape = RoundedCornerShape(16.dp),
-            singleLine = true
         )
 
         TimeFilterChips(
@@ -222,7 +200,7 @@ private fun TastingsTab(
         Spacer(modifier = Modifier.height(12.dp))
 
         if (groupedTastings.isEmpty() && !isLoading) {
-            EmptyState()
+            EmptyState(onAddTasting = onAddTasting, modifier = Modifier.weight(1f))
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -277,20 +255,23 @@ private fun TimeFilterChips(
         modifier = Modifier.fillMaxWidth()
     ) {
         items(TimeFilter.entries.toList()) { filter ->
-            FilterChip(
-                selected = filter == selectedFilter,
-                onClick = { onFilterSelected(filter) },
-                label = {
-                    Text(
-                        text = filter.label,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+            val isSelected = filter == selectedFilter
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (isSelected) VinhoPrimary else VinhoSurface)
+                    .border(1.dp, if (isSelected) VinhoSecondary.copy(alpha = 0.45f) else VinhoBorder, RoundedCornerShape(14.dp))
+                    .clickable { onFilterSelected(filter) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = filter.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
                 )
-            )
+            }
         }
     }
 }
@@ -307,9 +288,12 @@ private fun DateHeader(label: String) {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(
+    onAddTasting: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -323,14 +307,20 @@ private fun EmptyState() {
                 tint = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "No tastings yet",
+                text = "No Tasting Notes Yet",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "Scan a wine label to get started",
+                text = "Start your wine journey by adding your first tasting note",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            VinhoPrimaryButton(
+                text = "Add First Note",
+                leadingIcon = Icons.Rounded.Add,
+                onClick = onAddTasting,
+                modifier = Modifier.width(220.dp)
             )
         }
     }
@@ -371,12 +361,8 @@ private fun StatPill(
     subtitle: String,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+    VinhoGlassCard(modifier = modifier) {
+        Column {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelLarge,
@@ -409,16 +395,13 @@ private fun TastingCard(tasting: Tasting, onClick: () -> Unit) {
         }.getOrNull()
     }
 
-    Card(
+    VinhoGlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top
         ) {
             if (imageUrl != null) {

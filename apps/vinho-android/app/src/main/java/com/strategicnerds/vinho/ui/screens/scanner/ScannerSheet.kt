@@ -80,6 +80,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.strategicnerds.vinho.ui.state.ProcessingStatus
 import com.strategicnerds.vinho.ui.state.ScannerStep
 import com.strategicnerds.vinho.ui.state.ScannerUiState
+import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.concurrent.Executors
@@ -575,21 +576,12 @@ private fun ScanResultScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // Add tasting notes button
-            Button(
+            VinhoPrimaryButton(
+                text = "Add Tasting Notes",
                 onClick = onAddTastingNotes,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
                 enabled = state.processingStatus == ProcessingStatus.COMPLETED ||
-                        state.processingStatus == ProcessingStatus.PROCESSING,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(
-                    text = "Add Tasting Notes",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                        state.processingStatus == ProcessingStatus.PROCESSING
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -641,12 +633,11 @@ private fun PermissionDeniedScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
+            VinhoPrimaryButton(
+                text = "Grant Camera Access",
                 onClick = onRequestPermission,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Grant Camera Access")
-            }
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 

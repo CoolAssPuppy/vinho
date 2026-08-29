@@ -57,6 +57,9 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.strategicnerds.vinho.data.model.WineStats
 import com.strategicnerds.vinho.ui.state.SessionUiState
+import com.strategicnerds.vinho.ui.components.VinhoGlassCard
+import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
+import com.strategicnerds.vinho.ui.components.VinhoSecondaryButton
 
 @Composable
 fun ProfileSheet(
@@ -130,15 +133,9 @@ fun ProfileSheet(
 
 @Composable
 private fun ProfileStats(stats: WineStats?) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             ProfileStat(stats?.uniqueWines ?: 0, "Unique Wines")
@@ -161,13 +158,9 @@ private fun ProfileHeader(
     sessionState: SessionUiState,
     onEditClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(20.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
@@ -231,15 +224,12 @@ private fun ProfileHeader(
                 }
             }
 
-            Button(
+            VinhoPrimaryButton(
+                text = "Edit Profile",
+                leadingIcon = Icons.Rounded.Edit,
                 onClick = onEditClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Rounded.Edit, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Edit Profile")
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -258,11 +248,7 @@ private fun SettingsSection(
     onTerms: () -> Unit = {},
     onPrivacy: () -> Unit = {}
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp)
-    ) {
+    VinhoGlassCard(modifier = Modifier.fillMaxWidth()) {
         Column {
             SettingsRow(
                 icon = Icons.Rounded.Fingerprint,
@@ -460,37 +446,20 @@ private fun ActionButtons(
     onDeleteAccount: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(
+        VinhoSecondaryButton(
+            text = "Sign Out",
+            leadingIcon = Icons.AutoMirrored.Rounded.Logout,
             onClick = onSignOut,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
-        ) {
-            Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Sign Out", fontWeight = FontWeight.Medium)
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        Button(
+        VinhoSecondaryButton(
+            text = "Delete Account",
+            leadingIcon = Icons.Rounded.Delete,
             onClick = onDeleteAccount,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Icon(Icons.Rounded.Delete, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Delete Account", fontWeight = FontWeight.Medium)
-        }
+            modifier = Modifier.fillMaxWidth(),
+            isDestructive = true
+        )
     }
 }
 

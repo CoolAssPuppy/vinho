@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,16 +33,10 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +58,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.strategicnerds.vinho.R
 import com.strategicnerds.vinho.ui.components.VinhoLogo
+import com.strategicnerds.vinho.ui.components.VinhoDialog
+import com.strategicnerds.vinho.ui.components.VinhoGlassCard
+import com.strategicnerds.vinho.ui.components.VinhoPrimaryButton
+import com.strategicnerds.vinho.ui.components.VinhoTextField
 import com.strategicnerds.vinho.ui.state.AuthViewModel
 import com.strategicnerds.vinho.ui.state.AuthUiState
 import io.github.jan.supabase.auth.providers.Google
@@ -94,10 +94,16 @@ fun AuthScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.TopCenter
+    ) {
+    Column(
+        modifier = Modifier
+            .widthIn(max = 640.dp)
+            .fillMaxHeight()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.SpaceBetween
@@ -110,40 +116,33 @@ fun AuthScreen(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
             )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-            ) {
+            VinhoGlassCard(modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (isSignUp) {
-                        OutlinedTextField(
+                        VinhoTextField(
                             value = fullName,
                             onValueChange = { fullName = it },
-                            leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
-                            label = { Text("Full name") },
+                            leadingIcon = Icons.Rounded.Person,
+                            label = "Full name",
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
                         )
                     }
-                    OutlinedTextField(
+                    VinhoTextField(
                         value = email,
                         onValueChange = { email = it },
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                        label = { Text("Email") },
+                        leadingIcon = Icons.Default.Email,
+                        label = "Email",
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Email),
-                        singleLine = true
                     )
-                    OutlinedTextField(
+                    VinhoTextField(
                         value = password,
                         onValueChange = { password = it },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        trailingIcon = {
+                        leadingIcon = Icons.Default.Lock,
+                        trailingContent = {
                             IconButton(onClick = { showPassword = !showPassword }) {
                                 Icon(
                                     imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -151,10 +150,9 @@ fun AuthScreen(
                                 )
                             }
                         },
-                        label = { Text("Password") },
+                        label = "Password",
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        singleLine = true
                     )
 
                     AnimatedVisibility(
@@ -187,7 +185,8 @@ fun AuthScreen(
                         }
                     }
 
-                    Button(
+                    VinhoPrimaryButton(
+                        text = if (isSignUp) "Create account" else "Sign in",
                         onClick = {
                             if (isSignUp) {
                                 viewModel.signUp(email.trim(), password.trim(), fullName.trim())
@@ -197,10 +196,9 @@ fun AuthScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isLoading && email.isNotBlank() && password.isNotBlank() &&
-                                (!isSignUp || isPasswordValid(password))
-                    ) {
-                        Text(if (isSignUp) "Create account" else "Sign in")
-                    }
+                                (!isSignUp || isPasswordValid(password)),
+                        isLoading = state.isLoading
+                    )
                     if (state.error != null) {
                         Text(
                             text = state.error,
@@ -260,6 +258,7 @@ fun AuthScreen(
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
+    }
     }
 
     if (showForgotPasswordDialog) {
@@ -378,30 +377,26 @@ private fun ForgotPasswordDialog(
     isLoading: Boolean,
     error: String?
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Reset Password",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
+    VinhoDialog(
+        title = "Reset Password",
+        onDismiss = onDismiss,
+        confirmText = "Send reset link",
+        onConfirm = onSubmit,
+        confirmEnabled = !isLoading && email.isNotBlank(),
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "Enter your email address and we'll send you a link to reset your password.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
-                OutlinedTextField(
+                VinhoTextField(
                     value = email,
                     onValueChange = onEmailChange,
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                    label = { Text("Email") },
+                    leadingIcon = Icons.Default.Email,
+                    label = "Email",
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true
                 )
                 if (error != null) {
                     Text(
@@ -410,19 +405,6 @@ private fun ForgotPasswordDialog(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onSubmit,
-                enabled = !isLoading && email.isNotBlank()
-            ) {
-                Text("Send Reset Link")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
             }
         }
     )

@@ -46,6 +46,7 @@ import coil3.compose.AsyncImage
 import com.strategicnerds.vinho.core.places.GooglePlacesService
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.ui.components.VinhoLogo
+import com.strategicnerds.vinho.ui.components.VinhoNavigationDock
 import com.strategicnerds.vinho.ui.screens.journal.JournalScreen
 import com.strategicnerds.vinho.ui.screens.journal.TastingDetailScreen
 import com.strategicnerds.vinho.ui.screens.journal.TastingEditorScreen
@@ -147,7 +148,11 @@ fun HomeScreen(
                         onRefreshSuggestions = {
                             suggestionsViewModel.refresh()
                         },
-                        onSimilarWineClick = { similar -> selectedWineId = similar.wineId }
+                        onSimilarWineClick = { similar -> selectedWineId = similar.wineId },
+                        onAddTasting = {
+                            editingTasting = null
+                            showTastingEditor = true
+                        }
                     )
 
                     else -> MapScreen(
@@ -492,19 +497,14 @@ private fun VinhoFloatingNavigation(
     onTabSelected: (Int) -> Unit,
     onScanTapped: () -> Unit
 ) {
-    Surface(
+    VinhoNavigationDock(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .shadow(20.dp, RoundedCornerShape(percent = 50)),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-        shape = RoundedCornerShape(percent = 50),
-        tonalElevation = 0.dp
-    ) {
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        content = {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp, vertical = 8.dp),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomBarIcon(
@@ -538,7 +538,8 @@ private fun VinhoFloatingNavigation(
                 onClick = { onTabSelected(1) }
             )
         }
-    }
+        }
+    )
 }
 
 @Composable
