@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Map
-import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -33,11 +35,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.strategicnerds.vinho.VinhoGradient
+import coil3.compose.AsyncImage
 import com.strategicnerds.vinho.core.places.GooglePlacesService
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.ui.components.VinhoLogo
@@ -108,7 +113,7 @@ fun HomeScreen(
                 )
             },
             bottomBar = {
-                VinhoBottomBar(
+                VinhoFloatingNavigation(
                     selectedTab = selectedTab,
                     onTabSelected = { selectedTab = it },
                     onScanTapped = { showScanner = true }
@@ -435,72 +440,100 @@ private fun HomeTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val avatarUrl = sessionState.userProfile?.avatarUrl
+        val initial = sessionState.userProfile?.fullName?.firstOrNull()?.uppercase()
+            ?: sessionState.userProfile?.email?.firstOrNull()?.uppercase() ?: "V"
+
         Box(
             modifier = Modifier
+                .size(32.dp)
                 .clip(CircleShape)
-                .background(VinhoGradient)
                 .clickable { onProfileTapped() }
-                .padding(12.dp),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            val initial = sessionState.userProfile?.fullName?.firstOrNull()?.uppercase()
-                ?: sessionState.userProfile?.email?.firstOrNull()?.uppercase() ?: "V"
-            Text(
-                text = initial.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
+            if (!avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = "Profile",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = initial.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         }
         Spacer(modifier = Modifier.weight(1f))
         VinhoLogo()
         Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.size(32.dp))
     }
 }
 
 @Composable
-private fun VinhoBottomBar(
+private fun VinhoFloatingNavigation(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
     onScanTapped: () -> Unit
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(20.dp, RoundedCornerShape(percent = 50)),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shape = RoundedCornerShape(percent = 50),
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp, vertical = 10.dp),
+                .padding(horizontal = 32.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomBarIcon(
-                icon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = "Journal") },
-                label = "Journal",
+                icon = Icons.AutoMirrored.Rounded.MenuBook,
+                contentDescription = "Journal",
                 isSelected = selectedTab == 0,
                 onClick = { onTabSelected(0) }
             )
             Spacer(modifier = Modifier.weight(1f))
             Box(
                 modifier = Modifier
+                    .size(56.dp)
+                    .shadow(10.dp, CircleShape)
                     .clip(CircleShape)
-                    .background(VinhoGradient)
+                    .background(MaterialTheme.colorScheme.primary)
                     .clickable { onScanTapped() }
-                    .padding(14.dp)
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "\uD83D\uDCF7",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
+                Icon(
+                    imageVector = Icons.Rounded.PhotoCamera,
+                    contentDescription = "Scan wine label",
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
             BottomBarIcon(
-                icon = { Icon(Icons.Rounded.Map, contentDescription = "Map") },
-                label = "Map",
+                icon = Icons.Rounded.Map,
+                contentDescription = "Map",
                 isSelected = selectedTab == 1,
                 onClick = { onTabSelected(1) }
             )
@@ -510,25 +543,27 @@ private fun VinhoBottomBar(
 
 @Composable
 private fun BottomBarIcon(
-    icon: @Composable () -> Unit,
-    label: String,
+    icon: ImageVector,
+    contentDescription: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .size(44.dp)
+            .clip(CircleShape)
             .clickable { onClick() }
-            .padding(vertical = 6.dp, horizontal = 10.dp)
+            .padding(10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        icon()
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(
-                alpha = 0.6f
-            )
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (isSelected) {
+                MaterialTheme.colorScheme.secondary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     }
 }

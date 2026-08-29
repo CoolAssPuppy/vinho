@@ -65,7 +65,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.strategicnerds.vinho.VinhoGradient
 import com.strategicnerds.vinho.core.places.GooglePlacesService
 import com.strategicnerds.vinho.data.model.Tasting
 import com.strategicnerds.vinho.data.model.TastingLocation

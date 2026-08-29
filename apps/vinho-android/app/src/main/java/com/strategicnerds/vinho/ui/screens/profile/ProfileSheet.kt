@@ -48,7 +48,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -194,14 +193,7 @@ private fun ProfileHeader(
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFFFF7B4D),
-                                        Color(0xFFB24DC7)
-                                    )
-                                )
-                            ),
+                            .background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

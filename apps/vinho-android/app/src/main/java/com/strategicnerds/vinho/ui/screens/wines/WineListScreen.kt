@@ -47,7 +47,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -241,14 +240,7 @@ private fun WineGridCard(wine: Wine, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF4A1C2F),
-                                Color(0xFF2D1620)
-                            )
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
 
             Column(
@@ -310,14 +302,7 @@ private fun WineListCard(wine: Wine, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(60.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF4A1C2F),
-                                Color(0xFF2D1620)
-                            )
-                        )
-                    ),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

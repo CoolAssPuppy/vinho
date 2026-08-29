@@ -42,7 +42,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -246,14 +245,7 @@ private fun WineHeader(wine: Wine) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF4A1C2F),
-                            Color(0xFF2D1620)
-                        )
-                    )
-                )
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier

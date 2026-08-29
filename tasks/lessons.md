@@ -2,6 +2,14 @@
 
 Patterns worth remembering, captured as they come up. Newest first.
 
+## Feature parity must include visual parity
+
+Matching routes and actions did not make the Android app match iOS. The Android
+release used a different palette, larger controls, labeled bottom navigation, a
+camera emoji, and unrelated gradients. Mobile parity checks must cover brand
+colors, navigation structure, icons, empty states, spacing, and screenshots on
+both platforms before a store release.
+
 ## Verify generated mobile release configuration on a device
 
 A signed Android bundle can compile while required runtime values are empty.

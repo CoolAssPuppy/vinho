@@ -1,3 +1,25 @@
+# Android visual parity repair
+
+- [x] Match Android colors, typography, spacing, and shapes to iOS
+- [x] Replace the Android header and bottom navigation with the iOS layout
+- [x] Replace the camera emoji and restore meaningful empty-state icons
+- [x] Match the Android launcher icon to the iOS app icon
+- [x] Remove unrelated orange-purple gradients
+- [x] Run parity tests, Android tests, lint, build, and emulator review
+- [x] Capture revised Android screenshots and commit the repair
+
+## Android visual parity review
+
+Android 1.0.5 code 10 now uses the iOS wine-red, gold, dark background,
+card, elevated-card, text, border, success, warning, and error colors. The home
+header uses the saved profile photo or a compact fallback. The bottom navigation
+is an icon-only floating capsule with a real camera icon. The launcher and store
+icons use the iOS wine-glass mark. Unrelated orange-purple gradients and remote
+Google fonts were removed. The visual contract, mobile parity contract, store
+release contract, behavior tests, lint, and signed release bundle all pass with
+zero warnings. The revised journal and map screens were checked on a Pixel 9 Pro
+XL emulator and saved as Play listing screenshots.
+
 # Vinho store release
 
 - [x] Read repository and release instructions

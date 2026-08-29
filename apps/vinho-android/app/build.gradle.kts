@@ -39,7 +39,7 @@ android {
         applicationId = "com.strategicnerds.vinho"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
+        versionCode = 10
         versionName = "1.0.5"
 
         buildConfigField("String", "SUPABASE_URL", "\"${localSecret("SUPABASE_URL")}\"")
@@ -147,7 +147,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.6")
     implementation("androidx.fragment:fragment-ktx:1.8.5")
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")

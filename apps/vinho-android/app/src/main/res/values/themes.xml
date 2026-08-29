@@ -1,6 +1,10 @@
 <resources>
-    <style name="Theme.Vinho" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Vinho.Base" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/vinho_dark</item>
+        <item name="android:windowBackground">@color/vinho_dark</item>
     </style>
+
+    <style name="Theme.Vinho" parent="Theme.Vinho.Base" />
 </resources>

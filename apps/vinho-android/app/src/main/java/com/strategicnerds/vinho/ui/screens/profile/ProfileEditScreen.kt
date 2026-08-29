@@ -50,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -237,14 +236,7 @@ private fun AvatarSection(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFFF7B4D),
-                                Color(0xFFB24DC7)
-                            )
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.primary)
                     .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape),
                 contentAlignment = Alignment.Center
             ) {

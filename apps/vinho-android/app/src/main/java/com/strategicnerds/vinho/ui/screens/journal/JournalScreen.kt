@@ -45,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -123,6 +122,7 @@ fun JournalScreen(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    colors = vinhoSegmentedButtonColors(),
                     icon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.MenuBook,
@@ -137,6 +137,7 @@ fun JournalScreen(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    colors = vinhoSegmentedButtonColors(),
                     icon = {
                         Icon(
                             imageVector = Icons.Rounded.AutoAwesome,
@@ -174,6 +175,16 @@ fun JournalScreen(
         }
     }
 }
+
+@Composable
+private fun vinhoSegmentedButtonColors() = SegmentedButtonDefaults.colors(
+    activeContainerColor = MaterialTheme.colorScheme.primary,
+    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+    activeBorderColor = MaterialTheme.colorScheme.primary,
+    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    inactiveBorderColor = MaterialTheme.colorScheme.outline
+)
 
 @Composable
 private fun TastingsTab(
@@ -305,15 +316,21 @@ private fun EmptyState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.MenuBook,
+                contentDescription = null,
+                modifier = Modifier.size(44.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
             Text(
                 text = "No tastings yet",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "Scan a wine label to get started",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -419,14 +436,7 @@ private fun TastingCard(tasting: Tasting, onClick: () -> Unit) {
                     modifier = Modifier
                         .size(80.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFF722F37),
-                                    Color(0xFF8B4553)
-                                )
-                            )
-                        ),
+                        .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
