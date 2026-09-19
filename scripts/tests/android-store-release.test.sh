@@ -12,8 +12,13 @@ fail() {
   exit 1
 }
 
-grep -Fq 'versionCode = 12' "$APP_GRADLE" || \
-  fail "Android source versionCode must advance beyond the published Play code 11."
+# Highest versionCode already uploaded to Play. Raise this when a release ships.
+PUBLISHED_PLAY_CODE=13
+
+SOURCE_CODE="$(grep -E '^[[:space:]]*versionCode[[:space:]]*=' "$APP_GRADLE" | grep -oE '[0-9]+' | head -1)"
+[ -n "$SOURCE_CODE" ] || fail "Could not read versionCode from $APP_GRADLE."
+[ "$SOURCE_CODE" -ge "$PUBLISHED_PLAY_CODE" ] || \
+  fail "Android source versionCode $SOURCE_CODE must not fall behind the published Play code $PUBLISHED_PLAY_CODE."
 
 grep -q 'android.hardware.camera' "$MANIFEST" || \
   fail "Camera access must declare optional camera hardware."
